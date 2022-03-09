@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -179,7 +179,7 @@ struct FeatureMatcherData {
 // Cache for feature matching to minimize database access during matching.
 class FeatureMatcherCache {
  public:
-  FeatureMatcherCache(const size_t cache_size, const Database* database);
+  FeatureMatcherCache(const size_t cache_size, IDatabase* database);
 
   void Setup();
 
@@ -206,7 +206,7 @@ class FeatureMatcherCache {
 
  private:
   const size_t cache_size_;
-  const Database* database_;
+  IDatabase* database_;
   std::mutex database_mutex_;
   EIGEN_STL_UMAP(camera_t, Camera) cameras_cache_;
   EIGEN_STL_UMAP(image_t, Image) images_cache_;
@@ -343,7 +343,7 @@ class TwoViewGeometryVerifier : public Thread {
 // database should be in an active transaction while calling `Match`.
 class SiftFeatureMatcher {
  public:
-  SiftFeatureMatcher(const SiftMatchingOptions& options, Database* database,
+  SiftFeatureMatcher(const SiftMatchingOptions& options, IDatabase* database,
                      FeatureMatcherCache* cache);
 
   ~SiftFeatureMatcher();
@@ -356,7 +356,7 @@ class SiftFeatureMatcher {
 
  private:
   SiftMatchingOptions options_;
-  Database* database_;
+  IDatabase* database_;
   FeatureMatcherCache* cache_;
 
   bool is_setup_;
@@ -401,12 +401,15 @@ class ExhaustiveFeatureMatcher : public Thread {
                            const SiftMatchingOptions& match_options,
                            const std::string& database_path);
 
+  ExhaustiveFeatureMatcher(const ExhaustiveMatchingOptions& options,
+                           const SiftMatchingOptions& match_options,
+                           MemoryDatabase* memory_database);
  private:
   void Run() override;
 
   const ExhaustiveMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
+  IDatabase* database_;
   FeatureMatcherCache cache_;
   SiftFeatureMatcher matcher_;
 };

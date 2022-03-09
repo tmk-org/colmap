@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -1487,8 +1487,8 @@ size_t Reconstruction::FilterPoints3DWithLargeReprojectionError(
     class Point3D& point3D = Point3D(point3D_id);
 
     if (point3D.Track().Length() < 2) {
-      num_filtered += point3D.Track().Length();
       DeletePoint3D(point3D_id);
+      num_filtered += point3D.Track().Length();
       continue;
     }
 
@@ -1876,7 +1876,6 @@ void Reconstruction::WriteCamerasText(const std::string& path) const {
 
   for (const auto& camera : cameras_) {
     std::ostringstream line;
-    line.precision(17);
 
     line << camera.first << " ";
     line << camera.second.ModelName() << " ";
@@ -1916,8 +1915,6 @@ void Reconstruction::WriteImagesText(const std::string& path) const {
     }
 
     std::ostringstream line;
-    line.precision(17);
-
     std::string line_string;
 
     line << image.first << " ";
@@ -1984,7 +1981,6 @@ void Reconstruction::WritePoints3DText(const std::string& path) const {
     file << point3D.second.Error() << " ";
 
     std::ostringstream line;
-    line.precision(17);
 
     for (const auto& track_el : point3D.second.Track().Elements()) {
       line << track_el.image_id << " ";
@@ -2101,7 +2097,7 @@ void Reconstruction::SetObservationAsTriangulated(
     if (point2D.Point3DId() == corr_point2D.Point3DId() &&
         (is_continued_point3D || image_id < corr.image_id)) {
       const image_pair_t pair_id =
-          Database::ImagePairToPairId(image_id, corr.image_id);
+          ImagePairToPairId(image_id, corr.image_id);
       image_pair_stats_[pair_id].num_tri_corrs += 1;
       CHECK_LE(image_pair_stats_[pair_id].num_tri_corrs,
                image_pair_stats_[pair_id].num_total_corrs)
@@ -2135,7 +2131,7 @@ void Reconstruction::ResetTriObservations(const image_t image_id,
     if (point2D.Point3DId() == corr_point2D.Point3DId() &&
         (!is_deleted_point3D || image_id < corr.image_id)) {
       const image_pair_t pair_id =
-          Database::ImagePairToPairId(image_id, corr.image_id);
+          ImagePairToPairId(image_id, corr.image_id);
       image_pair_stats_[pair_id].num_tri_corrs -= 1;
       CHECK_GE(image_pair_stats_[pair_id].num_tri_corrs, 0)
           << "The scene graph graph must not contain duplicate matches";

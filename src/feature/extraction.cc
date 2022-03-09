@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -86,8 +86,8 @@ SiftFeatureExtractor::SiftFeatureExtractor(
     const SiftExtractionOptions& sift_options)
     : reader_options_(reader_options),
       sift_options_(sift_options),
-      database_(reader_options_.database_path),
-      image_reader_(reader_options_, &database_) {
+      database_(new Database(reader_options_.database_path)),
+      image_reader_(reader_options_, database_) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
@@ -168,7 +168,7 @@ SiftFeatureExtractor::SiftFeatureExtractor(
   }
 
   writer_.reset(new internal::FeatureWriterThread(
-      image_reader_.NumImages(), &database_, writer_queue_.get()));
+      image_reader_.NumImages(), database_, writer_queue_.get()));
 }
 
 void SiftFeatureExtractor::Run() {
@@ -426,7 +426,7 @@ void SiftFeatureExtractorThread::Run() {
 }
 
 FeatureWriterThread::FeatureWriterThread(const size_t num_images,
-                                         Database* database,
+                                         IDatabase* database,
                                          JobQueue<ImageData>* input_queue)
     : num_images_(num_images), database_(database), input_queue_(input_queue) {}
 

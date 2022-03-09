@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -180,7 +180,7 @@ point2D_t CorrespondenceGraph::NumCorrespondencesForImage(
 point2D_t CorrespondenceGraph::NumCorrespondencesBetweenImages(
     const image_t image_id1, const image_t image_id2) const {
   const image_pair_t pair_id =
-      Database::ImagePairToPairId(image_id1, image_id2);
+      ImagePairToPairId(image_id1, image_id2);
   const auto it = image_pairs_.find(pair_id);
   if (it == image_pairs_.end()) {
     return 0;
