@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -213,7 +213,7 @@ bool ImagePairsMatchingOptions::Check() const {
 bool FeaturePairsMatchingOptions::Check() const { return true; }
 
 FeatureMatcherCache::FeatureMatcherCache(const size_t cache_size,
-                                         const Database* database)
+                                         IDatabase* database)
     : cache_size_(cache_size), database_(database) {
   CHECK_NOTNULL(database_);
 }
@@ -611,7 +611,6 @@ TwoViewGeometryVerifier::TwoViewGeometryVerifier(
       static_cast<size_t>(options_.max_num_trials);
   two_view_geometry_options_.ransac_options.min_inlier_ratio =
       options_.min_inlier_ratio;
-  two_view_geometry_options_.force_H_use = options_.planar_scene;
 }
 
 void TwoViewGeometryVerifier::Run() {
@@ -654,7 +653,7 @@ void TwoViewGeometryVerifier::Run() {
 }
 
 SiftFeatureMatcher::SiftFeatureMatcher(const SiftMatchingOptions& options,
-                                       Database* database,
+                                       IDatabase* database,
                                        FeatureMatcherCache* cache)
     : options_(options), database_(database), cache_(cache), is_setup_(false) {
   CHECK(options_.Check());
@@ -810,7 +809,7 @@ void SiftFeatureMatcher::Match(
   image_pair_ids.reserve(image_pairs.size());
 
   size_t num_outputs = 0;
-  for (const auto& image_pair : image_pairs) {
+  for (const auto image_pair : image_pairs) {
     // Avoid self-matches.
     if (image_pair.first == image_pair.second) {
       continue;
@@ -818,7 +817,7 @@ void SiftFeatureMatcher::Match(
 
     // Avoid duplicate image pairs.
     const image_pair_t pair_id =
-        Database::ImagePairToPairId(image_pair.first, image_pair.second);
+        ImagePairToPairId(image_pair.first, image_pair.second);
     if (image_pair_ids.count(pair_id) > 0) {
       continue;
     }
@@ -889,9 +888,21 @@ ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(5 * options_.block_size, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(new Database(database_path)),
+      cache_(5 * options_.block_size, database_),
+      matcher_(match_options, database_, &cache_) {
+  CHECK(options_.Check());
+  CHECK(match_options_.Check());
+}
+
+ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(
+    const ExhaustiveMatchingOptions& options,
+    const SiftMatchingOptions& match_options, MemoryDatabase* memory_database)
+    : options_(options),
+      match_options_(match_options),
+      database_(memory_database),
+      cache_(5 * options_.block_size, database_),
+      matcher_(match_options, database_, &cache_) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -950,7 +961,7 @@ void ExhaustiveFeatureMatcher::Run() {
         }
       }
 
-      DatabaseTransaction database_transaction(&database_);
+      DatabaseTransaction database_transaction(database_);
       matcher_.Match(image_pairs);
 
       PrintElapsedTime(timer);
@@ -1416,7 +1427,7 @@ void TransitiveFeatureMatcher::Run() {
         if (adjacency.count(image_id2) > 0) {
           for (const auto& image_id3 : adjacency.at(image_id2)) {
             const auto image_pair_id =
-                Database::ImagePairToPairId(image_id1, image_id3);
+                ImagePairToPairId(image_id1, image_id3);
             if (image_pair_ids.count(image_pair_id) == 0) {
               image_pairs.emplace_back(image_id1, image_id3);
               image_pair_ids.insert(image_pair_id);
@@ -1520,7 +1531,7 @@ void ImagePairsFeatureMatcher::Run() {
     const image_t image_id1 = image_name_to_image_id.at(image_name1);
     const image_t image_id2 = image_name_to_image_id.at(image_name2);
     const image_pair_t image_pair =
-        Database::ImagePairToPairId(image_id1, image_id2);
+        ImagePairToPairId(image_id1, image_id2);
     const bool image_pair_exists = image_pairs_set.insert(image_pair).second;
     if (image_pair_exists) {
       image_pairs.emplace_back(image_id1, image_id2);

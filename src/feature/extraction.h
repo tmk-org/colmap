@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ class SiftFeatureExtractor : public Thread {
   const ImageReaderOptions reader_options_;
   const SiftExtractionOptions sift_options_;
 
-  Database database_;
+  IDatabase* database_;
   ImageReader image_reader_;
 
   std::vector<std::unique_ptr<Thread>> resizers_;
@@ -137,14 +137,14 @@ class SiftFeatureExtractorThread : public Thread {
 
 class FeatureWriterThread : public Thread {
  public:
-  FeatureWriterThread(const size_t num_images, Database* database,
+  FeatureWriterThread(const size_t num_images, IDatabase* database,
                       JobQueue<ImageData>* input_queue);
 
  private:
   void Run();
 
   const size_t num_images_;
-  Database* database_;
+  IDatabase* database_;
   JobQueue<ImageData>* input_queue_;
 };
 

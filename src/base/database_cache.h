@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,7 @@ class DatabaseCache {
   // @param ignore_watermarks     Whether to ignore watermark image pairs.
   // @param image_names           Whether to use only load the data for a subset
   //                              of the images. All images are used if empty.
-  void Load(const Database& database, const size_t min_num_matches,
+  void Load(const IDatabase& database, const size_t min_num_matches,
             const bool ignore_watermarks,
             const std::unordered_set<std::string>& image_names);
 

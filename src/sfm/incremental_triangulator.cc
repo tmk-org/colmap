@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -309,7 +309,7 @@ size_t IncrementalTriangulator::Retriangulate(const Options& options) {
 
     image_t image_id1;
     image_t image_id2;
-    Database::PairIdToImagePair(image_pair.first, &image_id1, &image_id2);
+    PairIdToImagePair(image_pair.first, &image_id1, &image_id2);
 
     const Image& image1 = reconstruction_->Image(image_id1);
     if (!image1.IsRegistered()) {

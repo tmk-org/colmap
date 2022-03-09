@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -108,7 +108,7 @@ class ImageReader {
     CAMERA_PARAM_ERROR
   };
 
-  ImageReader(const ImageReaderOptions& options, Database* database);
+  ImageReader(const ImageReaderOptions& options, IDatabase* database);
 
   Status Next(Camera* camera, Image* image, Bitmap* bitmap, Bitmap* mask);
   size_t NextIndex() const;
@@ -117,7 +117,7 @@ class ImageReader {
  private:
   // Image reader options.
   ImageReaderOptions options_;
-  Database* database_;
+  IDatabase* database_;
   // Index of previously processed image.
   size_t image_index_;
   // Previously processed camera.

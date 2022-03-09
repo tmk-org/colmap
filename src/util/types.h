@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,7 @@ typedef uint32_t camera_t;
 // Unique identifier for images.
 typedef uint32_t image_t;
 
-// Each image pair gets a unique ID, see `Database::ImagePairToPairId`.
+// Each image pair gets a unique ID, see `ImagePairToPairId`.
 typedef uint64_t image_pair_t;
 
 // Index per image, i.e. determines maximum number of 2D points per image.

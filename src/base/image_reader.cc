@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ bool ImageReaderOptions::Check() const {
   return true;
 }
 
-ImageReader::ImageReader(const ImageReaderOptions& options, Database* database)
+ImageReader::ImageReader(const ImageReaderOptions& options, IDatabase* database)
     : options_(options), database_(database), image_index_(0) {
   CHECK(options_.Check());
 
