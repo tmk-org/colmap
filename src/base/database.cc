@@ -1754,6 +1754,7 @@ image_t MemoryDatabase::WriteImage(const Image& image,
   else {
     images_.back().SetImageId(images_.size());
   }
+
   return images_.size();
 }
 
@@ -1765,6 +1766,7 @@ void MemoryDatabase::WriteKeypoints(const image_t image_id,
 void MemoryDatabase::WriteDescriptors(const image_t image_id,
                                 const FeatureDescriptors& descriptors) {
   descriptors_[image_id - 1] = descriptors;
+  onLoad(images_.size());
 }
 
 void MemoryDatabase::WriteMatches(const image_t image_id1, const image_t image_id2,
@@ -1841,6 +1843,10 @@ void MemoryDatabase::DeleteInlierMatches(const image_t image_id1,
   image_pair_t pair_id = ImagePairToPairId(image_id1, image_id2);
   two_view_geometries_.erase(pair_id);
 }
+
+void MemoryDatabase::BeginTransaction() const {}
+
+void MemoryDatabase::EndTransaction() const {}
 
 
 }  // namespace colmap

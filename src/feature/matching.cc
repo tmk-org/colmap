@@ -252,24 +252,27 @@ void FeatureMatcherCache::Setup() {
       }));
 }
 
-const Camera& FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
-  return cameras_cache_.at(camera_id);
+Camera FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
+  return database_->ReadCamera(camera_id);
+  // return cameras_cache_.at(camera_id);
 }
 
-const Image& FeatureMatcherCache::GetImage(const image_t image_id) const {
-  return images_cache_.at(image_id);
+Image FeatureMatcherCache::GetImage(const image_t image_id) const {
+  // return images_cache_.at(image_id);
+  return database_->ReadImage(image_id);
 }
 
-const FeatureKeypoints& FeatureMatcherCache::GetKeypoints(
+FeatureKeypoints FeatureMatcherCache::GetKeypoints(
     const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return keypoints_cache_->Get(image_id);
+  return database_->ReadKeypoints(image_id);
+  // return keypoints_cache_->Get(image_id);
 }
 
-const FeatureDescriptors& FeatureMatcherCache::GetDescriptors(
+FeatureDescriptors FeatureMatcherCache::GetDescriptors(
     const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return descriptors_cache_->Get(image_id);
+  return database_->ReadDescriptors(image_id);
 }
 
 FeatureMatches FeatureMatcherCache::GetMatches(const image_t image_id1,
@@ -289,12 +292,14 @@ std::vector<image_t> FeatureMatcherCache::GetImageIds() const {
 
 bool FeatureMatcherCache::ExistsKeypoints(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return keypoints_exists_cache_->Get(image_id);
+  // return keypoints_exists_cache_->Get(image_id);
+  return database_->ExistsKeypoints(image_id);
 }
 
 bool FeatureMatcherCache::ExistsDescriptors(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return descriptors_exists_cache_->Get(image_id);
+  // return descriptors_exists_cache_->Get(image_id);
+  return database_->ExistsDescriptors(image_id);
 }
 
 bool FeatureMatcherCache::ExistsMatches(const image_t image_id1,
@@ -756,7 +761,10 @@ SiftFeatureMatcher::~SiftFeatureMatcher() {
 }
 
 bool SiftFeatureMatcher::Setup() {
-  const int max_num_features = CHECK_NOTNULL(database_)->MaxNumDescriptors();
+  //TODO: Reduce harcode
+  // DatabaseTransaction database_transaction(database_);
+
+  const int max_num_features = 3000; // CHECK_NOTNULL(database_)->MaxNumDescriptors();
   options_.max_num_matches =
       std::min(options_.max_num_matches, max_num_features);
 
@@ -976,11 +984,26 @@ SequentialFeatureMatcher::SequentialFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
+      database_(new Database(database_path)),
       cache_(std::max(5 * options_.loop_detection_num_images,
                       5 * options_.overlap),
-             &database_),
-      matcher_(match_options, &database_, &cache_) {
+             database_),
+      matcher_(match_options, database_, &cache_) {
+  CHECK(options_.Check());
+  CHECK(match_options_.Check());
+}
+
+SequentialFeatureMatcher::SequentialFeatureMatcher(
+    const SequentialMatchingOptions& options,
+    const SiftMatchingOptions& match_options, IDatabase* database, JobQueue<image_t>* ids_queue)
+    : options_(options),
+      match_options_(match_options),
+      database_(database),
+      cache_(std::max(5 * options_.loop_detection_num_images,
+                      5 * options_.overlap),
+             database_),
+      matcher_(match_options, database_, &cache_),
+      ids_queue_(ids_queue) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -992,14 +1015,34 @@ void SequentialFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  // cache_.Setup();
 
-  const std::vector<image_t> ordered_image_ids = GetOrderedImageIds();
+  while (true) {
+    if (IsStopped()) {
+      break;
+    }
 
-  RunSequentialMatching(ordered_image_ids);
-  if (options_.loop_detection) {
-    RunLoopDetection(ordered_image_ids);
+    const auto input_job = ids_queue_->Pop();
+    if (input_job.IsValid()) {
+      auto data = input_job.Data();
+
+      std::vector<image_t> ordered_image_ids;
+      ordered_image_ids.reserve(options_.overlap);
+      for(size_t i = 0; i < options_.overlap; ++i) {
+        if (i < data) {
+          ordered_image_ids.push_back(data-i);
+        }
+      }
+      RunSequentialMatching(ordered_image_ids);
+    }
   }
+
+  // const std::vector<image_t> ordered_image_ids = GetOrderedImageIds();
+
+  // RunSequentialMatching(ordered_image_ids);
+  // if (options_.loop_detection) {
+  //   RunLoopDetection(ordered_image_ids);
+  // }
 
   GetTimer().PrintMinutes();
 }
@@ -1032,17 +1075,17 @@ void SequentialFeatureMatcher::RunSequentialMatching(
   std::vector<std::pair<image_t, image_t>> image_pairs;
   image_pairs.reserve(options_.overlap);
 
-  for (size_t image_idx1 = 0; image_idx1 < image_ids.size(); ++image_idx1) {
-    if (IsStopped()) {
-      return;
-    }
-
+  // for (size_t image_idx1 = 0; image_idx1 < options_.overlap; ++image_idx1) {
+  //   if (IsStopped()) {
+  //     return;
+  //   }
+    size_t image_idx1 = 0;
     const auto image_id1 = image_ids.at(image_idx1);
 
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Matching image [%d/%d]", image_idx1 + 1,
+    std::cout << StringPrintf("Matching image [%d/%d]", image_id1,
                               image_ids.size())
               << std::flush;
 
@@ -1051,23 +1094,23 @@ void SequentialFeatureMatcher::RunSequentialMatching(
       const size_t image_idx2 = image_idx1 + i;
       if (image_idx2 < image_ids.size()) {
         image_pairs.emplace_back(image_id1, image_ids.at(image_idx2));
-        if (options_.quadratic_overlap) {
-          const size_t image_idx2_quadratic = image_idx1 + (1 << i);
-          if (image_idx2_quadratic < image_ids.size()) {
-            image_pairs.emplace_back(image_id1,
-                                     image_ids.at(image_idx2_quadratic));
-          }
-        }
+        // if (options_.quadratic_overlap) {
+        //   const size_t image_idx2_quadratic = image_idx1 + (1 << i);
+        //   if (image_idx2_quadratic < image_ids.size()) {
+        //     image_pairs.emplace_back(image_id1,
+        //                              image_ids.at(image_idx2_quadratic));
+        //   }
+        // }
       } else {
         break;
       }
     }
 
-    DatabaseTransaction database_transaction(&database_);
+    DatabaseTransaction database_transaction(database_);
     matcher_.Match(image_pairs);
 
     PrintElapsedTime(timer);
-  }
+  // }
 }
 
 void SequentialFeatureMatcher::RunLoopDetection(

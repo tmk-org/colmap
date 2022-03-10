@@ -183,10 +183,10 @@ class FeatureMatcherCache {
 
   void Setup();
 
-  const Camera& GetCamera(const camera_t camera_id) const;
-  const Image& GetImage(const image_t image_id) const;
-  const FeatureKeypoints& GetKeypoints(const image_t image_id);
-  const FeatureDescriptors& GetDescriptors(const image_t image_id);
+  Camera GetCamera(const camera_t camera_id) const;
+  Image GetImage(const image_t image_id) const;
+  FeatureKeypoints GetKeypoints(const image_t image_id);
+  FeatureDescriptors GetDescriptors(const image_t image_id);
   FeatureMatches GetMatches(const image_t image_id1, const image_t image_id2);
   std::vector<image_t> GetImageIds() const;
 
@@ -438,6 +438,11 @@ class SequentialFeatureMatcher : public Thread {
                            const SiftMatchingOptions& match_options,
                            const std::string& database_path);
 
+  SequentialFeatureMatcher(const SequentialMatchingOptions& options,
+                           const SiftMatchingOptions& match_options,
+                           IDatabase* database,
+                           JobQueue<image_t>* ids_queue);
+
  private:
   void Run() override;
 
@@ -447,9 +452,10 @@ class SequentialFeatureMatcher : public Thread {
 
   const SequentialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
+  IDatabase* database_;
   FeatureMatcherCache cache_;
   SiftFeatureMatcher matcher_;
+  JobQueue<image_t>* ids_queue_;
 };
 
 // Match each image against its nearest neighbors using a vocabulary tree.
