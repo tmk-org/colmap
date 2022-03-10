@@ -38,6 +38,7 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <boost/signals2.hpp>
 
 #include "SQLite/sqlite3.h"
 #include "base/camera.h"
@@ -52,6 +53,9 @@ namespace colmap {
 
 class IDatabase {
  public:
+
+  boost::signals2::signal<void(image_t)> onLoad;
+
   const static int kSchemaVersion = 1;
 
   // The maximum number of images, that can be stored in the database.
@@ -490,6 +494,7 @@ void PairIdToImagePair(const image_pair_t pair_id, image_t* image_id1, image_t* 
 bool SwapImagePair(const image_t image_id1, const image_t image_id2);
 
 class MemoryDatabase : public IDatabase {
+public:
   MemoryDatabase() = default;
   ~MemoryDatabase() = default;
 
@@ -622,6 +627,9 @@ class MemoryDatabase : public IDatabase {
 
  private:
   friend class DatabaseTransaction;
+
+  void BeginTransaction() const override;
+  void EndTransaction() const override;
 
   // Check if elements got removed from the database to only apply
   // the VACUUM command in such case

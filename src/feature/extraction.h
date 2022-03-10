@@ -49,22 +49,31 @@ struct ImageData;
 // Feature extraction class to extract features for all images in a directory.
 class SiftFeatureExtractor : public Thread {
  public:
-  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
+
+ SiftFeatureExtractor(const ImageReaderOptions& reader_options,
                        const SiftExtractionOptions& sift_options);
+
+  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
+                       const SiftExtractionOptions& sift_options,
+                       IDatabase* database);
+
 
  private:
   void Run();
 
+  image_t last_image_id_;
+
   const ImageReaderOptions reader_options_;
   const SiftExtractionOptions sift_options_;
-
   IDatabase* database_;
+
   ImageReader image_reader_;
 
   std::vector<std::unique_ptr<Thread>> resizers_;
   std::vector<std::unique_ptr<Thread>> extractors_;
   std::unique_ptr<Thread> writer_;
 
+  std::unique_ptr<JobQueue<internal::ImageData>> reader_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> resizer_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> extractor_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> writer_queue_;

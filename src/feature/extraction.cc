@@ -32,6 +32,9 @@
 #include "feature/extraction.h"
 
 #include <numeric>
+#include <chrono>
+
+#include <boost/bind.hpp>
 
 #include "SiftGPU/SiftGPU.h"
 #include "feature/sift.h"
@@ -84,9 +87,10 @@ void MaskKeypoints(const Bitmap& mask, FeatureKeypoints* keypoints,
 SiftFeatureExtractor::SiftFeatureExtractor(
     const ImageReaderOptions& reader_options,
     const SiftExtractionOptions& sift_options)
-    : reader_options_(reader_options),
+    : last_image_id_(0),
+      reader_options_(reader_options),
       sift_options_(sift_options),
-      database_(new Database(reader_options_.database_path)),
+      database_(new MemoryDatabase()),
       image_reader_(reader_options_, database_) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
@@ -171,6 +175,100 @@ SiftFeatureExtractor::SiftFeatureExtractor(
       image_reader_.NumImages(), database_, writer_queue_.get()));
 }
 
+SiftFeatureExtractor::SiftFeatureExtractor(
+    const ImageReaderOptions& reader_options,
+    const SiftExtractionOptions& sift_options,
+    IDatabase* database)
+    : last_image_id_(0),
+      reader_options_(reader_options),
+      sift_options_(sift_options),
+      database_(database),
+      image_reader_(reader_options, database) {
+  CHECK(reader_options_.Check());
+  CHECK(sift_options_.Check());
+
+  std::shared_ptr<Bitmap> camera_mask;
+  if (!reader_options_.camera_mask_path.empty()) {
+    camera_mask = std::shared_ptr<Bitmap>(new Bitmap());
+    if (!camera_mask->Read(reader_options_.camera_mask_path,
+                           /*as_rgb*/ false)) {
+      std::cerr << "  ERROR: Cannot read camera mask file: "
+                << reader_options_.camera_mask_path
+                << ". No mask is going to be used." << std::endl;
+      camera_mask.reset();
+    }
+  }
+
+  const int num_threads = GetEffectiveNumThreads(sift_options_.num_threads);
+  CHECK_GT(num_threads, 0);
+
+  // Make sure that we only have limited number of objects in the queue to avoid
+  // excess in memory usage since images and features take lots of memory.
+  const int kQueueSize = 1;
+  resizer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+  extractor_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+  writer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+
+  if (sift_options_.max_image_size > 0) {
+    for (int i = 0; i < num_threads; ++i) {
+      resizers_.emplace_back(new internal::ImageResizerThread(
+          sift_options_.max_image_size, resizer_queue_.get(),
+          extractor_queue_.get()));
+    }
+  }
+
+  if (!sift_options_.domain_size_pooling &&
+      !sift_options_.estimate_affine_shape && sift_options_.use_gpu) {
+    std::vector<int> gpu_indices = CSVToVector<int>(sift_options_.gpu_index);
+    CHECK_GT(gpu_indices.size(), 0);
+
+#ifdef CUDA_ENABLED
+    if (gpu_indices.size() == 1 && gpu_indices[0] == -1) {
+      const int num_cuda_devices = GetNumCudaDevices();
+      CHECK_GT(num_cuda_devices, 0);
+      gpu_indices.resize(num_cuda_devices);
+      std::iota(gpu_indices.begin(), gpu_indices.end(), 0);
+    }
+#endif  // CUDA_ENABLED
+
+    auto sift_gpu_options = sift_options_;
+    for (const auto& gpu_index : gpu_indices) {
+      sift_gpu_options.gpu_index = std::to_string(gpu_index);
+      extractors_.emplace_back(new internal::SiftFeatureExtractorThread(
+          sift_gpu_options, camera_mask, extractor_queue_.get(),
+          writer_queue_.get()));
+    }
+  } else {
+    if (sift_options_.num_threads == -1 &&
+        sift_options_.max_image_size ==
+            SiftExtractionOptions().max_image_size &&
+        sift_options_.first_octave == SiftExtractionOptions().first_octave) {
+      std::cout
+          << "WARNING: Your current options use the maximum number of "
+             "threads on the machine to extract features. Exracting SIFT "
+             "features on the CPU can consume a lot of RAM per thread for "
+             "large images. Consider reducing the maximum image size and/or "
+             "the first octave or manually limit the number of extraction "
+             "threads. Ignore this warning, if your machine has sufficient "
+             "memory for the current settings."
+          << std::endl;
+    }
+
+    auto custom_sift_options = sift_options_;
+    custom_sift_options.use_gpu = false;
+    for (int i = 0; i < num_threads; ++i) {
+      extractors_.emplace_back(new internal::SiftFeatureExtractorThread(
+          custom_sift_options, camera_mask, extractor_queue_.get(),
+          writer_queue_.get()));
+    }
+  }
+
+  writer_.reset(new internal::FeatureWriterThread(
+      image_reader_.NumImages(), database_, writer_queue_.get()));
+}
+
+
+
 void SiftFeatureExtractor::Run() {
   PrintHeading1("Feature extraction");
 
@@ -198,6 +296,8 @@ void SiftFeatureExtractor::Run() {
       extractor_queue_->Clear();
       break;
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     internal::ImageData image_data;
     image_data.status =
