@@ -30,6 +30,21 @@ int main(int argc, char** argv) {
   ControllerMod controller(options, &reconstruction);
   controller.Run();
 
+  for (size_t i = 35; i < 45; ++i) {
+    internal::ImageData image_data;
+    image_data.bitmap.Read(
+        input_path + "/00000000" + std::to_string(i) + ".tiff", false);
+
+    image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
+    image_data.camera.SetHeight(static_cast<size_t>(image_data.bitmap.Height()));
+    image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
+
+    image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
+
+    image_data.status = ImageReader::Status::SUCCESS;
+    controller.AddImageData(image_data);
+  }
+
   std::this_thread::sleep_for(std::chrono::seconds(100));
 
   std::cout << "Colmap" << std::endl;

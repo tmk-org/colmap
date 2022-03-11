@@ -31,8 +31,8 @@
 
 #include "feature/extraction.h"
 
-#include <numeric>
 #include <chrono>
+#include <numeric>
 
 #include <boost/bind.hpp>
 
@@ -177,13 +177,14 @@ SiftFeatureExtractor::SiftFeatureExtractor(
 
 SiftFeatureExtractor::SiftFeatureExtractor(
     const ImageReaderOptions& reader_options,
-    const SiftExtractionOptions& sift_options,
-    IDatabase* database)
+    const SiftExtractionOptions& sift_options, IDatabase* database,
+    JobQueue<internal::ImageData>* reader_queue)
     : last_image_id_(0),
       reader_options_(reader_options),
       sift_options_(sift_options),
       database_(database),
-      image_reader_(reader_options, database) {
+      image_reader_(reader_options, database),
+      reader_queue_(reader_queue) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
@@ -267,8 +268,6 @@ SiftFeatureExtractor::SiftFeatureExtractor(
       image_reader_.NumImages(), database_, writer_queue_.get()));
 }
 
-
-
 void SiftFeatureExtractor::Run() {
   PrintHeading1("Feature extraction");
 
@@ -288,7 +287,7 @@ void SiftFeatureExtractor::Run() {
     }
   }
 
-  while (image_reader_.NextIndex() < image_reader_.NumImages()) {
+  while (true) {
     if (IsStopped()) {
       resizer_queue_->Stop();
       extractor_queue_->Stop();
@@ -297,21 +296,21 @@ void SiftFeatureExtractor::Run() {
       break;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    const auto input_job = reader_queue_->Pop();
+    if (input_job.IsValid()) {
+      auto image_data = input_job.Data();
 
-    internal::ImageData image_data;
-    image_data.status =
-        image_reader_.Next(&image_data.camera, &image_data.image,
-                           &image_data.bitmap, &image_data.mask);
+      std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-    if (image_data.status != ImageReader::Status::SUCCESS) {
-      image_data.bitmap.Deallocate();
-    }
+      if (image_data.status != ImageReader::Status::SUCCESS) {
+        image_data.bitmap.Deallocate();
+      }
 
-    if (sift_options_.max_image_size > 0) {
-      CHECK(resizer_queue_->Push(image_data));
-    } else {
-      CHECK(extractor_queue_->Push(image_data));
+      if (sift_options_.max_image_size > 0) {
+        CHECK(resizer_queue_->Push(image_data));
+      } else {
+        CHECK(extractor_queue_->Push(image_data));
+      }
     }
   }
 

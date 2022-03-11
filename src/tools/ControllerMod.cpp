@@ -13,7 +13,8 @@
 namespace colmap {
 
 ControllerMod::ControllerMod(const OptionManager& options,
-                             ReconstructionManager* reconstruction_manager)
+                             ReconstructionManager* reconstruction_manager,
+                             size_t max_buffer_size)
     : option_manager_(options),
       reconstruction_manager_(reconstruction_manager),
       database_(new MemoryDatabase()),
@@ -26,14 +27,16 @@ ControllerMod::ControllerMod(const OptionManager& options,
     reader_options_.mask_path = option_manager_.image_reader->mask_path;
   }
 
-  ids_queue_.reset(new JobQueue<image_t>(20));
+  matching_queue_.reset(new JobQueue<image_t>(max_buffer_size));
+  reader_queue_.reset(new JobQueue<internal::ImageData>(max_buffer_size));
 
   feature_extractor_.reset(new SiftFeatureExtractor(
-      reader_options_, *option_manager_.sift_extraction, database_));
+      reader_options_, *option_manager_.sift_extraction, database_,
+      reader_queue_.get()));
 
   sequential_matcher_.reset(new SequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
-      database_, ids_queue_.get()));
+      database_, matching_queue_.get()));
 
   database_->onLoad.connect(
       boost::bind(&ControllerMod::onLoad, this, boost::placeholders::_1));
@@ -53,9 +56,6 @@ void ControllerMod::Run() {
   }
 
   RunFeatureMatching();
-
-  // feature_extractor_->Wait();
-  // feature_extractor_.reset();
 }
 
 void ControllerMod::RunFeatureExtraction() {
@@ -74,7 +74,14 @@ void ControllerMod::RunFeatureMatching() {
 
 void ControllerMod::onLoad(image_t id) {
   std::cout << "Image " << id << " was added." << std::endl;
-  ids_queue_->Push(id);
+  matching_queue_->Push(id);
+}
+
+void ControllerMod::AddImageData(internal::ImageData image_data) {
+  DatabaseTransaction database_transaction(database_);
+  image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
+
+  reader_queue_->Push(image_data);
 }
 
 }  // namespace colmap
