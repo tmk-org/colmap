@@ -52,7 +52,6 @@ int main(int argc, char** argv) {
 
   std::cout << "Stopping controller ..." << std::endl;
 
-  // controller.Stop2();
   controller.Stop();
 
   return EXIT_SUCCESS;
