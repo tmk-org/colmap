@@ -19,8 +19,7 @@ class SerialReconstructionController : public Thread {
                                  size_t max_buffer_size = 20);
 
   void Stop() override;
-  void Stop2();
-
+  
   void Run() override;
   void RunFeatureExtraction();
   void RunFeatureMatching();

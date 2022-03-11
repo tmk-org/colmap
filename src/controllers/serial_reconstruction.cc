@@ -38,8 +38,6 @@ SerialReconstructionController::SerialReconstructionController(
 }
 
 void SerialReconstructionController::Stop() {
-  
-
   reader_queue_->Stop();
   reader_queue_->Clear();
   feature_extractor_->Stop();
@@ -55,17 +53,6 @@ void SerialReconstructionController::Stop() {
   Thread::Stop();
 }
 
-void SerialReconstructionController::Stop2() {
-  // feature_extractor_->Stop();
-  // feature_extractor_->Wait();
-  // feature_extractor_.reset();
-
-  // sequential_matcher_->Stop();
-  // sequential_matcher_->Wait();
-  // sequential_matcher_.reset();
-
-}
-
 void SerialReconstructionController::Run() {
   if (IsStopped()) {
     return;
@@ -77,7 +64,7 @@ void SerialReconstructionController::Run() {
     return;
   }
 
-  // RunFeatureMatching();
+  RunFeatureMatching();
 }
 
 void SerialReconstructionController::RunFeatureExtraction() {
