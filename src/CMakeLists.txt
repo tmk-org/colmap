@@ -64,6 +64,11 @@ endif()
 
 COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
 
+target_include_directories(colmap 
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+         ../lib
+        )
+
 if(CUDA_ENABLED)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --use_fast_math")
 
