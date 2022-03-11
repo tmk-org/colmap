@@ -1,5 +1,5 @@
-#ifndef CONTROLLER_MOD_H_
-#define CONTROLLER_MOD_H_
+#ifndef SERIAL_RECONSTRUCTION_H_
+#define SERIAL_RECONSTRUCTION_H_
 
 #include <memory>
 #include <string>
@@ -12,13 +12,14 @@
 
 namespace colmap {
 
-class ControllerMod : public Thread {
+class SerialReconstructionController : public Thread {
  public:
-  ControllerMod(const OptionManager& options,
-                ReconstructionManager* reconstruction_manager,
-                size_t max_buffer_size = 20);
+  SerialReconstructionController(const OptionManager& options,
+                                 ReconstructionManager* reconstruction_manager,
+                                 size_t max_buffer_size = 20);
 
   void Stop() override;
+  void Stop2();
 
   void Run() override;
   void RunFeatureExtraction();
@@ -44,4 +45,4 @@ class ControllerMod : public Thread {
 
 }  // namespace colmap
 
-#endif  // CONTROLLER_MOD_H_
+#endif  // SERIAL_RECONSTRUCTION_H_

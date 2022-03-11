@@ -1034,6 +1034,8 @@ void SequentialFeatureMatcher::Run() {
         }
       }
       RunSequentialMatching(ordered_image_ids);
+    } else {
+      break;
     }
   }
 

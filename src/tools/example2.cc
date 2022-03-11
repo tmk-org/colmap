@@ -1,8 +1,7 @@
 #include <iostream>
 
-#include "ControllerMod.h"
-
 #include "base/reconstruction_manager.h"
+#include "controllers/serial_reconstruction.h"
 #include "util/logging.h"
 #include "util/option_manager.h"
 
@@ -12,8 +11,11 @@ using namespace colmap;
 int main(int argc, char** argv) {
   InitializeGlog(argv);
 
-  std::string input_path = "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test/images";;
-  std::string output_path = "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test";
+  std::string input_path =
+      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test/images";
+  ;
+  std::string output_path =
+      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test";
 
   OptionManager options;
 
@@ -27,7 +29,7 @@ int main(int argc, char** argv) {
 
   ReconstructionManager reconstruction;
 
-  ControllerMod controller(options, &reconstruction);
+  SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
 
   for (size_t i = 35; i < 45; ++i) {
@@ -36,7 +38,8 @@ int main(int argc, char** argv) {
         input_path + "/00000000" + std::to_string(i) + ".tiff", false);
 
     image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
-    image_data.camera.SetHeight(static_cast<size_t>(image_data.bitmap.Height()));
+    image_data.camera.SetHeight(
+        static_cast<size_t>(image_data.bitmap.Height()));
     image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
 
     image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
@@ -45,9 +48,12 @@ int main(int argc, char** argv) {
     controller.AddImageData(image_data);
   }
 
-  std::this_thread::sleep_for(std::chrono::seconds(100));
+  std::this_thread::sleep_for(std::chrono::seconds(20));
 
-  std::cout << "Colmap" << std::endl;
+  std::cout << "Stopping controller ..." << std::endl;
+
+  // controller.Stop2();
+  controller.Stop();
 
   return EXIT_SUCCESS;
 }
