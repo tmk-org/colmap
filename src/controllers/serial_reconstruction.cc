@@ -1,20 +1,15 @@
-#include "ControllerMod.h"
+#include "serial_reconstruction.h"
 
-#include "base/undistortion.h"
-#include "controllers/incremental_mapper.h"
 #include "feature/extraction.h"
 #include "feature/matching.h"
-#include "mvs/fusion.h"
-#include "mvs/meshing.h"
-#include "mvs/patch_match.h"
 #include "util/misc.h"
 #include "util/option_manager.h"
 
 namespace colmap {
 
-ControllerMod::ControllerMod(const OptionManager& options,
-                             ReconstructionManager* reconstruction_manager,
-                             size_t max_buffer_size)
+SerialReconstructionController::SerialReconstructionController(
+    const OptionManager& options, ReconstructionManager* reconstruction_manager,
+    size_t max_buffer_size)
     : option_manager_(options),
       reconstruction_manager_(reconstruction_manager),
       database_(new MemoryDatabase()),
@@ -38,13 +33,40 @@ ControllerMod::ControllerMod(const OptionManager& options,
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
 
-  database_->onLoad.connect(
-      boost::bind(&ControllerMod::onLoad, this, boost::placeholders::_1));
+  database_->onLoad.connect(boost::bind(&SerialReconstructionController::onLoad,
+                                        this, boost::placeholders::_1));
 }
 
-void ControllerMod::Stop() { Thread::Stop(); }
+void SerialReconstructionController::Stop() {
+  
 
-void ControllerMod::Run() {
+  reader_queue_->Stop();
+  reader_queue_->Clear();
+  feature_extractor_->Stop();
+  feature_extractor_->Wait();
+  feature_extractor_.reset();
+
+  matching_queue_->Stop();
+  matching_queue_->Clear();
+  sequential_matcher_->Stop();
+  sequential_matcher_->Wait();
+  sequential_matcher_.reset();
+
+  Thread::Stop();
+}
+
+void SerialReconstructionController::Stop2() {
+  // feature_extractor_->Stop();
+  // feature_extractor_->Wait();
+  // feature_extractor_.reset();
+
+  // sequential_matcher_->Stop();
+  // sequential_matcher_->Wait();
+  // sequential_matcher_.reset();
+
+}
+
+void SerialReconstructionController::Run() {
   if (IsStopped()) {
     return;
   }
@@ -55,29 +77,25 @@ void ControllerMod::Run() {
     return;
   }
 
-  RunFeatureMatching();
+  // RunFeatureMatching();
 }
 
-void ControllerMod::RunFeatureExtraction() {
+void SerialReconstructionController::RunFeatureExtraction() {
   CHECK(feature_extractor_);
   feature_extractor_->Start();
-  // feature_extractor_->Wait();
-  // feature_extractor_.reset();
 }
 
-void ControllerMod::RunFeatureMatching() {
+void SerialReconstructionController::RunFeatureMatching() {
   CHECK(sequential_matcher_);
   sequential_matcher_->Start();
-  // sequential_matcher_->Wait();
-  // sequential_matcher_.reset();
 }
 
-void ControllerMod::onLoad(image_t id) {
-  std::cout << "Image " << id << " was added." << std::endl;
+void SerialReconstructionController::onLoad(image_t id) {
   matching_queue_->Push(id);
 }
 
-void ControllerMod::AddImageData(internal::ImageData image_data) {
+void SerialReconstructionController::AddImageData(
+    internal::ImageData image_data) {
   DatabaseTransaction database_transaction(database_);
   image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
 

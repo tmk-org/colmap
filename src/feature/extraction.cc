@@ -300,7 +300,7 @@ void SiftFeatureExtractor::Run() {
     if (input_job.IsValid()) {
       auto image_data = input_job.Data();
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(300));
+      // std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
       if (image_data.status != ImageReader::Status::SUCCESS) {
         image_data.bitmap.Deallocate();
@@ -311,6 +311,8 @@ void SiftFeatureExtractor::Run() {
       } else {
         CHECK(extractor_queue_->Push(image_data));
       }
+    } else {
+      break;
     }
   }
 
