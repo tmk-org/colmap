@@ -55,7 +55,8 @@ class SiftFeatureExtractor : public Thread {
 
   SiftFeatureExtractor(const ImageReaderOptions& reader_options,
                        const SiftExtractionOptions& sift_options,
-                       IDatabase* database);
+                       IDatabase* database,
+                       JobQueue<internal::ImageData>* reader_queue);
 
 
  private:
@@ -73,7 +74,7 @@ class SiftFeatureExtractor : public Thread {
   std::vector<std::unique_ptr<Thread>> extractors_;
   std::unique_ptr<Thread> writer_;
 
-  std::unique_ptr<JobQueue<internal::ImageData>> reader_queue_;
+  JobQueue<internal::ImageData>* reader_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> resizer_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> extractor_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> writer_queue_;
