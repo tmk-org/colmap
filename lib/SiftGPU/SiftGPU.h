@@ -223,6 +223,9 @@ public:
 	//deleting a SiftGPU object will cause a heap corruption in the
 	//static link case (but not for the runtime dll loading).
 	SIFTGPU_EXPORT void* operator new (size_t size);
+	//deleting a SiftGPU object will cause a heap corruption in the
+ 	//static link case (but not for the runtime dll loading).
+	SIFTGPU_EXPORT void operator delete (void *ptr, size_t size);
 };
 
 

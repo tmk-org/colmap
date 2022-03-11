@@ -115,6 +115,10 @@ void* SiftGPU::operator new (size_t  size){
   return p;
 }
 
+void SiftGPU::operator delete (void *ptr, size_t  size){
+  free(ptr);
+}
+
 
 void SiftGPUEX::RandomizeColor()
 {
