@@ -33,6 +33,8 @@
 #define COLMAP_SRC_FEATURE_EXTRACTION_H_
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
+#include "base/database_memory.h"
 #include "base/image_reader.h"
 #include "feature/sift.h"
 #include "util/opengl_utils.h"

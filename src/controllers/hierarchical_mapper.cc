@@ -32,6 +32,8 @@
 #include "controllers/hierarchical_mapper.h"
 
 #include "base/scene_clustering.h"
+#include "base/database_sqlite.h"
+#include "base/database_memory.h"
 #include "util/misc.h"
 
 namespace colmap {

@@ -825,7 +825,7 @@ void SiftFeatureMatcher::Match(
 
     // Avoid duplicate image pairs.
     const image_pair_t pair_id =
-        ImagePairToPairId(image_pair.first, image_pair.second);
+        DatabaseRoot::ImagePairToPairId(image_pair.first, image_pair.second);
     if (image_pair_ids.count(pair_id) > 0) {
       continue;
     }
@@ -1472,7 +1472,7 @@ void TransitiveFeatureMatcher::Run() {
         if (adjacency.count(image_id2) > 0) {
           for (const auto& image_id3 : adjacency.at(image_id2)) {
             const auto image_pair_id =
-                ImagePairToPairId(image_id1, image_id3);
+                DatabaseRoot::ImagePairToPairId(image_id1, image_id3);
             if (image_pair_ids.count(image_pair_id) == 0) {
               image_pairs.emplace_back(image_id1, image_id3);
               image_pair_ids.insert(image_pair_id);
@@ -1576,7 +1576,7 @@ void ImagePairsFeatureMatcher::Run() {
     const image_t image_id1 = image_name_to_image_id.at(image_name1);
     const image_t image_id2 = image_name_to_image_id.at(image_name2);
     const image_pair_t image_pair =
-        ImagePairToPairId(image_id1, image_id2);
+        DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
     const bool image_pair_exists = image_pairs_set.insert(image_pair).second;
     if (image_pair_exists) {
       image_pairs.emplace_back(image_id1, image_id2);

@@ -174,7 +174,7 @@ class IncrementalMapperController : public Thread {
 
   IncrementalMapperController(const IncrementalMapperOptions* options,
                               const std::string& image_path,
-                              MemoryDatabase* database,
+                              IDatabase* database,
                               ReconstructionManager* reconstruction_manager);
 
  private:

@@ -30,6 +30,7 @@
 // Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
 #include "ui/match_matrix_widget.h"
+#include "base/database_sqlite.h"
 
 namespace colmap {
 

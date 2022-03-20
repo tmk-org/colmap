@@ -131,7 +131,7 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
       if (UseInlierMatchesCheck(two_view_geometries[i])) {
         image_t image_id1;
         image_t image_id2;
-        PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+        DatabaseRoot::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
         if (image_ids.count(image_id1) > 0 && image_ids.count(image_id2) > 0) {
           connected_image_ids.insert(image_id1);
           connected_image_ids.insert(image_id2);
@@ -176,7 +176,7 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
     if (UseInlierMatchesCheck(two_view_geometries[i])) {
       image_t image_id1;
       image_t image_id2;
-      PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+      DatabaseRoot::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
       if (image_ids.count(image_id1) > 0 && image_ids.count(image_id2) > 0) {
         correspondence_graph_.AddCorrespondences(
             image_id1, image_id2, two_view_geometries[i].inlier_matches);

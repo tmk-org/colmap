@@ -30,6 +30,7 @@
 // Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
 #include "controllers/incremental_mapper.h"
+#include "base/database_sqlite.h"
 
 #include "util/misc.h"
 
@@ -313,7 +314,7 @@ IncrementalMapperController::IncrementalMapperController(
 IncrementalMapperController::IncrementalMapperController(
     const IncrementalMapperOptions* options,
     const std::string& image_path,
-    MemoryDatabase* database,
+    IDatabase* database,
     ReconstructionManager* reconstruction_manager)
     : options_(options),
       image_path_(image_path),

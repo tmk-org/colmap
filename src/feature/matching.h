@@ -37,6 +37,8 @@
 #include <vector>
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
+#include "base/database_memory.h"
 #include "feature/sift.h"
 #include "util/alignment.h"
 #include "util/cache.h"
