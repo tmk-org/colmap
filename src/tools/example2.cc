@@ -12,10 +12,10 @@ int main(int argc, char** argv) {
   InitializeGlog(argv);
 
   std::string input_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test/images";
+      "/home/prestigh/Documents/TMK/OpravkaMod";
   ;
   std::string output_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test";
+      "/home/prestigh/Documents/TMK/OpravkaModTest";
 
   OptionManager options;
 
@@ -32,17 +32,17 @@ int main(int argc, char** argv) {
   SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
 
-  for (size_t i = 35; i < 45; ++i) {
+  for (size_t i = 65; i < 71; ++i) {
     internal::ImageData image_data;
     image_data.bitmap.Read(
-        input_path + "/00000000" + std::to_string(i) + ".tiff", false);
+        input_path + "/00000000" + std::to_string(i) + ".png", false);
 
     image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
     image_data.camera.SetHeight(
         static_cast<size_t>(image_data.bitmap.Height()));
     image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
 
-    image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
+    image_data.image.SetName("00000000" + std::to_string(i) + ".png");
 
     image_data.status = ImageReader::Status::SUCCESS;
     controller.AddImageData(image_data);
@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
 
   std::cout << "Stopping controller ..." << std::endl;
 
+  //controller.RunIncrementalMapper();
   controller.Stop();
 
   return EXIT_SUCCESS;
