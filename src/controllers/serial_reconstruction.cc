@@ -25,11 +25,10 @@ SerialReconstructionController::SerialReconstructionController(
   matching_queue_.reset(new JobQueue<image_t>(max_buffer_size));
   reader_queue_.reset(new JobQueue<internal::ImageData>(max_buffer_size));
 
-  feature_extractor_.reset(new SiftFeatureExtractor(
-      reader_options_, *option_manager_.sift_extraction, database_,
-      reader_queue_.get()));
+  feature_extractor_.reset(new SerialSiftFeatureExtractor(
+      *option_manager_.sift_extraction, database_, reader_queue_.get()));
 
-  sequential_matcher_.reset(new SequentialFeatureMatcher(
+  sequential_matcher_.reset(new SerialSequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
 

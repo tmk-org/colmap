@@ -108,6 +108,7 @@ class ImageReader {
     CAMERA_PARAM_ERROR
   };
 
+  ImageReader() = default;
   ImageReader(const ImageReaderOptions& options, IDatabase* database);
 
   Status Next(Camera* camera, Image* image, Bitmap* bitmap, Bitmap* mask);

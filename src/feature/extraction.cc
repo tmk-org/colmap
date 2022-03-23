@@ -87,10 +87,8 @@ void MaskKeypoints(const Bitmap& mask, FeatureKeypoints* keypoints,
 SiftFeatureExtractor::SiftFeatureExtractor(
     const ImageReaderOptions& reader_options,
     const SiftExtractionOptions& sift_options)
-    : last_image_id_(0),
+    : ISiftFeatureExtractor(sift_options, new Database(reader_options_.database_path)),
       reader_options_(reader_options),
-      sift_options_(sift_options),
-      database_(new MemoryDatabase()),
       image_reader_(reader_options_, database_) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
@@ -175,30 +173,15 @@ SiftFeatureExtractor::SiftFeatureExtractor(
       image_reader_.NumImages(), database_, writer_queue_.get()));
 }
 
-SiftFeatureExtractor::SiftFeatureExtractor(
-    const ImageReaderOptions& reader_options,
+SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
     const SiftExtractionOptions& sift_options, IDatabase* database,
     JobQueue<internal::ImageData>* reader_queue)
-    : last_image_id_(0),
-      reader_options_(reader_options),
-      sift_options_(sift_options),
-      database_(database),
-      image_reader_(reader_options, database),
+    : ISiftFeatureExtractor(sift_options, database),
+      last_image_id_(0),
       reader_queue_(reader_queue) {
-  CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
   std::shared_ptr<Bitmap> camera_mask;
-  if (!reader_options_.camera_mask_path.empty()) {
-    camera_mask = std::shared_ptr<Bitmap>(new Bitmap());
-    if (!camera_mask->Read(reader_options_.camera_mask_path,
-                           /*as_rgb*/ false)) {
-      std::cerr << "  ERROR: Cannot read camera mask file: "
-                << reader_options_.camera_mask_path
-                << ". No mask is going to be used." << std::endl;
-      camera_mask.reset();
-    }
-  }
 
   const int num_threads = GetEffectiveNumThreads(sift_options_.num_threads);
   CHECK_GT(num_threads, 0);
@@ -264,11 +247,11 @@ SiftFeatureExtractor::SiftFeatureExtractor(
     }
   }
 
-  writer_.reset(new internal::FeatureWriterThread(
-      image_reader_.NumImages(), database_, writer_queue_.get()));
+  writer_.reset(
+      new internal::FeatureWriterThread(0, database_, writer_queue_.get()));
 }
 
-void SiftFeatureExtractor::Run() {
+void SerialSiftFeatureExtractor::Run() {
   PrintHeading1("Feature extraction");
 
   for (auto& resizer : resizers_) {
@@ -300,8 +283,6 @@ void SiftFeatureExtractor::Run() {
     if (input_job.IsValid()) {
       auto image_data = input_job.Data();
 
-      // std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
       if (image_data.status != ImageReader::Status::SUCCESS) {
         image_data.bitmap.Deallocate();
       }
@@ -313,6 +294,69 @@ void SiftFeatureExtractor::Run() {
       }
     } else {
       break;
+    }
+  }
+
+  resizer_queue_->Wait();
+  resizer_queue_->Stop();
+  for (auto& resizer : resizers_) {
+    resizer->Wait();
+  }
+
+  extractor_queue_->Wait();
+  extractor_queue_->Stop();
+  for (auto& extractor : extractors_) {
+    extractor->Wait();
+  }
+
+  writer_queue_->Wait();
+  writer_queue_->Stop();
+  writer_->Wait();
+
+  GetTimer().PrintMinutes();
+}
+
+void SiftFeatureExtractor::Run() {
+  PrintHeading1("Feature extraction");
+
+  for (auto& resizer : resizers_) {
+    resizer->Start();
+  }
+
+  for (auto& extractor : extractors_) {
+    extractor->Start();
+  }
+
+  writer_->Start();
+
+  for (auto& extractor : extractors_) {
+    if (!extractor->CheckValidSetup()) {
+      return;
+    }
+  }
+
+  while (image_reader_.NextIndex() < image_reader_.NumImages()) {
+    if (IsStopped()) {
+      resizer_queue_->Stop();
+      extractor_queue_->Stop();
+      resizer_queue_->Clear();
+      extractor_queue_->Clear();
+      break;
+    }
+
+    internal::ImageData image_data;
+    image_data.status =
+        image_reader_.Next(&image_data.camera, &image_data.image,
+                           &image_data.bitmap, &image_data.mask);
+
+    if (image_data.status != ImageReader::Status::SUCCESS) {
+      image_data.bitmap.Deallocate();
+    }
+
+    if (sift_options_.max_image_size > 0) {
+      CHECK(resizer_queue_->Push(image_data));
+    } else {
+      CHECK(extractor_queue_->Push(image_data));
     }
   }
 

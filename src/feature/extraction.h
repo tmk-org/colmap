@@ -47,37 +47,53 @@ struct ImageData;
 }  // namespace internal
 
 // Feature extraction class to extract features for all images in a directory.
-class SiftFeatureExtractor : public Thread {
+class ISiftFeatureExtractor : public Thread {
  public:
+  ISiftFeatureExtractor(const SiftExtractionOptions& sift_options,
+                        IDatabase* database)
+      : sift_options_(sift_options), database_(database){};
+  virtual ~ISiftFeatureExtractor() = default;
 
- SiftFeatureExtractor(const ImageReaderOptions& reader_options,
+ protected:
+  virtual void Run() = 0;
+
+  const SiftExtractionOptions sift_options_;
+  IDatabase* database_;
+
+  std::vector<std::unique_ptr<Thread>> resizers_;
+  std::vector<std::unique_ptr<Thread>> extractors_;
+  std::unique_ptr<Thread> writer_;
+
+  std::unique_ptr<JobQueue<internal::ImageData>> resizer_queue_;
+  std::unique_ptr<JobQueue<internal::ImageData>> extractor_queue_;
+  std::unique_ptr<JobQueue<internal::ImageData>> writer_queue_;
+};
+
+class SiftFeatureExtractor : public ISiftFeatureExtractor {
+ public:
+  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
                        const SiftExtractionOptions& sift_options);
 
-  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
-                       const SiftExtractionOptions& sift_options,
-                       IDatabase* database,
-                       JobQueue<internal::ImageData>* reader_queue);
+ private:
+  void Run();
 
+  const ImageReaderOptions reader_options_;
+
+  ImageReader image_reader_;
+};
+
+class SerialSiftFeatureExtractor : public ISiftFeatureExtractor {
+ public:
+  SerialSiftFeatureExtractor(const SiftExtractionOptions& sift_options,
+                             IDatabase* database,
+                             JobQueue<internal::ImageData>* reader_queue);
 
  private:
   void Run();
 
   image_t last_image_id_;
 
-  const ImageReaderOptions reader_options_;
-  const SiftExtractionOptions sift_options_;
-  IDatabase* database_;
-
-  ImageReader image_reader_;
-
-  std::vector<std::unique_ptr<Thread>> resizers_;
-  std::vector<std::unique_ptr<Thread>> extractors_;
-  std::unique_ptr<Thread> writer_;
-
   JobQueue<internal::ImageData>* reader_queue_;
-  std::unique_ptr<JobQueue<internal::ImageData>> resizer_queue_;
-  std::unique_ptr<JobQueue<internal::ImageData>> extractor_queue_;
-  std::unique_ptr<JobQueue<internal::ImageData>> writer_queue_;
 };
 
 // Import features from text files. Each image must have a corresponding text
