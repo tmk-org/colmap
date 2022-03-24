@@ -32,7 +32,7 @@ class SerialReconstructionController : public Thread {
   OptionManager option_manager_;
   ReconstructionManager* reconstruction_manager_;
 
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   ImageReaderOptions reader_options_;
 
   std::unique_ptr<JobQueue<image_t>> matching_queue_;

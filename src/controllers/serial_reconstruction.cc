@@ -12,7 +12,7 @@ SerialReconstructionController::SerialReconstructionController(
     size_t max_buffer_size)
     : option_manager_(options),
       reconstruction_manager_(reconstruction_manager),
-      database_(new MemoryDatabase()),
+      database_(std::make_shared<MemoryDatabase>()),
       reader_options_(*options.image_reader) {
   CHECK_NOTNULL(reconstruction_manager_);
 
@@ -82,7 +82,7 @@ void SerialReconstructionController::onLoad(image_t id) {
 
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
-  DatabaseTransaction database_transaction(database_);
+  DatabaseTransaction database_transaction(database_.get());
   image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
 
   reader_queue_->Push(image_data);

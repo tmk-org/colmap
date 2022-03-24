@@ -224,7 +224,7 @@ class FeatureMatcherCache : public IFeatureMatcherCache {
   FeatureDescriptors GetDescriptors(const image_t image_id);
 
   std::vector<image_t> GetImageIds() const;
-  
+
   bool ExistsKeypoints(const image_t image_id);
   bool ExistsDescriptors(const image_t image_id);
 
@@ -237,7 +237,7 @@ class FeatureMatcherCache : public IFeatureMatcherCache {
   std::unique_ptr<LRUCache<image_t, bool>> descriptors_exists_cache_;
 };
 
-class MemoryFeatureMatcherCache : public IFeatureMatcherCache{
+class MemoryFeatureMatcherCache : public IFeatureMatcherCache {
  public:
   MemoryFeatureMatcherCache(IDatabase* database);
   ~MemoryFeatureMatcherCache() = default;
@@ -255,7 +255,6 @@ class MemoryFeatureMatcherCache : public IFeatureMatcherCache{
   bool ExistsDescriptors(const image_t image_id);
 };
 
-
 class FeatureMatcherThread : public Thread {
  public:
   FeatureMatcherThread(const SiftMatchingOptions& options,
@@ -267,7 +266,6 @@ class FeatureMatcherThread : public Thread {
   SiftMatchingOptions options_;
   IFeatureMatcherCache* cache_;
 };
-
 
 class SiftCPUFeatureMatcher : public FeatureMatcherThread {
  public:
@@ -444,14 +442,14 @@ class ExhaustiveFeatureMatcher : public Thread {
 
   ExhaustiveFeatureMatcher(const ExhaustiveMatchingOptions& options,
                            const SiftMatchingOptions& match_options,
-                           IDatabase* database);
+                           std::shared_ptr<IDatabase> database);
 
  private:
   void Run() override;
 
   const ExhaustiveMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
@@ -482,7 +480,7 @@ class SequentialFeatureMatcher : public Thread {
 
   SequentialFeatureMatcher(const SequentialMatchingOptions& options,
                            const SiftMatchingOptions& match_options,
-                           IDatabase* database);
+                           std::shared_ptr<IDatabase> database);
 
  private:
   void Run() override;
@@ -493,30 +491,27 @@ class SequentialFeatureMatcher : public Thread {
 
   const SequentialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
-
-
 class SerialSequentialFeatureMatcher : public Thread {
  public:
-  
   SerialSequentialFeatureMatcher(const SequentialMatchingOptions& options,
-                           const SiftMatchingOptions& match_options,
-                           IDatabase* database,
-                           JobQueue<image_t>* ids_queue);
+                                 const SiftMatchingOptions& match_options,
+                                 std::shared_ptr<IDatabase> database,
+                                 JobQueue<image_t>* ids_queue);
 
  private:
   void Run() override;
 
   std::vector<image_t> GetOrderedImageIds() const;
   void RunSequentialMatching(const std::vector<image_t>& image_ids);
-  
+
   const SequentialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
   JobQueue<image_t>* ids_queue_;
@@ -534,7 +529,7 @@ class VocabTreeFeatureMatcher : public Thread {
 
   const VocabTreeMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
@@ -552,7 +547,7 @@ class SpatialFeatureMatcher : public Thread {
 
   const SpatialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
@@ -572,7 +567,7 @@ class TransitiveFeatureMatcher : public Thread {
 
   const TransitiveMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
@@ -597,7 +592,7 @@ class ImagePairsFeatureMatcher : public Thread {
 
   const ImagePairsMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
@@ -630,7 +625,7 @@ class FeaturePairsFeatureMatcher : public Thread {
 
   const FeaturePairsMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   std::unique_ptr<IFeatureMatcherCache> cache_;
 };
 

@@ -50,7 +50,7 @@ struct ImageData;
 class ISiftFeatureExtractor : public Thread {
  public:
   ISiftFeatureExtractor(const SiftExtractionOptions& sift_options,
-                        IDatabase* database)
+                        std::shared_ptr<IDatabase> database)
       : sift_options_(sift_options), database_(database){};
   virtual ~ISiftFeatureExtractor() = default;
 
@@ -58,7 +58,7 @@ class ISiftFeatureExtractor : public Thread {
   virtual void Run() = 0;
 
   const SiftExtractionOptions sift_options_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
 
   std::vector<std::unique_ptr<Thread>> resizers_;
   std::vector<std::unique_ptr<Thread>> extractors_;
@@ -85,7 +85,7 @@ class SiftFeatureExtractor : public ISiftFeatureExtractor {
 class SerialSiftFeatureExtractor : public ISiftFeatureExtractor {
  public:
   SerialSiftFeatureExtractor(const SiftExtractionOptions& sift_options,
-                             IDatabase* database,
+                             std::shared_ptr<IDatabase> database,
                              JobQueue<internal::ImageData>* reader_queue);
 
  private:

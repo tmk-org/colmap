@@ -87,9 +87,10 @@ void MaskKeypoints(const Bitmap& mask, FeatureKeypoints* keypoints,
 SiftFeatureExtractor::SiftFeatureExtractor(
     const ImageReaderOptions& reader_options,
     const SiftExtractionOptions& sift_options)
-    : ISiftFeatureExtractor(sift_options, new Database(reader_options_.database_path)),
+    : ISiftFeatureExtractor(sift_options, std::make_shared<Database>(
+                                              reader_options.database_path)),
       reader_options_(reader_options),
-      image_reader_(reader_options_, database_) {
+      image_reader_(reader_options_, database_.get()) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
@@ -170,11 +171,12 @@ SiftFeatureExtractor::SiftFeatureExtractor(
   }
 
   writer_.reset(new internal::FeatureWriterThread(
-      image_reader_.NumImages(), database_, writer_queue_.get()));
+      image_reader_.NumImages(), database_.get(), writer_queue_.get()));
 }
 
 SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
-    const SiftExtractionOptions& sift_options, IDatabase* database,
+    const SiftExtractionOptions& sift_options,
+    std::shared_ptr<IDatabase> database,
     JobQueue<internal::ImageData>* reader_queue)
     : ISiftFeatureExtractor(sift_options, database),
       last_image_id_(0),
@@ -247,8 +249,8 @@ SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
     }
   }
 
-  writer_.reset(
-      new internal::FeatureWriterThread(0, database_, writer_queue_.get()));
+  writer_.reset(new internal::FeatureWriterThread(0, database_.get(),
+                                                  writer_queue_.get()));
 }
 
 void SerialSiftFeatureExtractor::Run() {
@@ -341,6 +343,7 @@ void SiftFeatureExtractor::Run() {
       extractor_queue_->Stop();
       resizer_queue_->Clear();
       extractor_queue_->Clear();
+
       break;
     }
 
