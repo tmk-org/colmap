@@ -2,6 +2,7 @@
 
 #include "base/reconstruction_manager.h"
 #include "controllers/serial_reconstruction.h"
+#include "controllers/test_reconstruction.h"
 #include "util/logging.h"
 #include "util/option_manager.h"
 
@@ -12,10 +13,10 @@ int main(int argc, char** argv) {
   InitializeGlog(argv);
 
   std::string input_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test/images";
+      "/home/evgenii/Documents/data/test2_col/images3";
   ;
   std::string output_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test";
+      "/home/evgenii/Documents/data/test2_col/output";
 
   OptionManager options;
 
@@ -27,12 +28,16 @@ int main(int argc, char** argv) {
   options.ModifyForVideoData();
   options.ModifyForLowQuality();
 
-  ReconstructionManager reconstruction;
+  // ReconstructionManager testReconstruction;
 
+  // TestReconstructionController testController(options, &testReconstruction);
+  // testController.Run();
+
+  ReconstructionManager reconstruction;
   SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
 
-  for (size_t i = 35; i < 45; ++i) {
+  for (size_t i = 38; i < 47; ++i) {
     internal::ImageData image_data;
     image_data.bitmap.Read(
         input_path + "/00000000" + std::to_string(i) + ".tiff", false);
