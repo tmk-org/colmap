@@ -302,7 +302,7 @@ IncrementalMapperController::IncrementalMapperController(
     ReconstructionManager* reconstruction_manager)
     : options_(options),
       image_path_(image_path),
-      database_(new Database(database_path)),
+      database_(std::make_shared<Database>(database_path)),
       reconstruction_manager_(reconstruction_manager) {
   CHECK(options_->Check());
   RegisterCallback(INITIAL_IMAGE_PAIR_REG_CALLBACK);
@@ -313,7 +313,7 @@ IncrementalMapperController::IncrementalMapperController(
 IncrementalMapperController::IncrementalMapperController(
     const IncrementalMapperOptions* options,
     const std::string& image_path,
-    MemoryDatabase* database,
+    std::shared_ptr<IDatabase> database,
     ReconstructionManager* reconstruction_manager)
     : options_(options),
       image_path_(image_path),

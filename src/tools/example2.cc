@@ -42,10 +42,15 @@ int main(int argc, char** argv) {
     image_data.bitmap.Read(
         input_path + "/00000000" + std::to_string(i) + ".tiff", false);
 
+    image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
+    double focal_length = 1.2 * std::max(image_data.bitmap.Width(), image_data.bitmap.Height());
+    image_data.camera.InitializeWithId(image_data.camera.ModelId(), focal_length,
+                                      image_data.bitmap.Width(), image_data.bitmap.Height());
+
     image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
     image_data.camera.SetHeight(
         static_cast<size_t>(image_data.bitmap.Height()));
-    image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
+    
 
     image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
 
@@ -58,6 +63,7 @@ int main(int argc, char** argv) {
   std::cout << "Stopping controller ..." << std::endl;
 
   controller.Stop();
+  controller.RunIncrementalMapper();
 
   return EXIT_SUCCESS;
 }

@@ -26,6 +26,9 @@ TestReconstructionController::TestReconstructionController(
   sequential_matcher_.reset(new SequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       *option_manager_.database_path));
+
+  incremental_mapper_.reset(new IncrementalMapperController(
+      option_manager_.mapper.get(), "", *option_manager_.database_path, reconstruction_manager_));
 }
 
 void TestReconstructionController::Stop() { Thread::Stop(); }
@@ -42,6 +45,12 @@ void TestReconstructionController::Run() {
   }
 
   RunFeatureMatching();
+
+  if (IsStopped()) {
+    return;
+  }
+
+  RunIncrementalMapper();
 }
 
 void TestReconstructionController::RunFeatureExtraction() {
@@ -56,6 +65,13 @@ void TestReconstructionController::RunFeatureMatching() {
   sequential_matcher_->Start();
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
+}
+
+void TestReconstructionController::RunIncrementalMapper() {
+  CHECK(incremental_mapper_);
+  incremental_mapper_->Start();
+  incremental_mapper_->Wait();
+  incremental_mapper_.reset();
 }
 
 }  // namespace colmap

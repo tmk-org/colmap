@@ -32,6 +32,9 @@ SerialReconstructionController::SerialReconstructionController(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
 
+  incremental_mapper_.reset(new IncrementalMapperController(
+      option_manager_.mapper.get(), "", database_, reconstruction_manager_));
+
   database_->onLoad.connect(boost::bind(&SerialReconstructionController::onLoad,
                                         this, boost::placeholders::_1));
 }
@@ -74,6 +77,13 @@ void SerialReconstructionController::RunFeatureExtraction() {
 void SerialReconstructionController::RunFeatureMatching() {
   CHECK(sequential_matcher_);
   sequential_matcher_->Start();
+}
+
+void SerialReconstructionController::RunIncrementalMapper() {
+  CHECK(incremental_mapper_);
+  incremental_mapper_->Start();
+  incremental_mapper_->Wait();
+  incremental_mapper_.reset();
 }
 
 void SerialReconstructionController::onLoad(image_t id) {

@@ -1085,7 +1085,7 @@ void SerialSequentialFeatureMatcher::RunSequentialMatching(
   for (int i = 0; i < options_.overlap; ++i) {
     const size_t image_idx2 = image_idx1 + i;
     if (image_idx2 < image_ids.size()) {
-      image_pairs.emplace_back(image_id1, image_ids.at(image_idx2));
+      image_pairs.emplace_back(image_ids.at(image_idx2), image_id1);
     } else {
       break;
     }

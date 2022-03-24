@@ -6,6 +6,7 @@
 
 #include "base/image_reader.h"
 #include "base/reconstruction_manager.h"
+#include "controllers/incremental_mapper.h"
 #include "feature/extraction.h"
 #include "util/option_manager.h"
 #include "util/threading.h"
@@ -23,6 +24,7 @@ class SerialReconstructionController : public Thread {
   void Run() override;
   void RunFeatureExtraction();
   void RunFeatureMatching();
+  void RunIncrementalMapper();
 
   void AddImageData(internal::ImageData image_data);
 
@@ -40,6 +42,7 @@ class SerialReconstructionController : public Thread {
 
   std::unique_ptr<Thread> feature_extractor_;
   std::unique_ptr<Thread> sequential_matcher_;
+  std::unique_ptr<Thread> incremental_mapper_;
 };
 
 }  // namespace colmap

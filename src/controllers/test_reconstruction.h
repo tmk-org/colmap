@@ -6,6 +6,7 @@
 
 #include "base/image_reader.h"
 #include "base/reconstruction_manager.h"
+#include "controllers/incremental_mapper.h"
 #include "feature/extraction.h"
 #include "util/option_manager.h"
 #include "util/threading.h"
@@ -22,6 +23,7 @@ class TestReconstructionController : public Thread {
   void Run() override;
   void RunFeatureExtraction();
   void RunFeatureMatching();
+  void RunIncrementalMapper();
 
  private:
   OptionManager option_manager_;
@@ -31,6 +33,7 @@ class TestReconstructionController : public Thread {
 
   std::unique_ptr<Thread> feature_extractor_;
   std::unique_ptr<Thread> sequential_matcher_;
+  std::unique_ptr<Thread> incremental_mapper_;
 };
 
 }  // namespace colmap

@@ -71,7 +71,7 @@ struct IncrementalMapperOptions {
   int init_num_trials = 200;
 
   // Whether to extract colors for reconstructed points.
-  bool extract_colors = true;
+  bool extract_colors = false;
 
   // The number of threads to use during reconstruction.
   int num_threads = -1;
@@ -174,7 +174,7 @@ class IncrementalMapperController : public Thread {
 
   IncrementalMapperController(const IncrementalMapperOptions* options,
                               const std::string& image_path,
-                              MemoryDatabase* database,
+                              std::shared_ptr<IDatabase> database,
                               ReconstructionManager* reconstruction_manager);
 
  private:
@@ -184,7 +184,7 @@ class IncrementalMapperController : public Thread {
 
   const IncrementalMapperOptions* options_;
   const std::string image_path_;
-  IDatabase* database_;
+  std::shared_ptr<IDatabase> database_;
   ReconstructionManager* reconstruction_manager_;
   DatabaseCache database_cache_;
 };
