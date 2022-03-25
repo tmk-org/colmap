@@ -30,6 +30,7 @@
 // Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
 #include "controllers/incremental_mapper.h"
+#include "base/database_sqlite.h"
 
 #include "util/misc.h"
 

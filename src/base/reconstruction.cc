@@ -573,7 +573,7 @@ std::vector<image_t> Reconstruction::FindCommonRegImageIds(
   return common_reg_image_ids;
 }
 
-void Reconstruction::TranscribeImageIdsToDatabase(const Database& database) {
+void Reconstruction::TranscribeImageIdsToDatabase(const IDatabase& database) {
   std::unordered_map<image_t, image_t> old_to_new_image_ids;
   old_to_new_image_ids.reserve(NumImages());
 
@@ -2097,7 +2097,7 @@ void Reconstruction::SetObservationAsTriangulated(
     if (point2D.Point3DId() == corr_point2D.Point3DId() &&
         (is_continued_point3D || image_id < corr.image_id)) {
       const image_pair_t pair_id =
-          ImagePairToPairId(image_id, corr.image_id);
+          DatabaseRoot::ImagePairToPairId(image_id, corr.image_id);
       image_pair_stats_[pair_id].num_tri_corrs += 1;
       CHECK_LE(image_pair_stats_[pair_id].num_tri_corrs,
                image_pair_stats_[pair_id].num_total_corrs)
@@ -2131,7 +2131,7 @@ void Reconstruction::ResetTriObservations(const image_t image_id,
     if (point2D.Point3DId() == corr_point2D.Point3DId() &&
         (!is_deleted_point3D || image_id < corr.image_id)) {
       const image_pair_t pair_id =
-          ImagePairToPairId(image_id, corr.image_id);
+          DatabaseRoot::ImagePairToPairId(image_id, corr.image_id);
       image_pair_stats_[pair_id].num_tri_corrs -= 1;
       CHECK_GE(image_pair_stats_[pair_id].num_tri_corrs, 0)
           << "The scene graph graph must not contain duplicate matches";

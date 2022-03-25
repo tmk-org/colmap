@@ -31,6 +31,7 @@
 
 #include "exe/model.h"
 
+#include "base/database_sqlite.h"
 #include "base/gps.h"
 #include "base/pose.h"
 #include "base/similarity_transform.h"

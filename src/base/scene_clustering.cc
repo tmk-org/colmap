@@ -310,7 +310,7 @@ std::vector<const SceneClustering::Cluster*> SceneClustering::GetLeafClusters()
 }
 
 SceneClustering SceneClustering::Create(const Options& options,
-                                        const Database& database) {
+                                        const IDatabase& database) {
   std::cout << "Reading scene graph..." << std::endl;
   std::vector<std::pair<image_t, image_t>> image_pairs;
   std::vector<int> num_inliers;

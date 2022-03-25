@@ -309,7 +309,7 @@ size_t IncrementalTriangulator::Retriangulate(const Options& options) {
 
     image_t image_id1;
     image_t image_id2;
-    PairIdToImagePair(image_pair.first, &image_id1, &image_id2);
+    DatabaseRoot::PairIdToImagePair(image_pair.first, &image_id1, &image_id2);
 
     const Image& image1 = reconstruction_->Image(image_id1);
     if (!image1.IsRegistered()) {

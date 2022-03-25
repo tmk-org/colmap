@@ -38,6 +38,7 @@
 #include <QtWidgets>
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
 #include "ui/image_viewer_widget.h"
 #include "util/misc.h"
 #include "util/option_manager.h"

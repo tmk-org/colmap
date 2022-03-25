@@ -39,6 +39,8 @@ COLMAP_ADD_SOURCES(
     correspondence_graph.h correspondence_graph.cc
     database.h database.cc
     database_cache.h database_cache.cc
+    database_memory.h database_memory.cpp
+    database_sqlite.h database_sqlite.cpp
     essential_matrix.h essential_matrix.cc
     gps.h gps.cc
     graph_cut.h graph_cut.cc

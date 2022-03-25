@@ -81,7 +81,7 @@ class SceneClustering {
   std::vector<const Cluster*> GetLeafClusters() const;
 
   static SceneClustering Create(const Options& options,
-                                const Database& database);
+                                const IDatabase& database);
 
  private:
   void PartitionHierarchicalCluster(
