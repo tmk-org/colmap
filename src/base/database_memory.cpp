@@ -73,7 +73,7 @@ size_t MemoryDatabase::MaxNumKeypoints() const {
 }
 
 size_t MemoryDatabase::NumKeypointsForImage(const image_t image_id) const {
-  if (!ExistsImage(image_id)) {
+  if (!ExistsImage(image_id) || keypoints_.empty()) {
     return 0;
   }
   return keypoints_.at(image_id - 1).size();
@@ -98,7 +98,7 @@ size_t MemoryDatabase::MaxNumDescriptors() const {
 }
 
 size_t MemoryDatabase::NumDescriptorsForImage(const image_t image_id) const {
-  if (!ExistsImage(image_id)) {
+  if (!ExistsImage(image_id) || descriptors_.empty()) {
     return 0;
   }
   return descriptors_.at(image_id - 1).rows();
