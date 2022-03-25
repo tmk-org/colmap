@@ -4,6 +4,7 @@
 #include "controllers/serial_reconstruction.h"
 #include "util/logging.h"
 #include "util/option_manager.h"
+#include "util/misc.h"
 
 using namespace colmap;
 
@@ -11,18 +12,18 @@ using namespace colmap;
 int main(int argc, char** argv) {
   InitializeGlog(argv);
 
-  std::string input_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test/images";
-  ;
-  std::string output_path =
-      "/home/evgenii/Documents/data/23_06_2021_оправки_стерео/test";
+  std::string input_path;
+  std::string output_path;
 
   OptionManager options;
+  options.AddRequiredOption("input_path", &input_path);
+  options.AddRequiredOption("output_path", &output_path);
 
+  options.Parse(argc, argv);
   options.AddAllOptions();
 
   *options.image_path = input_path;
-  *options.database_path = output_path + "/database.db";
+  *options.database_path = JoinPaths(output_path, "/database.db");
 
   options.ModifyForVideoData();
   options.ModifyForLowQuality();
@@ -32,17 +33,18 @@ int main(int argc, char** argv) {
   SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
 
-  for (size_t i = 35; i < 45; ++i) {
+  for (const auto& file : boost::filesystem::directory_iterator(input_path)) {
     internal::ImageData image_data;
-    image_data.bitmap.Read(
-        input_path + "/00000000" + std::to_string(i) + ".tiff", false);
+    if (!image_data.bitmap.Read(file.path().string(), false)) {
+      continue;
+    }
 
     image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
     image_data.camera.SetHeight(
         static_cast<size_t>(image_data.bitmap.Height()));
     image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
 
-    image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
+    image_data.image.SetName(file.path().filename().string());
 
     image_data.status = ImageReader::Status::SUCCESS;
     controller.AddImageData(image_data);
