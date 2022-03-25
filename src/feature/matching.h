@@ -180,6 +180,7 @@ struct FeatureMatcherData {
 class IFeatureMatcherCache {
  public:
   IFeatureMatcherCache(const size_t cache_size, IDatabase* database);
+  virtual ~IFeatureMatcherCache() = default;
 
   virtual void Setup() = 0;
 

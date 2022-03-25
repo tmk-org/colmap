@@ -50,7 +50,7 @@ void TestReconstructionController::Run() {
     return;
   }
 
-  RunIncrementalMapper();
+  // RunIncrementalMapper();
 }
 
 void TestReconstructionController::RunFeatureExtraction() {
