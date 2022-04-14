@@ -28,7 +28,7 @@ TestReconstructionController::TestReconstructionController(
       *option_manager_.database_path));
 
   incremental_mapper_.reset(new IncrementalMapperController(
-      option_manager_.mapper.get(), "", *option_manager_.database_path, reconstruction_manager_));
+      option_manager_.mapper.get(), *option_manager_.image_path, *option_manager_.database_path, reconstruction_manager_));
 }
 
 void TestReconstructionController::Stop() { Thread::Stop(); }
@@ -50,7 +50,7 @@ void TestReconstructionController::Run() {
     return;
   }
 
-  // RunIncrementalMapper();
+  RunIncrementalMapper();
 }
 
 void TestReconstructionController::RunFeatureExtraction() {
@@ -72,6 +72,10 @@ void TestReconstructionController::RunIncrementalMapper() {
   incremental_mapper_->Start();
   incremental_mapper_->Wait();
   incremental_mapper_.reset();
+
+  const auto sparse_path = JoinPaths(*option_manager_.project_path, "sparse");
+  CreateDirIfNotExists(sparse_path);
+  reconstruction_manager_->Write(sparse_path, &option_manager_);
 }
 
 }  // namespace colmap

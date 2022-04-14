@@ -1,9 +1,11 @@
+#include <filesystem>
 #include <iostream>
 
 #include "base/reconstruction_manager.h"
 #include "controllers/serial_reconstruction.h"
 #include "controllers/test_reconstruction.h"
 #include "util/logging.h"
+#include "util/misc.h"
 #include "util/option_manager.h"
 
 using namespace colmap;
@@ -12,21 +14,23 @@ using namespace colmap;
 int main(int argc, char** argv) {
   InitializeGlog(argv);
 
-  std::string input_path =
-      "/home/evgenii/Documents/data/test2_col/images3";
-  ;
-  std::string output_path =
-      "/home/evgenii/Documents/data/test2_col/output";
+  std::string input_path;
+  std::string output_path;
 
   OptionManager options;
+  options.AddRequiredOption("input_path", &input_path);
+  options.AddRequiredOption("output_path", &output_path);
 
+  options.Parse(argc, argv);
   options.AddAllOptions();
 
   *options.image_path = input_path;
-  *options.database_path = output_path + "/database.db";
+  *options.database_path = JoinPaths(output_path, "/database.db");
+  *options.project_path = output_path;
+  
 
   options.ModifyForVideoData();
-  options.ModifyForLowQuality();
+  options.ModifyForHighQuality();
 
   // ReconstructionManager testReconstruction;
 
@@ -37,22 +41,30 @@ int main(int argc, char** argv) {
   SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
 
-  for (size_t i = 38; i < 47; ++i) {
+  std::vector<std::filesystem::path> files_in_directory;
+  std::copy(std::filesystem::directory_iterator(input_path),
+            std::filesystem::directory_iterator(),
+            std::back_inserter(files_in_directory));
+  std::sort(files_in_directory.begin(), files_in_directory.end());
+
+  for (const auto& file : files_in_directory) {
     internal::ImageData image_data;
-    image_data.bitmap.Read(
-        input_path + "/00000000" + std::to_string(i) + ".tiff", false);
+    if (!image_data.bitmap.Read(file.string(), false)) {
+      continue;
+    }
 
     image_data.camera.SetModelIdFromName("SIMPLE_RADIAL");
-    double focal_length = 1.2 * std::max(image_data.bitmap.Width(), image_data.bitmap.Height());
-    image_data.camera.InitializeWithId(image_data.camera.ModelId(), focal_length,
-                                      image_data.bitmap.Width(), image_data.bitmap.Height());
+    double focal_length =
+        1.2 * std::max(image_data.bitmap.Width(), image_data.bitmap.Height());
+    image_data.camera.InitializeWithId(image_data.camera.ModelId(),
+                                       focal_length, image_data.bitmap.Width(),
+                                       image_data.bitmap.Height());
 
     image_data.camera.SetWidth(static_cast<size_t>(image_data.bitmap.Width()));
     image_data.camera.SetHeight(
         static_cast<size_t>(image_data.bitmap.Height()));
-    
 
-    image_data.image.SetName("00000000" + std::to_string(i) + ".tiff");
+    image_data.image.SetName(file.filename().string());
 
     image_data.status = ImageReader::Status::SUCCESS;
     controller.AddImageData(image_data);

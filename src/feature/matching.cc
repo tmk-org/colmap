@@ -803,7 +803,7 @@ bool SiftFeatureMatcher::Setup() {
   //  DatabaseTransaction database_transaction(database_);
 
   const int max_num_features =
-      20000;  // CHECK_NOTNULL(database_)->MaxNumDescriptors();
+      10000;  // CHECK_NOTNULL(database_)->MaxNumDescriptors();
   options_.max_num_matches =
       std::min(options_.max_num_matches, max_num_features);
 
@@ -1063,6 +1063,11 @@ void SerialSequentialFeatureMatcher::Run() {
     }
   }
 
+  auto ordered_image_ids = cache_->GetImageIds();
+  if (options_.loop_detection) {
+    RunLoopDetection(ordered_image_ids);
+  }
+
   GetTimer().PrintMinutes();
 }
 
@@ -1090,11 +1095,43 @@ void SerialSequentialFeatureMatcher::RunSequentialMatching(
       break;
     }
   }
-
+  
   DatabaseTransaction database_transaction(database_.get());
   matcher_.Match(image_pairs);
 
   PrintElapsedTime(timer);
+}
+
+void SerialSequentialFeatureMatcher::RunLoopDetection(
+    const std::vector<image_t>& image_ids) {
+  // Read the pre-trained vocabulary tree from disk.
+  retrieval::VisualIndex<> visual_index;
+  visual_index.Read(options_.vocab_tree_path);
+
+  // Index all images in the visual index.
+  IndexImagesInVisualIndex(match_options_.num_threads,
+                           options_.loop_detection_num_checks,
+                           options_.loop_detection_max_num_features, image_ids,
+                           this, cache_.get(), &visual_index);
+
+  if (IsStopped()) {
+    return;
+  }
+
+  // Only perform loop detection for every n-th image.
+  std::vector<image_t> match_image_ids;
+  for (size_t i = 0; i < image_ids.size();
+       i += options_.loop_detection_period) {
+    match_image_ids.push_back(image_ids[i]);
+  }
+
+  MatchNearestNeighborsInVisualIndex(
+      match_options_.num_threads, options_.loop_detection_num_images,
+      options_.loop_detection_num_nearest_neighbors,
+      options_.loop_detection_num_checks,
+      options_.loop_detection_num_images_after_verification,
+      options_.loop_detection_max_num_features, match_image_ids, this,
+      cache_.get(), &visual_index, &matcher_);
 }
 
 SequentialFeatureMatcher::SequentialFeatureMatcher(
@@ -1180,6 +1217,7 @@ void SequentialFeatureMatcher::RunSequentialMatching(
       }
     }
 
+    std::cout << image_pairs.size() << std::endl;
     DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
 

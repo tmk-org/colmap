@@ -40,18 +40,21 @@ SerialReconstructionController::SerialReconstructionController(
 }
 
 void SerialReconstructionController::Stop() {
+
+  reader_queue_->Wait();
   reader_queue_->Stop();
-  reader_queue_->Clear();
-  feature_extractor_->Stop();
+
   feature_extractor_->Wait();
   feature_extractor_.reset();
+  reader_queue_->Clear();
 
+  matching_queue_->Wait();
   matching_queue_->Stop();
-  matching_queue_->Clear();
-  sequential_matcher_->Stop();
+  
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
-
+  matching_queue_->Clear();
+  
   Thread::Stop();
 }
 
@@ -84,6 +87,10 @@ void SerialReconstructionController::RunIncrementalMapper() {
   incremental_mapper_->Start();
   incremental_mapper_->Wait();
   incremental_mapper_.reset();
+
+  const auto sparse_path = JoinPaths(*option_manager_.project_path, "sparse");
+  CreateDirIfNotExists(sparse_path);
+  reconstruction_manager_->Write(sparse_path, &option_manager_);
 }
 
 void SerialReconstructionController::onLoad(image_t id) {

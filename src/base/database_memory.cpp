@@ -73,7 +73,7 @@ size_t MemoryDatabase::MaxNumKeypoints() const {
 }
 
 size_t MemoryDatabase::NumKeypointsForImage(const image_t image_id) const {
-  if (!ExistsImage(image_id)) {
+  if (!ExistsImage(image_id) || keypoints_.empty()) {
     return 0;
   }
   return keypoints_.at(image_id - 1).size();
@@ -98,7 +98,7 @@ size_t MemoryDatabase::MaxNumDescriptors() const {
 }
 
 size_t MemoryDatabase::NumDescriptorsForImage(const image_t image_id) const {
-  if (!ExistsImage(image_id)) {
+  if (!ExistsImage(image_id) || descriptors_.empty()) {
     return 0;
   }
   return descriptors_.at(image_id - 1).rows();
@@ -252,14 +252,18 @@ void MemoryDatabase::WriteDescriptors(const image_t image_id,
 void MemoryDatabase::WriteMatches(const image_t image_id1, const image_t image_id2,
                                   const FeatureMatches& matches) {
   image_pair_t pair_id = MemoryDatabase::ImagePairToPairId(image_id1, image_id2);
-  matches_[pair_id] = matches;
+  if (matches.size() > 0) {
+    matches_[pair_id] = matches;
+  }
 }
 
 void MemoryDatabase::WriteTwoViewGeometry(
     const image_t image_id1, const image_t image_id2,
     const TwoViewGeometry& two_view_geometry) {
   image_pair_t pair_id = MemoryDatabase::ImagePairToPairId(image_id1, image_id2);
-  two_view_geometries_.emplace(pair_id, two_view_geometry);
+  if (two_view_geometry.inlier_matches.size()>0) {
+    two_view_geometries_.emplace(pair_id, two_view_geometry);
+  }
 }
 
 void MemoryDatabase::ClearMatches() {

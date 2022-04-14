@@ -284,7 +284,7 @@ void SerialSiftFeatureExtractor::Run() {
     const auto input_job = reader_queue_->Pop();
     if (input_job.IsValid()) {
       auto image_data = input_job.Data();
-
+      
       if (image_data.status != ImageReader::Status::SUCCESS) {
         image_data.bitmap.Deallocate();
       }
@@ -464,6 +464,7 @@ void ImageResizerThread::Run() {
     const auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
       auto image_data = input_job.Data();
+      std::cout << image_data.image.Name() << std::endl;
 
       if (image_data.status == ImageReader::Status::SUCCESS) {
         if (static_cast<int>(image_data.bitmap.Width()) > max_image_size_ ||
