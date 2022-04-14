@@ -246,7 +246,7 @@ void MemoryDatabase::WriteKeypoints(const image_t image_id,
 void MemoryDatabase::WriteDescriptors(const image_t image_id,
                                       const FeatureDescriptors& descriptors) {
   descriptors_[image_id - 1] = descriptors;
-  onLoad(images_.size());
+  onLoad(image_id);
 }
 
 void MemoryDatabase::WriteMatches(const image_t image_id1, const image_t image_id2,

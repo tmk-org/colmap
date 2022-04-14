@@ -50,12 +50,14 @@ void SerialReconstructionController::Stop() {
 
   matching_queue_->Wait();
   matching_queue_->Stop();
-  
+
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
   matching_queue_->Clear();
   
   Thread::Stop();
+  // 1 1 1 0 1 1 1 1
+  // 0 1 2 3 4 5 6 7 8 9 9 9 9 9
 }
 
 void SerialReconstructionController::Run() {
@@ -94,13 +96,41 @@ void SerialReconstructionController::RunIncrementalMapper() {
 }
 
 void SerialReconstructionController::onLoad(image_t id) {
-  matching_queue_->Push(id);
+  size_t overlap = std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap), matching_overlap_.size());
+
+  // Сheck if all images have been processed before
+  if (matching_overlap_[id-1] == 0) {
+    matching_queue_->Push(id);
+  }
+
+  // Update number of unprocessed images
+  for (size_t i = id; i < overlap; ++i) {
+    if (--matching_overlap_[i] == 0 && database_->ExistsDescriptors(i+1)) {
+      matching_overlap_[i] = -1;
+      matching_queue_->Push(i+1);
+    }
+  }
 }
 
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
   DatabaseTransaction database_transaction(database_.get());
-  image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
+
+  if (database_->ExistsCamera(1)) {
+    image_data.image.SetCameraId(1);  
+  } else {
+    image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
+  }
+
+  if (image_data.image.ImageId() == kInvalidImageId) {
+    image_data.image.SetImageId(database_->WriteImage(image_data.image));
+  }
+
+  if (matching_overlap_.size() > 0) {
+    matching_overlap_.push_back(std::min(matching_overlap_.back() + 1, (image_t)option_manager_.sequential_matching->overlap-1));
+  } else {
+    matching_overlap_.push_back(0);
+  }
 
   reader_queue_->Push(image_data);
 }

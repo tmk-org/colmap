@@ -1217,7 +1217,6 @@ void SequentialFeatureMatcher::RunSequentialMatching(
       }
     }
 
-    std::cout << image_pairs.size() << std::endl;
     DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
 

@@ -43,6 +43,8 @@ class SerialReconstructionController : public Thread {
   std::unique_ptr<Thread> feature_extractor_;
   std::unique_ptr<Thread> sequential_matcher_;
   std::unique_ptr<Thread> incremental_mapper_;
+
+  std::vector<image_t> matching_overlap_;
 };
 
 }  // namespace colmap
