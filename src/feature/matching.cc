@@ -1049,15 +1049,7 @@ void SerialSequentialFeatureMatcher::Run() {
     const auto input_job = ids_queue_->Pop();
     if (input_job.IsValid()) {
       auto data = input_job.Data();
-
-      std::vector<image_t> ordered_image_ids;
-      ordered_image_ids.reserve(options_.overlap);
-      for (size_t i = 0; i < options_.overlap; ++i) {
-        if (i < data) {
-          ordered_image_ids.push_back(data - i);
-        }
-      }
-      RunSequentialMatching(ordered_image_ids);
+      RunSequentialMatching(data);
     } else {
       break;
     }
@@ -1072,31 +1064,28 @@ void SerialSequentialFeatureMatcher::Run() {
 }
 
 void SerialSequentialFeatureMatcher::RunSequentialMatching(
-    const std::vector<image_t>& image_ids) {
+    const image_t& image_id1) {
   std::vector<std::pair<image_t, image_t>> image_pairs;
   image_pairs.reserve(options_.overlap);
 
-  size_t image_idx1 = 0;
-  const auto image_id1 = image_ids.at(image_idx1);
+  DatabaseTransaction database_transaction(database_.get());
+  size_t images_num = database_->NumImages();
 
   Timer timer;
   timer.Start();
 
   std::cout << StringPrintf("Matching image [%d/%d]", image_id1,
-                            image_ids.size())
+                            image_id1)
             << std::flush;
 
   image_pairs.clear();
   for (int i = 0; i < options_.overlap; ++i) {
-    const size_t image_idx2 = image_idx1 + i;
-    if (image_idx2 < image_ids.size()) {
-      image_pairs.emplace_back(image_ids.at(image_idx2), image_id1);
-    } else {
-      break;
+    const size_t image_id2 = image_id1 + i;
+    if (image_id2 <= images_num) {
+      image_pairs.emplace_back(image_id1, image_id2);
     }
   }
   
-  DatabaseTransaction database_transaction(database_.get());
   matcher_.Match(image_pairs);
 
   PrintElapsedTime(timer);

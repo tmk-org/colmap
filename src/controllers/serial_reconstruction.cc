@@ -42,6 +42,12 @@ void SerialReconstructionController::Stop() {
   reader_queue_->Clear();
 
   matching_queue_->Wait();
+  for (size_t i = 0; i < matching_overlap_.size(); ++i) {
+    if (matching_overlap_[i] > 0) {
+      matching_queue_->Push(i+1);
+    }
+  }
+  matching_queue_->Wait();
   matching_queue_->Stop();
 
   sequential_matcher_->Wait();
@@ -62,7 +68,7 @@ void SerialReconstructionController::Stop() {
     std::cout << "Match: <" << image_id1 << ", " << image_id2 << "> " << match.second.size() <<  std::endl; 
   }
 
-  // RunIncrementalMapper();
+  RunIncrementalMapper();
 
   Thread::Stop();
 }
@@ -102,21 +108,24 @@ void SerialReconstructionController::RunIncrementalMapper() {
   reconstruction_manager_->Write(sparse_path, &option_manager_);
 }
 
+// 2 2 1 0 0 0
 void SerialReconstructionController::onLoad(image_t id) {
   std::unique_lock<std::mutex> lock(overlap_mutex_);
-  size_t overlap =
-      std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap),
-               matching_overlap_.size());
+  // size_t overlap =
+  //     std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap),
+  //              matching_overlap_.size());
+  int overlap = option_manager_.sequential_matching->overlap-1;
 
   // Сheck if all images have been processed before
-  if (--matching_overlap_[id - 1] == 0) {
+  if (matching_overlap_[id - 1] == overlap) {
+    matching_overlap_[id - 1] = 0;
     matching_queue_->Push(id);
   }
 
   // Update number of unprocessed images
-  for (size_t i = id; i < overlap; ++i) {
-    if (--matching_overlap_[i] == 0 && database_->ExistsDescriptors(i + 1)) {
-      matching_overlap_[i] = -1;
+  for (int i = id-2; i > int(id)-2-overlap && i >= 0; --i) {
+    if (++matching_overlap_[i] == overlap && database_->ExistsDescriptors(i + 1)) {
+      matching_overlap_[i] = 0;
       matching_queue_->Push(i + 1);
     }
   }
@@ -137,13 +146,15 @@ void SerialReconstructionController::AddImageData(
     image_data.image.SetImageId(database_->WriteImage(image_data.image));
   }
 
-  if (matching_overlap_.size() > 0) {
-    matching_overlap_.push_back(
-        std::min(matching_overlap_.back() + 1,
-                 (image_t)option_manager_.sequential_matching->overlap - 1));
-  } else {
-    matching_overlap_.push_back(1);
-  }
+  matching_overlap_.push_back(0);
+
+  // if (matching_overlap_.size() > 0) {
+  //   matching_overlap_.push_back(
+  //       std::min(matching_overlap_.back() + 1,
+  //                (image_t)option_manager_.sequential_matching->overlap - 1));
+  // } else {
+  //   matching_overlap_.push_back(1);
+  // }
 
   reader_queue_->Push(image_data);
 }

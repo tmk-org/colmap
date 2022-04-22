@@ -595,8 +595,8 @@ void FeatureWriterThread::Run() {
                                 num_images_)
                 << std::endl;
 
-      std::cout << StringPrintf("  Name:            %s",
-                                image_data.image.Name().c_str())
+      std::cout << StringPrintf("  Name:           %d",
+                                image_data.image.ImageId())
                 << std::endl;
 
       if (image_data.status == ImageReader::Status::IMAGE_EXISTS) {

@@ -510,7 +510,7 @@ class SerialSequentialFeatureMatcher : public Thread {
   void Run() override;
 
   std::vector<image_t> GetOrderedImageIds() const;
-  void RunSequentialMatching(const std::vector<image_t>& image_ids);
+  void RunSequentialMatching(const image_t& image_ids);
   void RunLoopDetection(const std::vector<image_t>& image_ids);
 
   const SequentialMatchingOptions options_;
