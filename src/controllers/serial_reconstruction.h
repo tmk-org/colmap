@@ -45,6 +45,7 @@ class SerialReconstructionController : public Thread {
   std::unique_ptr<Thread> incremental_mapper_;
 
   std::vector<image_t> matching_overlap_;
+  std::mutex overlap_mutex_;
 };
 
 }  // namespace colmap

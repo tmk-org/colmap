@@ -16,12 +16,6 @@ SerialReconstructionController::SerialReconstructionController(
       reader_options_(*options.image_reader) {
   CHECK_NOTNULL(reconstruction_manager_);
 
-  reader_options_.database_path = *option_manager_.database_path;
-  reader_options_.image_path = *option_manager_.image_path;
-  if (!option_manager_.image_reader->mask_path.empty()) {
-    reader_options_.mask_path = option_manager_.image_reader->mask_path;
-  }
-
   matching_queue_.reset(new JobQueue<image_t>(max_buffer_size));
   reader_queue_.reset(new JobQueue<internal::ImageData>(max_buffer_size));
 
@@ -40,7 +34,6 @@ SerialReconstructionController::SerialReconstructionController(
 }
 
 void SerialReconstructionController::Stop() {
-
   reader_queue_->Wait();
   reader_queue_->Stop();
 
@@ -54,10 +47,24 @@ void SerialReconstructionController::Stop() {
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
   matching_queue_->Clear();
-  
+
+  DatabaseTransaction database_transaction(database_.get());
+
+  auto matches = database_->ReadAllMatches();
+  image_t curr_id;
+  for (auto match : matches) {
+    image_t image_id1, image_id2;
+    DatabaseRoot::PairIdToImagePair(match.first, &image_id1, &image_id2);
+    if (curr_id != image_id1){
+      std::cout << std::endl;
+      curr_id = image_id1;
+    }
+    std::cout << "Match: <" << image_id1 << ", " << image_id2 << "> " << match.second.size() <<  std::endl; 
+  }
+
+  // RunIncrementalMapper();
+
   Thread::Stop();
-  // 1 1 1 0 1 1 1 1
-  // 0 1 2 3 4 5 6 7 8 9 9 9 9 9
 }
 
 void SerialReconstructionController::Run() {
@@ -96,18 +103,21 @@ void SerialReconstructionController::RunIncrementalMapper() {
 }
 
 void SerialReconstructionController::onLoad(image_t id) {
-  size_t overlap = std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap), matching_overlap_.size());
+  std::unique_lock<std::mutex> lock(overlap_mutex_);
+  size_t overlap =
+      std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap),
+               matching_overlap_.size());
 
   // Сheck if all images have been processed before
-  if (matching_overlap_[id-1] == 0) {
+  if (--matching_overlap_[id - 1] == 0) {
     matching_queue_->Push(id);
   }
 
   // Update number of unprocessed images
   for (size_t i = id; i < overlap; ++i) {
-    if (--matching_overlap_[i] == 0 && database_->ExistsDescriptors(i+1)) {
+    if (--matching_overlap_[i] == 0 && database_->ExistsDescriptors(i + 1)) {
       matching_overlap_[i] = -1;
-      matching_queue_->Push(i+1);
+      matching_queue_->Push(i + 1);
     }
   }
 }
@@ -115,9 +125,10 @@ void SerialReconstructionController::onLoad(image_t id) {
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
   DatabaseTransaction database_transaction(database_.get());
+  std::unique_lock<std::mutex> lock(overlap_mutex_);
 
   if (database_->ExistsCamera(1)) {
-    image_data.image.SetCameraId(1);  
+    image_data.image.SetCameraId(1);
   } else {
     image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
   }
@@ -127,9 +138,11 @@ void SerialReconstructionController::AddImageData(
   }
 
   if (matching_overlap_.size() > 0) {
-    matching_overlap_.push_back(std::min(matching_overlap_.back() + 1, (image_t)option_manager_.sequential_matching->overlap-1));
+    matching_overlap_.push_back(
+        std::min(matching_overlap_.back() + 1,
+                 (image_t)option_manager_.sequential_matching->overlap - 1));
   } else {
-    matching_overlap_.push_back(0);
+    matching_overlap_.push_back(1);
   }
 
   reader_queue_->Push(image_data);
