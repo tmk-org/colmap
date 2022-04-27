@@ -44,7 +44,7 @@ void SerialReconstructionController::Stop() {
   matching_queue_->Wait();
   for (size_t i = 0; i < matching_overlap_.size(); ++i) {
     if (matching_overlap_[i] > 0) {
-      matching_queue_->Push(i+1);
+      matching_queue_->Push(i + 1);
     }
   }
   matching_queue_->Wait();
@@ -53,20 +53,6 @@ void SerialReconstructionController::Stop() {
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
   matching_queue_->Clear();
-
-  DatabaseTransaction database_transaction(database_.get());
-
-  auto matches = database_->ReadAllMatches();
-  image_t curr_id;
-  for (auto match : matches) {
-    image_t image_id1, image_id2;
-    DatabaseRoot::PairIdToImagePair(match.first, &image_id1, &image_id2);
-    if (curr_id != image_id1){
-      std::cout << std::endl;
-      curr_id = image_id1;
-    }
-    std::cout << "Match: <" << image_id1 << ", " << image_id2 << "> " << match.second.size() <<  std::endl; 
-  }
 
   RunIncrementalMapper();
 
@@ -108,23 +94,20 @@ void SerialReconstructionController::RunIncrementalMapper() {
   reconstruction_manager_->Write(sparse_path, &option_manager_);
 }
 
-// 2 2 1 0 0 0
 void SerialReconstructionController::onLoad(image_t id) {
   std::unique_lock<std::mutex> lock(overlap_mutex_);
-  // size_t overlap =
-  //     std::min((size_t)(id - 1 + option_manager_.sequential_matching->overlap),
-  //              matching_overlap_.size());
-  int overlap = option_manager_.sequential_matching->overlap-1;
+  int overlap = option_manager_.sequential_matching->overlap - 1;
 
-  // Сheck if all images have been processed before
+  // Сheck if there are enough processed images
   if (matching_overlap_[id - 1] == overlap) {
     matching_overlap_[id - 1] = 0;
     matching_queue_->Push(id);
   }
 
-  // Update number of unprocessed images
-  for (int i = id-2; i > int(id)-2-overlap && i >= 0; --i) {
-    if (++matching_overlap_[i] == overlap && database_->ExistsDescriptors(i + 1)) {
+  // Update number of processed images
+  for (int i = id - 2; i > int(id) - 2 - overlap && i >= 0; --i) {
+    if (++matching_overlap_[i] == overlap &&
+        database_->ExistsDescriptors(i + 1)) {
       matching_overlap_[i] = 0;
       matching_queue_->Push(i + 1);
     }
@@ -147,14 +130,6 @@ void SerialReconstructionController::AddImageData(
   }
 
   matching_overlap_.push_back(0);
-
-  // if (matching_overlap_.size() > 0) {
-  //   matching_overlap_.push_back(
-  //       std::min(matching_overlap_.back() + 1,
-  //                (image_t)option_manager_.sequential_matching->overlap - 1));
-  // } else {
-  //   matching_overlap_.push_back(1);
-  // }
 
   reader_queue_->Push(image_data);
 }
