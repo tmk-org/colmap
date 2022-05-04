@@ -75,7 +75,8 @@ int main(int argc, char** argv) {
   std::cout << "Stopping controller ..." << std::endl;
 
   controller.Stop();
-  controller.RunIncrementalMapper();
+  //double call tends to assertion failed inside RunIncrementalMapper()
+  //controller.RunIncrementalMapper();
 
   return EXIT_SUCCESS;
 }
