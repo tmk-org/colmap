@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "base/image_reader.h"
 #include "base/reconstruction_manager.h"
@@ -46,6 +47,8 @@ class SerialReconstructionController : public Thread {
 
   std::vector<image_t> matching_overlap_;
   std::mutex overlap_mutex_;
+
+  std::unordered_map<uint32_t, uint32_t> cameras_ids_correspondence_;
 };
 
 }  // namespace colmap

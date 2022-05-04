@@ -119,10 +119,12 @@ void SerialReconstructionController::AddImageData(
   DatabaseTransaction database_transaction(database_.get());
   std::unique_lock<std::mutex> lock(overlap_mutex_);
 
-  if (database_->ExistsCamera(1)) {
-    image_data.image.SetCameraId(1);
+  if (cameras_ids_correspondence_.contains(image_data.camera.CameraId())) {
+    image_data.image.SetCameraId(cameras_ids_correspondence_[image_data.camera.CameraId()]);
   } else {
-    image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
+    auto camera_id = database_->WriteCamera(image_data.camera);
+    cameras_ids_correspondence_[image_data.camera.CameraId()] = camera_id; 
+    image_data.image.SetCameraId(camera_id);
   }
 
   if (image_data.image.ImageId() == kInvalidImageId) {
