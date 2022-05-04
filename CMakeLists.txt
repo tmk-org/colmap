@@ -69,6 +69,14 @@ option(BOOST_STATIC "Whether to enable static boost library linker flags" ON)
 set(CUDA_ARCHS "Pascal" CACHE STRING "List of CUDA architectures for which to \
 generate code, e.g., Auto, All, Maxwell, Pascal, ...")
 
+if (SIMD_ENABLED)
+    if( ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        message("we'll use AVX Intel instruction CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} ")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=skylake -ftree-vectorize  -mavx2")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=skylake -ftree-vectorize  -mavx2")
+    endif()
+endif()
+
 if(TESTS_ENABLED)
     enable_testing()
 endif()
@@ -480,3 +488,4 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeUninstall.cmake.in"
                IMMEDIATE @ONLY)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake)
 set_target_properties(uninstall PROPERTIES FOLDER ${CMAKE_TARGETS_ROOT_FOLDER})
+
