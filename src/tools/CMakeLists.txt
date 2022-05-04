@@ -31,4 +31,4 @@
 
 set(FOLDER_NAME "tools")
 
-COLMAP_ADD_EXECUTABLE(example example2.cc)
+COLMAP_ADD_EXECUTABLE(colmap_processing_example example2.cc)
