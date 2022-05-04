@@ -7,11 +7,12 @@
 #include "util/logging.h"
 #include "util/misc.h"
 #include "util/option_manager.h"
-
+#include <chrono>
 using namespace colmap;
 
 // Simple example that reads and writes a reconstruction.
 int main(int argc, char** argv) {
+    auto start = std::chrono::system_clock::now();
   InitializeGlog(argv);
 
   std::string input_path;
@@ -23,7 +24,7 @@ int main(int argc, char** argv) {
 
   options.Parse(argc, argv);
   options.AddAllOptions();
-
+    //options.AddMatchingOptions();
   *options.image_path = input_path;
   *options.database_path = JoinPaths(output_path, "/database.db");
   *options.project_path = output_path;
@@ -36,7 +37,7 @@ int main(int argc, char** argv) {
 
   // TestReconstructionController testController(options, &testReconstruction);
   // testController.Run();
-
+    //*options.database_path
   ReconstructionManager reconstruction;
   SerialReconstructionController controller(options, &reconstruction);
   controller.Run();
@@ -77,6 +78,7 @@ int main(int argc, char** argv) {
   controller.Stop();
   //double call tends to assertion failed inside RunIncrementalMapper()
   //controller.RunIncrementalMapper();
-
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start);
+    std::cout << "processing took " << duration.count() << "seconds" <<std::endl;
   return EXIT_SUCCESS;
 }
