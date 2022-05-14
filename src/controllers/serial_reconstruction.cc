@@ -119,19 +119,32 @@ void SerialReconstructionController::AddImageData(
   DatabaseTransaction database_transaction(database_.get());
   std::unique_lock<std::mutex> lock(overlap_mutex_);
 
-  if (database_->ExistsCamera(1)) {
-    image_data.image.SetCameraId(1);
+  if (cameras_ids_correspondence_.contains(image_data.camera.CameraId())) {
+    image_data.image.SetCameraId(
+        cameras_ids_correspondence_[image_data.camera.CameraId()]);
   } else {
-    image_data.image.SetCameraId(database_->WriteCamera(image_data.camera));
+    auto camera_id = database_->WriteCamera(image_data.camera);
+    cameras_ids_correspondence_[image_data.camera.CameraId()] = camera_id;
+    image_data.image.SetCameraId(camera_id);
   }
 
-  if (image_data.image.ImageId() == kInvalidImageId) {
-    image_data.image.SetImageId(database_->WriteImage(image_data.image));
-  }
+  auto orig_image_id = image_data.image.ImageId();
+  image_data.image.SetImageId(database_->WriteImage(image_data.image));
+  images_ids_correspondence_[image_data.image.ImageId()] = orig_image_id;
 
   matching_overlap_.push_back(0);
 
   reader_queue_->Push(image_data);
+}
+
+const std::unordered_map<image_t, image_t>&
+SerialReconstructionController::getImageCorrespondences() const {
+  return images_ids_correspondence_;
+}
+
+const std::unordered_map<camera_t, camera_t>&
+SerialReconstructionController::getCameraCorrespondences() const {
+  return cameras_ids_correspondence_;
 }
 
 }  // namespace colmap
