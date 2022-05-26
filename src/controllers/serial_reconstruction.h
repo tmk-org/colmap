@@ -20,7 +20,7 @@ class SerialReconstructionController : public Thread {
                                  ReconstructionManager* reconstruction_manager,
                                  size_t max_buffer_size = 20);
 
-  void Stop() override;
+  void Stop(bool isReconstruct=false);
   
   void Run() override;
   void RunFeatureExtraction();
