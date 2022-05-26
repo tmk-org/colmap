@@ -29,8 +29,7 @@ SerialReconstructionController::SerialReconstructionController(
   incremental_mapper_.reset(new IncrementalMapperController(
       option_manager_.mapper.get(), "", database_, reconstruction_manager_));
 
-  database_->onLoad.connect(boost::bind(&SerialReconstructionController::onLoad,
-                                        this, boost::placeholders::_1));
+  database_->onLoad.connect([this](auto arg){onLoad(arg);});
 }
 
 void SerialReconstructionController::Stop(bool isReconstruct) {
@@ -121,7 +120,7 @@ void SerialReconstructionController::AddImageData(
   DatabaseTransaction database_transaction(database_.get());
   std::unique_lock<std::mutex> lock(overlap_mutex_);
 
-  if (cameras_ids_correspondence_.contains(image_data.camera.CameraId())) {
+  if (cameras_ids_correspondence_.find(image_data.camera.CameraId() )!= cameras_ids_correspondence_.end() ) {
     image_data.image.SetCameraId(
         cameras_ids_correspondence_[image_data.camera.CameraId()]);
   } else {
