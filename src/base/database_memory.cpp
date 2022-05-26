@@ -88,7 +88,8 @@ size_t MemoryDatabase::NumDescriptors() const {
 }
 
 size_t MemoryDatabase::MaxNumDescriptors() const {
-  size_t max_num_descriptors = std::numeric_limits<size_t>::min();
+    using rows_data_type = decltype(descriptors_.begin()->second.rows());
+  rows_data_type max_num_descriptors = std::numeric_limits<rows_data_type>::min();
   for (const auto& descriptor : descriptors_) {
     if (descriptor.second.rows() > max_num_descriptors) {
       max_num_descriptors = descriptor.second.rows();
@@ -146,6 +147,7 @@ Image MemoryDatabase::ReadImageWithName(const std::string& name) const {
       return image;
     }
   }
+  return Image{};
 }
 
 std::vector<Image> MemoryDatabase::ReadAllImages() const {

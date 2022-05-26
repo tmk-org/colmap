@@ -34,7 +34,7 @@
 #include <chrono>
 #include <numeric>
 
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "SiftGPU/SiftGPU.h"
 #include "feature/sift.h"
