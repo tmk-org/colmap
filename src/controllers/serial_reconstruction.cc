@@ -33,7 +33,7 @@ SerialReconstructionController::SerialReconstructionController(
                                         this, boost::placeholders::_1));
 }
 
-void SerialReconstructionController::Stop() {
+void SerialReconstructionController::Stop(bool isReconstruct) {
   reader_queue_->Wait();
   reader_queue_->Stop();
 
@@ -54,7 +54,9 @@ void SerialReconstructionController::Stop() {
   sequential_matcher_.reset();
   matching_queue_->Clear();
 
-  RunIncrementalMapper();
+  if (isReconstruct) {
+    RunIncrementalMapper();
+  }
 
   Thread::Stop();
 }
