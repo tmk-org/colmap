@@ -29,7 +29,7 @@ SerialReconstructionController::SerialReconstructionController(
   incremental_mapper_.reset(new IncrementalMapperController(
       option_manager_.mapper.get(), "", database_, reconstruction_manager_));
 
-  database_->onLoad.connect([this](auto arg){onLoad(arg);});
+  dynamic_cast<MemoryDatabase&>(*database_).onLoad.connect([this](auto arg){onLoad(arg);});
 }
 
 void SerialReconstructionController::Stop(bool isReconstruct) {

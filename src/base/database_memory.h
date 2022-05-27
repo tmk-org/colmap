@@ -64,6 +64,8 @@ class MemoryDatabase : public DatabaseRoot {
   // Number of rows in `two_view_geometries` table.
   size_t NumVerifiedImagePairs() const override;
 
+  boost::signals2::signal<void(image_t)> onLoad;
+
   // Read an existing entry in the database. The user is responsible for making
   // sure that the entry actually exists. For image pairs, the order of
   // `image_id1` and `image_id2` does not matter.

@@ -54,8 +54,6 @@ namespace colmap {
 class IDatabase {
  public:
 
-  boost::signals2::signal<void(image_t)> onLoad;
-
   const static int kSchemaVersion = 1;
 
   // The maximum number of images, that can be stored in the database.
