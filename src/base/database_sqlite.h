@@ -159,6 +159,8 @@ class Database : public DatabaseRoot {
   // Clear the entire inlier matches table.
   void ClearTwoViewGeometries() override;
 
+  void Connect(SignalFn fn) override {};
+
  private:
   friend class DatabaseTransaction;
 

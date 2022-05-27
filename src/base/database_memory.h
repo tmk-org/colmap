@@ -64,7 +64,7 @@ class MemoryDatabase : public DatabaseRoot {
   // Number of rows in `two_view_geometries` table.
   size_t NumVerifiedImagePairs() const override;
 
-  boost::signals2::signal<void(image_t)> onLoad;
+  InputSignal onLoad;
 
   // Read an existing entry in the database. The user is responsible for making
   // sure that the entry actually exists. For image pairs, the order of
@@ -138,6 +138,8 @@ class MemoryDatabase : public DatabaseRoot {
   // Delete inlier matches of an image pair.
   void DeleteInlierMatches(const image_t image_id1,
                            const image_t image_id2) override;
+
+  void Connect(SignalFn fn) override;
 
  private:
   friend class DatabaseTransaction;
