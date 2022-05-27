@@ -334,4 +334,6 @@ void MemoryDatabase::BeginTransaction() const {}
 
 void MemoryDatabase::EndTransaction() const {}
 
+void MemoryDatabase::Connect(SignalFn fn) { onLoad.connect(fn); }
+
 } // namespace colmap

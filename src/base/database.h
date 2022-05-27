@@ -54,6 +54,9 @@ namespace colmap {
 class IDatabase {
  public:
 
+  using SignalFn = std::function<void(image_t)>;
+  using InputSignal = boost::signals2::signal<void(image_t)>;
+
   const static int kSchemaVersion = 1;
 
   // The maximum number of images, that can be stored in the database.
@@ -176,6 +179,8 @@ class IDatabase {
 
   // Clear the entire inlier matches table.
   virtual void ClearTwoViewGeometries() = 0;
+
+  virtual void Connect(SignalFn fn) = 0;
 
   // Merge two databases into a single, new database.
   static void Merge(const IDatabase& database1, const IDatabase& database2,
