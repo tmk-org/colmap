@@ -1,5 +1,7 @@
 #include <filesystem>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "base/reconstruction_manager.h"
 #include "controllers/serial_reconstruction.h"
@@ -7,7 +9,7 @@
 #include "util/logging.h"
 #include "util/misc.h"
 #include "util/option_manager.h"
-#include <chrono>
+
 using namespace colmap;
 
 // Simple example that reads and writes a reconstruction.
