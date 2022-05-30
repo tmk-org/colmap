@@ -21,14 +21,53 @@ SerialReconstructionController::SerialReconstructionController(
 
   feature_extractor_.reset(new SerialSiftFeatureExtractor(
       *option_manager_.sift_extraction, database_, reader_queue_.get()));
-
+  feature_extractor_->AddCallback(  STARTED_CALLBACK,
+                                    [this]()
+                                    {
+                                        if(!OnFeatureExtractionStart.empty())
+                                        {
+                                            OnFeatureExtractionStart();
+                                        }
+                                    });
+  feature_extractor_->AddCallback(  FINISHED_CALLBACK,
+                                    [this]()
+                                    {
+                                        if(!OnFeatureExtractionStop.empty())
+                                        {
+                                            OnFeatureExtractionStop();
+                                        }
+                                    });
   sequential_matcher_.reset(new SerialSequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
+  sequential_matcher_->AddCallback(  STARTED_CALLBACK,
+                                    [this]()
+                                    {
+                                        if(!OnFeatureMatchingStart.empty())
+                                        {
+                                            OnFeatureMatchingStart();
+                                        }
+                                    });
+  sequential_matcher_->AddCallback(  FINISHED_CALLBACK,
+                                    [this]()
+                                    {
+                                        if(!OnFeatureMatchingStop.empty())
+                                        {
+                                            OnFeatureMatchingStop();
+                                        }
+                                    });
+
 
   incremental_mapper_.reset(new IncrementalMapperController(
       option_manager_.mapper.get(), "", database_, reconstruction_manager_));
-
+  incremental_mapper_->AddCallback(STARTED_CALLBACK,
+                                    [this]()
+                                    {
+                                        if(!OnRecounstructionStart.empty())
+                                        {
+                                            OnRecounstructionStart();
+                                        }
+                                    });
   database_->Connect([this](auto arg){onLoad(arg);});
 }
 

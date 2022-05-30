@@ -31,6 +31,9 @@ class SerialReconstructionController : public Thread {
 
   const std::unordered_map<camera_t, camera_t>& getImageCorrespondences() const;
   const std::unordered_map<image_t, image_t>& getCameraCorrespondences() const;
+    boost::signals2::signal<bool()> OnFeatureExtractionStart,   OnFeatureExtractionStop;
+    boost::signals2::signal<bool()> OnFeatureMatchingStart,     OnFeatureMatchingStop;
+    boost::signals2::signal<bool()> OnRecounstructionStart;
 
  private:
   void onLoad(image_t id);
