@@ -164,7 +164,7 @@ void SerialReconstructionController::AddImageData(
 //  Timer timer;
   std::list<std::tuple<std::string,int,double> > times;
 //  timer.Start();
-  {
+  //{
     DatabaseTransaction database_transaction(database_.get());
 //    timer.Pause();
 //    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
@@ -191,7 +191,7 @@ void SerialReconstructionController::AddImageData(
 //    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
 //    timer.Resume();
     matching_overlap_.push_back(0);
-  }
+  //}
   if(reader_queue_->Size() == _max_buffer_size)
   {
     if(!FeatureExtractorStateChanged.empty())
