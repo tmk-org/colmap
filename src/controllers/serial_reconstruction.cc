@@ -94,7 +94,7 @@ void SerialReconstructionController::Stop(bool isReconstruct) {
   matching_queue_->Clear();
 
   if (isReconstruct) {
-    // RunIncrementalMapper();
+    RunIncrementalMapper();
   }
 
   Thread::Stop();
@@ -176,8 +176,6 @@ void SerialReconstructionController::AddImageData(
   matching_overlap_.push_back(0);
 
   reader_queue_->Push(image_data);
-
-  std::cout<< "READER " << reader_queue_->Size() <<  "\n";
 }
 
 const std::unordered_map<image_t, image_t>&
