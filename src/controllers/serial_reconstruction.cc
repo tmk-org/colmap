@@ -21,57 +21,58 @@ SerialReconstructionController::SerialReconstructionController(
 
   feature_extractor_.reset(new SerialSiftFeatureExtractor(
       *option_manager_.sift_extraction, database_, reader_queue_.get()));
-  feature_extractor_->AddCallback(  STARTED_CALLBACK,
-                                    [this]()
-                                    {
-                                        if(!OnFeatureExtractionStart.empty())
-                                        {
-                                            OnFeatureExtractionStart();
-                                        }
-                                    });
-  feature_extractor_->AddCallback(  FINISHED_CALLBACK,
-                                    [this]()
-                                    {
-                                        if(!OnFeatureExtractionStop.empty())
-                                        {
-                                            OnFeatureExtractionStop();
-                                        }
-                                    });
+  // feature_extractor_->AddCallback(  STARTED_CALLBACK,
+  //                                   [this]()
+  //                                   {
+  //                                       if(!OnFeatureExtractionStart.empty())
+  //                                       {
+  //                                           OnFeatureExtractionStart();
+  //                                       }
+  //                                   });
+  // feature_extractor_->AddCallback(  FINISHED_CALLBACK,
+  //                                   [this]()
+  //                                   {
+  //                                       if(!OnFeatureExtractionStop.empty())
+  //                                       {
+  //                                           OnFeatureExtractionStop();
+  //                                       }
+  //                                   });
   sequential_matcher_.reset(new SerialSequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
-  sequential_matcher_->AddCallback(  STARTED_CALLBACK,
-                                    [this]()
-                                    {
-                                        if(!OnFeatureMatchingStart.empty())
-                                        {
-                                            OnFeatureMatchingStart();
-                                        }
-                                    });
-  sequential_matcher_->AddCallback(  FINISHED_CALLBACK,
-                                    [this]()
-                                    {
-                                        if(!OnFeatureMatchingStop.empty())
-                                        {
-                                            OnFeatureMatchingStop();
-                                        }
-                                    });
+  // sequential_matcher_->AddCallback(  STARTED_CALLBACK,
+  //                                   [this]()
+  //                                   {
+  //                                       if(!OnFeatureMatchingStart.empty())
+  //                                       {
+  //                                           OnFeatureMatchingStart();
+  //                                       }
+  //                                   });
+  // sequential_matcher_->AddCallback(  FINISHED_CALLBACK,
+  //                                   [this]()
+  //                                   {
+  //                                       if(!OnFeatureMatchingStop.empty())
+  //                                       {
+  //                                           OnFeatureMatchingStop();
+  //                                       }
+  //                                   });
 
 
   incremental_mapper_.reset(new IncrementalMapperController(
       option_manager_.mapper.get(), "", database_, reconstruction_manager_));
-  incremental_mapper_->AddCallback(STARTED_CALLBACK,
-                                    [this]()
-                                    {
-                                        if(!OnRecounstructionStart.empty())
-                                        {
-                                            OnRecounstructionStart();
-                                        }
-                                    });
+  // incremental_mapper_->AddCallback(STARTED_CALLBACK,
+  //                                   [this]()
+  //                                   {
+  //                                       if(!OnRecounstructionStart.empty())
+  //                                       {
+  //                                           OnRecounstructionStart();
+  //                                       }
+  //                                   });
   database_->Connect([this](auto arg){onLoad(arg);});
 }
 
 void SerialReconstructionController::Stop(bool isReconstruct) {
+
   reader_queue_->Wait();
   reader_queue_->Stop();
 
@@ -93,7 +94,7 @@ void SerialReconstructionController::Stop(bool isReconstruct) {
   matching_queue_->Clear();
 
   if (isReconstruct) {
-    RunIncrementalMapper();
+    // RunIncrementalMapper();
   }
 
   Thread::Stop();
@@ -159,7 +160,7 @@ void SerialReconstructionController::AddImageData(
   DatabaseTransaction database_transaction(database_.get());
   std::unique_lock<std::mutex> lock(overlap_mutex_);
 
-  if (cameras_ids_correspondence_.find(image_data.camera.CameraId() )!= cameras_ids_correspondence_.end() ) {
+  if (cameras_ids_correspondence_.contains(image_data.camera.CameraId() )) {
     image_data.image.SetCameraId(
         cameras_ids_correspondence_[image_data.camera.CameraId()]);
   } else {
@@ -175,6 +176,8 @@ void SerialReconstructionController::AddImageData(
   matching_overlap_.push_back(0);
 
   reader_queue_->Push(image_data);
+
+  std::cout<< "READER " << reader_queue_->Size() <<  "\n";
 }
 
 const std::unordered_map<image_t, image_t>&
