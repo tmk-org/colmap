@@ -4,6 +4,7 @@
 #include "feature/matching.h"
 #include "util/misc.h"
 #include "util/option_manager.h"
+#include "util/timer.h"
 
 namespace colmap {
 
@@ -13,14 +14,17 @@ SerialReconstructionController::SerialReconstructionController(
     : option_manager_(options),
       reconstruction_manager_(reconstruction_manager),
       database_(std::make_shared<MemoryDatabase>()),
-      reader_options_(*options.image_reader) {
+      reader_options_(*options.image_reader),
+      _max_buffer_size(max_buffer_size) {
   CHECK_NOTNULL(reconstruction_manager_);
 
   matching_queue_.reset(new JobQueue<image_t>(max_buffer_size));
   reader_queue_.reset(new JobQueue<internal::ImageData>(max_buffer_size));
-
-  feature_extractor_.reset(new SerialSiftFeatureExtractor(
-      *option_manager_.sift_extraction, database_, reader_queue_.get()));
+   auto* pSerialSiftFeatureExtractor=new SerialSiftFeatureExtractor(
+                *option_manager_.sift_extraction, 
+                database_, 
+                reader_queue_.get());
+  feature_extractor_.reset(pSerialSiftFeatureExtractor);
   feature_extractor_->AddCallback(  STARTED_CALLBACK,
                                     [this]()
                                     {
@@ -37,6 +41,7 @@ SerialReconstructionController::SerialReconstructionController(
                                             OnFeatureExtractionStop();
                                         }
                                     });
+  pSerialSiftFeatureExtractor->connectStateHandler(FeatureExtractorStateChanged);
   sequential_matcher_.reset(new SerialSequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
@@ -156,25 +161,54 @@ void SerialReconstructionController::onLoad(image_t id) {
 
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
-  DatabaseTransaction database_transaction(database_.get());
-  std::unique_lock<std::mutex> lock(overlap_mutex_);
-
-  if (cameras_ids_correspondence_.find(image_data.camera.CameraId() )!= cameras_ids_correspondence_.end() ) {
-    image_data.image.SetCameraId(
-        cameras_ids_correspondence_[image_data.camera.CameraId()]);
-  } else {
-    auto camera_id = database_->WriteCamera(image_data.camera);
-    cameras_ids_correspondence_[image_data.camera.CameraId()] = camera_id;
-    image_data.image.SetCameraId(camera_id);
+//  Timer timer;
+  std::list<std::tuple<std::string,int,double> > times;
+//  timer.Start();
+  {
+    DatabaseTransaction database_transaction(database_.get());
+//    timer.Pause();
+//    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
+//    timer.Resume();
+    std::unique_lock<std::mutex> lock(overlap_mutex_);
+//    timer.Pause();
+//    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
+//    timer.Resume();
+    if (cameras_ids_correspondence_.find(image_data.camera.CameraId() )!= cameras_ids_correspondence_.end() ) {
+      image_data.image.SetCameraId(
+          cameras_ids_correspondence_[image_data.camera.CameraId()]);
+    } else {
+      auto camera_id = database_->WriteCamera(image_data.camera);
+      cameras_ids_correspondence_[image_data.camera.CameraId()] = camera_id;
+      image_data.image.SetCameraId(camera_id);
+    }
+//    timer.Pause();
+//    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
+//    timer.Resume();
+    auto orig_image_id = image_data.image.ImageId();
+    image_data.image.SetImageId(database_->WriteImage(image_data.image));
+    images_ids_correspondence_[image_data.image.ImageId()] = orig_image_id;
+//    timer.Pause();
+//    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
+//    timer.Resume();
+    matching_overlap_.push_back(0);
   }
-
-  auto orig_image_id = image_data.image.ImageId();
-  image_data.image.SetImageId(database_->WriteImage(image_data.image));
-  images_ids_correspondence_[image_data.image.ImageId()] = orig_image_id;
-
-  matching_overlap_.push_back(0);
-
+  if(reader_queue_->Size() == _max_buffer_size)
+  {
+    if(!FeatureExtractorStateChanged.empty())
+    {
+        FeatureExtractorStateChanged(_max_buffer_size,0,0);
+    }
+  }
   reader_queue_->Push(image_data);
+//  timer.Pause();
+//  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
+//  double prev_dur=0;
+//  for(auto& tt : times)
+//  {
+//    auto&[fname,line,dur] = tt;
+//    std::cout << fname <<" :"<<line<<" :"<<((dur-prev_dur)/1000.0)<<" ms"<<std::endl;
+//    prev_dur = dur;
+//  }
 }
 
 const std::unordered_map<image_t, image_t>&
