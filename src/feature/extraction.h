@@ -122,7 +122,7 @@ namespace internal {
 
 struct ImageData {
   ImageReader::Status status = ImageReader::Status::FAILURE;
-
+    ~ImageData();
   Camera camera;
   Image image;
   Bitmap bitmap;

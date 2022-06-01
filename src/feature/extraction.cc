@@ -44,6 +44,8 @@
 namespace colmap {
 namespace {
 
+
+
 void ScaleKeypoints(const Bitmap& bitmap, const Camera& camera,
                     FeatureKeypoints* keypoints) {
   if (static_cast<size_t>(bitmap.Width()) != camera.Width() ||
@@ -461,6 +463,8 @@ void FeatureImporter::Run() {
 }
 
 namespace internal {
+
+ImageData::~ImageData()=default;
 
 ImageResizerThread::ImageResizerThread(const int max_image_size,
                                        JobQueue<ImageData>* input_queue,
