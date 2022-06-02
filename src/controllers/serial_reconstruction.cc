@@ -16,7 +16,7 @@ SerialReconstructionController::SerialReconstructionController(
       reader_options_(*options.image_reader) {
   CHECK_NOTNULL(reconstruction_manager_);
 
-  matching_queue_.reset(new JobQueue<image_t>(max_buffer_size));
+  matching_queue_.reset(new JobQueue<image_t>(200));
   reader_queue_.reset(new JobQueue<internal::ImageData>(max_buffer_size));
 
   feature_extractor_.reset(new SerialSiftFeatureExtractor(
@@ -157,6 +157,7 @@ void SerialReconstructionController::onLoad(image_t id) {
 
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
+  {
   DatabaseTransaction database_transaction(database_.get());
   std::unique_lock<std::mutex> lock(overlap_mutex_);
 
@@ -174,6 +175,7 @@ void SerialReconstructionController::AddImageData(
   images_ids_correspondence_[image_data.image.ImageId()] = orig_image_id;
 
   matching_overlap_.push_back(0);
+  }
 
   reader_queue_->Push(image_data);
 }
