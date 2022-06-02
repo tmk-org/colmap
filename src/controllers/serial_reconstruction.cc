@@ -42,6 +42,7 @@ SerialReconstructionController::SerialReconstructionController(
                                         }
                                     });
   pSerialSiftFeatureExtractor->connectStateHandler(FeatureExtractorStateChanged);
+  //option_manager_.sequential_matching->overlap=5;
   sequential_matcher_.reset(new SerialSequentialFeatureMatcher(
       *option_manager_.sequential_matching, *option_manager_.sift_matching,
       database_, matching_queue_.get()));
@@ -160,7 +161,8 @@ void SerialReconstructionController::onLoad(image_t id) {
 }
 
 void SerialReconstructionController::AddImageData(
-    internal::ImageData image_data) {
+    const internal::ImageData& image_data_ref) {
+  internal::ImageData image_data=image_data_ref;
 //  Timer timer;
   std::list<std::tuple<std::string,int,double> > times;
 //  timer.Start();

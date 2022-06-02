@@ -27,7 +27,7 @@ class SerialReconstructionController : public Thread {
   void RunFeatureMatching();
   void RunIncrementalMapper();
 
-  void AddImageData(internal::ImageData image_data);
+  void AddImageData(const internal::ImageData& image_data);
 
   const std::unordered_map<camera_t, camera_t>& getImageCorrespondences() const;
   const std::unordered_map<image_t, image_t>& getCameraCorrespondences() const;

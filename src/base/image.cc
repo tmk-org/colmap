@@ -55,7 +55,19 @@ Image::Image()
       qvec_(1.0, 0.0, 0.0, 0.0),
       tvec_(0.0, 0.0, 0.0),
       qvec_prior_(kNaN, kNaN, kNaN, kNaN),
-      tvec_prior_(kNaN, kNaN, kNaN) {}
+      tvec_prior_(kNaN, kNaN, kNaN),
+      point3D_visibility_pyramid_{}
+      {}
+
+Image::Image(const Image&) = default;
+
+Image& Image::operator=(const Image&)=default;
+
+  Image::Image(Image&&)=default;
+  Image& Image::operator=(Image&&)=default;
+
+  Image::~Image()=default;
+
 
 void Image::SetUp(const class Camera& camera) {
   CHECK_EQ(camera_id_, camera.CameraId());

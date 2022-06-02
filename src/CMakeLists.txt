@@ -62,7 +62,7 @@ if (GUI_ENABLED)
     add_subdirectory(ui)
 endif()
 
-COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
+COLMAP_ADD_LIBRARY(colmap SHARED ${COLMAP_SOURCES})
 
 target_include_directories(colmap 
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -85,7 +85,7 @@ if(CUDA_ENABLED)
     endif()
 
     COLMAP_ADD_STATIC_CUDA_LIBRARY(colmap_cuda ${COLMAP_CUDA_SOURCES})
-    target_link_libraries(colmap_cuda colmap)
+    #target_link_libraries(colmap_cuda colmap)
 
     target_link_libraries(colmap
         colmap_cuda ${COLMAP_INTERNAL_LIBRARIES} ${COLMAP_EXTERNAL_LIBRARIES})

@@ -464,6 +464,19 @@ void FeatureImporter::Run() {
 
 namespace internal {
 
+  ImageData::ImageData()
+  : camera{},
+    image{},
+    bitmap{},
+    mask{}
+  {
+
+  };
+  ImageData::ImageData(const ImageData&)=default;
+  ImageData::ImageData(ImageData&&)=default;
+  ImageData& ImageData::operator=(const ImageData&)=default;
+  ImageData& ImageData::operator=(ImageData&&)=default;
+
 ImageData::~ImageData()=default;
 
 ImageResizerThread::ImageResizerThread(const int max_image_size,

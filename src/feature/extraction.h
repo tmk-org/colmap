@@ -120,11 +120,18 @@ class FeatureImporter : public Thread {
 
 namespace internal {
 
-struct ImageData {
+class ImageData {
+public:
   ImageReader::Status status = ImageReader::Status::FAILURE;
-    ~ImageData();
+  ImageData();
+  ImageData(const ImageData&);
+  ImageData(ImageData&&);
+  ImageData& operator=(const ImageData&);
+  ImageData& operator=(ImageData&&);
+  
+  ~ImageData();
   Camera camera;
-  Image image;
+  Image  image;
   Bitmap bitmap;
   Bitmap mask;
 

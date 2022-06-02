@@ -77,9 +77,16 @@ struct FeatureKeypoint {
   float a22;
 };
 
-typedef Eigen::Matrix<uint8_t, 1, Eigen::Dynamic, Eigen::RowMajor>
-    FeatureDescriptor;
+class FeatureDescriptorWrapper : public Eigen::Matrix<uint8_t, 1, Eigen::Dynamic, Eigen::RowMajor>
+{
+public:
+    FeatureDescriptorWrapper();
+    ~FeatureDescriptorWrapper();
+};
 
+/*typedef Eigen::Matrix<uint8_t, 1, Eigen::Dynamic, Eigen::RowMajor>
+    FeatureDescriptor;*/
+typedef FeatureDescriptorWrapper FeatureDescriptor;
 struct FeatureMatch {
   FeatureMatch()
       : point2D_idx1(kInvalidPoint2DIdx), point2D_idx2(kInvalidPoint2DIdx) {}
@@ -94,8 +101,29 @@ struct FeatureMatch {
 };
 
 typedef std::vector<FeatureKeypoint> FeatureKeypoints;
+
 typedef Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-    FeatureDescriptors;
+    FeatureDescriptorsWrappee;
+
+class FeatureDescriptorsWrapper : public FeatureDescriptorsWrappee
+{
+public:
+    FeatureDescriptorsWrapper();
+    FeatureDescriptorsWrapper(size_t rows,size_t cols);
+    FeatureDescriptorsWrapper(int rows,int cols);
+    FeatureDescriptorsWrapper(const FeatureDescriptorsWrappee::Index& rows,const FeatureDescriptorsWrappee::Index& cols);
+    ~FeatureDescriptorsWrapper();
+
+    FeatureDescriptorsWrapper(const FeatureDescriptorsWrapper&);
+    FeatureDescriptorsWrapper& operator=(const FeatureDescriptorsWrapper&);
+
+    FeatureDescriptorsWrapper(FeatureDescriptorsWrapper&&);
+    FeatureDescriptorsWrapper& operator=(FeatureDescriptorsWrapper&&);
+};
+
+/*typedef Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+    FeatureDescriptors;*/ 
+typedef FeatureDescriptorsWrapper FeatureDescriptors;
 typedef std::vector<FeatureMatch> FeatureMatches;
 
 }  // namespace colmap

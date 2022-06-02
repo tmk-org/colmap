@@ -101,4 +101,32 @@ float FeatureKeypoint::ComputeShear() const {
   return std::atan2(-a12, a22) - ComputeOrientation();
 }
 
+FeatureDescriptorWrapper::~FeatureDescriptorWrapper()=default;
+
+FeatureDescriptorsWrapper::FeatureDescriptorsWrapper()=default;
+FeatureDescriptorsWrapper::~FeatureDescriptorsWrapper()=default;
+
+FeatureDescriptorsWrapper::FeatureDescriptorsWrapper( size_t rows, size_t cols)
+    : FeatureDescriptorsWrappee(rows,cols)
+{
+
+}
+
+FeatureDescriptorsWrapper::FeatureDescriptorsWrapper(const FeatureDescriptorsWrappee::Index& rows,const FeatureDescriptorsWrappee::Index& cols)
+    : FeatureDescriptorsWrappee(rows,cols)
+{
+
+}
+
+FeatureDescriptorsWrapper::FeatureDescriptorsWrapper(int rows,int cols) : FeatureDescriptorsWrappee(rows,cols)
+{
+
+}
+
+    FeatureDescriptorsWrapper::FeatureDescriptorsWrapper(const FeatureDescriptorsWrapper&)= default;
+    FeatureDescriptorsWrapper& FeatureDescriptorsWrapper::operator=(const FeatureDescriptorsWrapper&)=default;
+
+    FeatureDescriptorsWrapper::FeatureDescriptorsWrapper(FeatureDescriptorsWrapper&&) = default;
+    FeatureDescriptorsWrapper& FeatureDescriptorsWrapper::operator=(FeatureDescriptorsWrapper&&) = default;
+
 }  // namespace colmap

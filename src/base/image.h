@@ -55,7 +55,13 @@ class Image {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   Image();
+  Image(const Image&);
+  Image& operator=(const Image&);
 
+  Image(Image&&);
+  Image& operator=(Image&&);
+
+  ~Image();
   // Setup / tear down the image and necessary internal data structures before
   // and after being used in reconstruction.
   void SetUp(const Camera& camera);
@@ -243,6 +249,8 @@ class Image {
   // in the image. Note that this structure is only usable after `SetUp`.
   VisibilityPyramid point3D_visibility_pyramid_;
 };
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation
