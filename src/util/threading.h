@@ -31,7 +31,7 @@
 
 #ifndef COLMAP_SRC_UTIL_THREADING_
 #define COLMAP_SRC_UTIL_THREADING_
-
+#include <Eigen/Core>
 #include <atomic>
 #include <climits>
 #include <functional>
@@ -97,6 +97,7 @@ namespace colmap {
 //
 class Thread {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   enum {
     STARTED_CALLBACK = INT_MIN,
     FINISHED_CALLBACK,
@@ -193,6 +194,7 @@ class Thread {
 //
 class ThreadPool {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   static const int kMaxNumThreads = -1;
 
   explicit ThreadPool(const int num_threads = kMaxNumThreads);
@@ -259,8 +261,10 @@ class ThreadPool {
 template <typename T>
 class JobQueue {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   class Job {
    public:
+   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Job() : valid_(false) {}
     explicit Job(const T& data) : data_(data), valid_(true) {}
 

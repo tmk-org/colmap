@@ -226,12 +226,12 @@ class Image {
   point2D_t num_visible_points3D_;
 
   // The pose of the image, defined as the transformation from world to image.
-  Eigen::Vector4d qvec_;
-  Eigen::Vector3d tvec_;
+  alignas(32) Eigen::Vector4d qvec_;
+  alignas(32) Eigen::Vector3d tvec_;
 
   // The pose prior of the image, e.g. extracted from EXIF tags.
-  Eigen::Vector4d qvec_prior_;
-  Eigen::Vector3d tvec_prior_;
+  alignas(32) Eigen::Vector4d qvec_prior_;
+  alignas(32) Eigen::Vector3d tvec_prior_;
 
   // All image points, including points that are not part of a 3D point track.
   std::vector<class Point2D> points2D_;
@@ -241,7 +241,7 @@ class Image {
 
   // Data structure to compute the distribution of triangulated correspondences
   // in the image. Note that this structure is only usable after `SetUp`.
-  VisibilityPyramid point3D_visibility_pyramid_;
+  alignas(32) VisibilityPyramid point3D_visibility_pyramid_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -53,6 +53,7 @@ namespace colmap {
 // contributes a higher score to the overall score.
 class VisibilityPyramid {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   VisibilityPyramid();
   VisibilityPyramid(const size_t num_levels, const size_t width,
                     const size_t height);

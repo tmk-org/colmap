@@ -31,7 +31,8 @@
 
 #ifndef COLMAP_SRC_FEATURE_EXTRACTION_H_
 #define COLMAP_SRC_FEATURE_EXTRACTION_H_
-
+#include <Eigen/Core>
+#include <Eigen/StdDeque>
 #include "base/database.h"
 #include "base/database_sqlite.h"
 #include "base/database_memory.h"
@@ -40,13 +41,34 @@
 #include "util/opengl_utils.h"
 #include "util/threading.h"
 #include <boost/signals2.hpp>
+
+
+namespace colmap 
+{
+namespace internal 
+{
+
+struct alignas(32)  ImageData {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  ImageReader::Status status = ImageReader::Status::FAILURE;
+    ImageData();
+    ~ImageData();
+  alignas(32) Camera camera;
+  alignas(32) Image  image;
+  alignas(32) Bitmap bitmap;
+  alignas(32) Bitmap mask;
+
+  alignas(32) FeatureKeypoints keypoints;
+  alignas(32) FeatureDescriptors descriptors;
+};
+
+}
+}
+
+EIGEN_DEFINE_STL_DEQUE_SPECIALIZATION(colmap::internal::ImageData)
+
 namespace colmap {
 
-namespace internal {
-
-struct ImageData;
-
-}  // namespace internal
 
 // Feature extraction class to extract features for all images in a directory.
 class ISiftFeatureExtractor : public Thread {
@@ -120,17 +142,20 @@ class FeatureImporter : public Thread {
 
 namespace internal {
 
-struct ImageData {
-  ImageReader::Status status = ImageReader::Status::FAILURE;
-    ~ImageData();
-  Camera camera;
-  Image image;
-  Bitmap bitmap;
-  Bitmap mask;
 
-  FeatureKeypoints keypoints;
-  FeatureDescriptors descriptors;
-};
+//struct ImageData {
+//    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+//  ImageReader::Status status = ImageReader::Status::FAILURE;
+//    ImageData();
+//    ~ImageData();
+//  alignas(32) Camera camera;
+//  alignas(32) Image  image;
+//  alignas(32) Bitmap bitmap;
+//  alignas(32) Bitmap mask;
+//
+//  alignas(32) FeatureKeypoints keypoints;
+//  alignas(32) FeatureDescriptors descriptors;
+//};
 
 class ImageResizerThread : public Thread {
  public:
@@ -181,5 +206,8 @@ class FeatureWriterThread : public Thread {
 }  // namespace internal
 
 }  // namespace colmap
+
+
+
 
 #endif  // COLMAP_SRC_FEATURE_EXTRACTION_H_

@@ -31,7 +31,7 @@
 
 #ifndef COLMAP_SRC_UTIL_BITMAP_H_
 #define COLMAP_SRC_UTIL_BITMAP_H_
-
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
 #include <ios>
@@ -75,6 +75,7 @@ struct BitmapColor {
 // Wrapper class around FreeImage bitmaps.
 class Bitmap {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Bitmap();
 
   // Copy constructor.

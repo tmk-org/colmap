@@ -31,7 +31,7 @@
 
 #ifndef COLMAP_SRC_BASE_CAMERA_H_
 #define COLMAP_SRC_BASE_CAMERA_H_
-
+#include <Eigen/Core>
 #include <vector>
 
 #include "util/types.h"
@@ -44,6 +44,7 @@ namespace colmap {
 // This class has a specific distortion model defined by a camera model class.
 class Camera {
  public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Camera();
 
   // Access the unique identifier of the camera.

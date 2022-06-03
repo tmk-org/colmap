@@ -35,12 +35,13 @@
 #include <vector>
 
 #include <Eigen/Core>
-
+#include <Eigen/StdVector>
 #include "util/types.h"
 
 namespace colmap {
 
 struct FeatureKeypoint {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   FeatureKeypoint();
   FeatureKeypoint(const float x, const float y);
   FeatureKeypoint(const float x, const float y, const float scale,
