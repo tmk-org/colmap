@@ -44,6 +44,8 @@
 namespace colmap {
 namespace {
 
+
+
 void ScaleKeypoints(const Bitmap& bitmap, const Camera& camera,
                     FeatureKeypoints* keypoints) {
   if (static_cast<size_t>(bitmap.Width()) != camera.Width() ||
@@ -190,7 +192,8 @@ SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
 
   // Make sure that we only have limited number of objects in the queue to avoid
   // excess in memory usage since images and features take lots of memory.
-  const int kQueueSize = 1;
+  //it's useless limit queue to 1 since we have n readers from it-slylark
+  const int kQueueSize = num_threads;
   resizer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
   extractor_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
   writer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
@@ -253,7 +256,13 @@ SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
                                                   writer_queue_.get()));
 }
 
+const boost::signals2::connection& SerialSiftFeatureExtractor::connectStateHandler(const boost::signals2::signal<void(size_t,size_t,size_t)>::slot_type& invokable)
+{
+  return _runStateHandlerConnections.emplace_back(_runStateHandler.connect(invokable));
+}
+
 void SerialSiftFeatureExtractor::Run() {
+  size_t currJobIndex= 0;
   PrintHeading1("Feature extraction");
 
   for (auto& resizer : resizers_) {
@@ -294,6 +303,11 @@ void SerialSiftFeatureExtractor::Run() {
       } else {
         CHECK(extractor_queue_->Push(image_data));
       }
+      currJobIndex++;
+      if(!_runStateHandler.empty())
+      {
+        _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
+      }
     } else {
       break;
     }
@@ -301,12 +315,14 @@ void SerialSiftFeatureExtractor::Run() {
 
   resizer_queue_->Wait();
   resizer_queue_->Stop();
+  _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
   for (auto& resizer : resizers_) {
     resizer->Wait();
   }
 
   extractor_queue_->Wait();
   extractor_queue_->Stop();
+  _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
   for (auto& extractor : extractors_) {
     extractor->Wait();
   }
@@ -447,6 +463,8 @@ void FeatureImporter::Run() {
 }
 
 namespace internal {
+
+ImageData::~ImageData()=default;
 
 ImageResizerThread::ImageResizerThread(const int max_image_size,
                                        JobQueue<ImageData>* input_queue,

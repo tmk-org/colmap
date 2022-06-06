@@ -39,7 +39,7 @@
 #include "feature/sift.h"
 #include "util/opengl_utils.h"
 #include "util/threading.h"
-
+#include <boost/signals2.hpp>
 namespace colmap {
 
 namespace internal {
@@ -89,13 +89,15 @@ class SerialSiftFeatureExtractor : public ISiftFeatureExtractor {
   SerialSiftFeatureExtractor(const SiftExtractionOptions& sift_options,
                              std::shared_ptr<IDatabase> database,
                              JobQueue<internal::ImageData>* reader_queue);
-
+  const boost::signals2::connection& connectStateHandler(const boost::signals2::signal<void(size_t,size_t,size_t)>::slot_type& invokable);
  private:
   void Run();
 
   image_t last_image_id_;
 
   JobQueue<internal::ImageData>* reader_queue_;
+  boost::signals2::signal<void(size_t,size_t,size_t)> _runStateHandler;
+  std::list< boost::signals2::scoped_connection > _runStateHandlerConnections;
 };
 
 // Import features from text files. Each image must have a corresponding text
@@ -120,7 +122,7 @@ namespace internal {
 
 struct ImageData {
   ImageReader::Status status = ImageReader::Status::FAILURE;
-
+    ~ImageData();
   Camera camera;
   Image image;
   Bitmap bitmap;

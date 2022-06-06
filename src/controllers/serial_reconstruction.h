@@ -34,7 +34,7 @@ class SerialReconstructionController : public Thread {
     boost::signals2::signal<bool()> OnFeatureExtractionStart,   OnFeatureExtractionStop;
     boost::signals2::signal<bool()> OnFeatureMatchingStart,     OnFeatureMatchingStop;
     boost::signals2::signal<bool()> OnRecounstructionStart;
-
+    boost::signals2::signal<void(size_t,size_t,size_t)> FeatureExtractorStateChanged;
  private:
   void onLoad(image_t id);
 
@@ -56,6 +56,7 @@ class SerialReconstructionController : public Thread {
 
   std::unordered_map<camera_t, camera_t> cameras_ids_correspondence_;
   std::unordered_map<image_t, image_t> images_ids_correspondence_;
+  size_t _max_buffer_size;
 };
 
 }  // namespace colmap
