@@ -8,6 +8,7 @@
 #include "util/misc.h"
 #include "util/option_manager.h"
 #include <chrono>
+#include <thread>
 using namespace colmap;
 
 // Simple example that reads and writes a reconstruction.
