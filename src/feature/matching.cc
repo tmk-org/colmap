@@ -476,8 +476,14 @@ void SiftGPUFeatureMatcher::Run() {
       GetDescriptorData(0, data.image_id1, &descriptors1_ptr);
       const FeatureDescriptors* descriptors2_ptr;
       GetDescriptorData(1, data.image_id2, &descriptors2_ptr);
+
+
+      const FeatureKeypoints& kps1 = cache_->GetKeypoints(data.image_id1);
+      const FeatureKeypoints& kps2 = cache_->GetKeypoints(data.image_id2);
+
       MatchSiftFeaturesGPU(options_, descriptors1_ptr, descriptors2_ptr,
-                           &sift_match_gpu, &data.matches);
+                           kps1, kps2, &sift_match_gpu, &data.matches);
+
 
       CHECK(output_queue_->Push(data));
     }

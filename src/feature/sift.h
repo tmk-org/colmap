@@ -164,6 +164,12 @@ struct SiftMatchingOptions {
   // Force Homography use for Two-view Geometry (can help for planar scenes)
   bool planar_scene = false;
 
+  // Matching static feaching
+  bool filter_static = true;
+
+  // Min disparity between matches to consider keypoints static.
+  double min_disparity = 10.0;
+
   bool Check() const;
 };
 
@@ -246,6 +252,8 @@ bool CreateSiftGPUMatcher(const SiftMatchingOptions& match_options,
 void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
                           const FeatureDescriptors* descriptors1,
                           const FeatureDescriptors* descriptors2,
+                          const FeatureKeypoints& kps1,
+                          const FeatureKeypoints& kps2,
                           SiftMatchGPU* sift_match_gpu,
                           FeatureMatches* matches);
 void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,

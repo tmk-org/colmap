@@ -1151,6 +1151,8 @@ bool CreateSiftGPUMatcher(const SiftMatchingOptions& match_options,
 void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
                           const FeatureDescriptors* descriptors1,
                           const FeatureDescriptors* descriptors2,
+                          const FeatureKeypoints& kps1,
+                          const FeatureKeypoints& kps2,
                           SiftMatchGPU* sift_match_gpu,
                           FeatureMatches* matches) {
   CHECK(match_options.Check());
@@ -1182,6 +1184,30 @@ void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
       static_cast<float>(match_options.max_distance),
       static_cast<float>(match_options.max_ratio), match_options.cross_check);
 
+  int new_num_matches = num_matches;
+
+  if (match_options.filter_static) {
+    for (int i = 0; i < new_num_matches; ++i) {
+      FeatureKeypoint kp1 = kps1[(*matches)[i].point2D_idx1];
+      FeatureKeypoint kp2 = kps2[(*matches)[i].point2D_idx2];
+      double x1 = kp1.x;
+      double y1 = kp1.y;
+      double x2 = kp2.x;
+      double y2 = kp2.y;
+      double dist;
+
+
+      
+        dist = std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+      
+      if (dist < match_options.min_disparity) {
+        std::swap((*matches)[i], (*matches)[new_num_matches-1]);
+        new_num_matches--;
+        i--;
+      }
+    }
+  }
+
   if (num_matches < 0) {
     std::cerr << "ERROR: Feature matching failed. This is probably caused by "
                  "insufficient GPU memory. Consider reducing the maximum "
@@ -1190,7 +1216,7 @@ void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
     matches->clear();
   } else {
     CHECK_LE(num_matches, matches->size());
-    matches->resize(num_matches);
+    matches->resize(new_num_matches);
   }
 }
 
