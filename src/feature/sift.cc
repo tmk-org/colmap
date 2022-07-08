@@ -1208,7 +1208,7 @@ void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
     }
   }
 
-  if (num_matches < 0) {
+  if (new_num_matches < 0) {
     std::cerr << "ERROR: Feature matching failed. This is probably caused by "
                  "insufficient GPU memory. Consider reducing the maximum "
                  "number of features and/or matches."
