@@ -144,7 +144,11 @@ endif()
 set(CUDA_MIN_VERSION "7.0")
 if(CUDA_ENABLED)
     find_package(CUDA ${CUDA_MIN_VERSION} QUIET)
-endif()
+    message("CMAKE_CUDA_COMPILE_WHOLE_COMPILATION \"${CMAKE_CUDA_COMPILE_WHOLE_COMPILATION}\"")
+    if(NOT CMAKE_CUDA_COMPILE_WHOLE_COMPILATION)
+        set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
+    endif()    
+endif()    
 
 if(GUI_ENABLED)
     find_package(Qt5 5.4 COMPONENTS Core OpenGL Widgets)
@@ -246,7 +250,7 @@ if(CUDA_FOUND)
         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SelectCudaComputeArch.cmake)
 
         CUDA_SELECT_NVCC_ARCH_FLAGS(CUDA_ARCH_FLAGS ${CUDA_ARCHS})
-
+        CUDA_SELECT_SM_CC_FLAGS(CUDA_ARCH_SM_CC ${CUDA_ARCHS})
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_ARCH_FLAGS}")
 
         # Fix for gcc-11
@@ -258,7 +262,7 @@ if(CUDA_FOUND)
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Wno-deprecated-gpu-targets")
 
         message(STATUS "Enabling CUDA support (version: ${CUDA_VERSION_STRING},"
-                       " archs: ${CUDA_ARCH_FLAGS_readable})")
+                       " archs: ${CUDA_ARCH_FLAGS_readable} CUDA_ARCH_SM_CC \"${CUDA_ARCH_SM_CC}\")")
     else()
         set(CUDA_FOUND OFF)
         message(STATUS "Disabling CUDA support")
@@ -460,6 +464,10 @@ set_target_properties(
     EXCLUDE_FROM_ALL 1
     EXCLUDE_FROM_DEFAULT_BUILD 1)
 
+if((CMAKE_VERSION VERSION_GREATER_EQUAL 3.18.0) AND (CUDA_ENABLED))
+    message("set CUDA_ARCHITECTURES \"${CUDA_ARCH_SM_CC}\" to target \"${COLMAP_SRC_ROOT_FOLDER}\"")
+    set_property(TARGET ${COLMAP_SRC_ROOT_FOLDER} PROPERTY CUDA_ARCHITECTURES "${CUDA_ARCH_SM_CC}")
+endif()
 
 ################################################################################
 # Install and uninstall scripts

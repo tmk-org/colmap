@@ -25,6 +25,10 @@ if(CUDA_ENABLED)
         SparseBundleCU.h
         util.h
     )
+    if((CMAKE_VERSION VERSION_GREATER_EQUAL 3.18.0) AND (CUDA_ENABLED))
+        message("set CUDA_ARCHITECTURES \"${CUDA_ARCH_SM_CC}\" to target \"pba\"")
+        set_property(TARGET pba PROPERTY CUDA_ARCHITECTURES "${CUDA_ARCH_SM_CC}")
+    endif()
 else()
     add_definitions("-DPBA_NO_GPU")
 
