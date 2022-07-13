@@ -201,10 +201,25 @@ if(IS_GNU)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
         message(FATAL_ERROR "GCC version 4.8 or older not supported")
     endif()
-
+    
+    set(WARNINGS_TO_REMOVE -Wall -Werror -pedantic)
+    
+    STRING(STRIP ${CMAKE_C_FLAGS} CMAKE_C_CXX_FLAGS_TEMP)
+    foreach(warning_ ${WARNINGS_TO_REMOVE})
+        STRING(REPLACE ${warning_} " " WO_WARN_STRING ${CMAKE_C_CXX_FLAGS_TEMP})
+        STRING(STRIP ${WO_WARN_STRING} CMAKE_C_CXX_FLAGS_TEMP)
+    endforeach()
+    
     # Hide incorrect warnings for uninitialized Eigen variables under GCC.
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+    set(CMAKE_C_FLAGS "${CMAKE_C_CXX_FLAGS_TEMP} -Wno-maybe-uninitialized")
+
+    STRING(STRIP ${CMAKE_CXX_FLAGS} CMAKE_C_CXX_FLAGS_TEMP)
+    foreach(warning_ ${WARNINGS_TO_REMOVE})
+        STRING(REPLACE ${warning_} " " WO_WARN_STRING ${CMAKE_C_CXX_FLAGS_TEMP})
+        STRING(STRIP ${WO_WARN_STRING} CMAKE_C_CXX_FLAGS_TEMP)
+    endforeach()
+    # Hide incorrect warnings for uninitialized Eigen variables under GCC.
+    set(CMAKE_CXX_FLAGS "${CMAKE_C_CXX_FLAGS_TEMP} -Wno-maybe-uninitialized")
 endif()
 
 if(IS_DEBUG)
