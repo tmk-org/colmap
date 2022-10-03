@@ -141,7 +141,8 @@ void SerialReconstructionController::RunIncrementalMapper() {
 
 void SerialReconstructionController::onLoad(image_t id) {
   std::unique_lock<std::mutex> lock(overlap_mutex_);
-  int overlap = option_manager_.sequential_matching->overlap - 1;
+//  int overlap = option_manager_.sequential_matching->overlap - 1;
+  int overlap = 30;
 
   // Сheck if there are enough processed images
   if (matching_overlap_[id - 1] == overlap) {
