@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,10 @@
 
 #include "feature/extraction.h"
 
+#include <chrono>
 #include <numeric>
+
+#include <functional>
 
 #include "SiftGPU/SiftGPU.h"
 #include "feature/sift.h"
@@ -40,6 +43,8 @@
 
 namespace colmap {
 namespace {
+
+
 
 void ScaleKeypoints(const Bitmap& bitmap, const Camera& camera,
                     FeatureKeypoints* keypoints) {
@@ -84,10 +89,10 @@ void MaskKeypoints(const Bitmap& mask, FeatureKeypoints* keypoints,
 SiftFeatureExtractor::SiftFeatureExtractor(
     const ImageReaderOptions& reader_options,
     const SiftExtractionOptions& sift_options)
-    : reader_options_(reader_options),
-      sift_options_(sift_options),
-      database_(reader_options_.database_path),
-      image_reader_(reader_options_, &database_) {
+    : ISiftFeatureExtractor(sift_options, std::make_shared<Database>(
+                                              reader_options.database_path)),
+      reader_options_(reader_options),
+      image_reader_(reader_options_, database_.get()) {
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
@@ -168,7 +173,165 @@ SiftFeatureExtractor::SiftFeatureExtractor(
   }
 
   writer_.reset(new internal::FeatureWriterThread(
-      image_reader_.NumImages(), &database_, writer_queue_.get()));
+      image_reader_.NumImages(), database_.get(), writer_queue_.get()));
+}
+
+SerialSiftFeatureExtractor::SerialSiftFeatureExtractor(
+    const SiftExtractionOptions& sift_options,
+    std::shared_ptr<IDatabase> database,
+    JobQueue<internal::ImageData>* reader_queue)
+    : ISiftFeatureExtractor(sift_options, database),
+      last_image_id_(0),
+      reader_queue_(reader_queue) {
+  CHECK(sift_options_.Check());
+
+  std::shared_ptr<Bitmap> camera_mask;
+
+  const int num_threads = GetEffectiveNumThreads(sift_options_.num_threads);
+  CHECK_GT(num_threads, 0);
+
+  // Make sure that we only have limited number of objects in the queue to avoid
+  // excess in memory usage since images and features take lots of memory.
+  //it's useless limit queue to 1 since we have n readers from it-slylark
+  const int kQueueSize = num_threads;
+  resizer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+  extractor_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+  writer_queue_.reset(new JobQueue<internal::ImageData>(kQueueSize));
+
+  if (sift_options_.max_image_size > 0) {
+    for (int i = 0; i < num_threads; ++i) {
+      resizers_.emplace_back(new internal::ImageResizerThread(
+          sift_options_.max_image_size, resizer_queue_.get(),
+          extractor_queue_.get()));
+    }
+  }
+
+  if (!sift_options_.domain_size_pooling &&
+      !sift_options_.estimate_affine_shape && sift_options_.use_gpu) {
+    std::vector<int> gpu_indices = CSVToVector<int>(sift_options_.gpu_index);
+    CHECK_GT(gpu_indices.size(), 0);
+
+#ifdef CUDA_ENABLED
+    if (gpu_indices.size() == 1 && gpu_indices[0] == -1) {
+      const int num_cuda_devices = GetNumCudaDevices();
+      CHECK_GT(num_cuda_devices, 0);
+      gpu_indices.resize(num_cuda_devices);
+      std::iota(gpu_indices.begin(), gpu_indices.end(), 0);
+    }
+#endif  // CUDA_ENABLED
+
+    auto sift_gpu_options = sift_options_;
+    for (const auto& gpu_index : gpu_indices) {
+      sift_gpu_options.gpu_index = std::to_string(gpu_index);
+      extractors_.emplace_back(new internal::SiftFeatureExtractorThread(
+          sift_gpu_options, camera_mask, extractor_queue_.get(),
+          writer_queue_.get()));
+    }
+  } else {
+    if (sift_options_.num_threads == -1 &&
+        sift_options_.max_image_size ==
+            SiftExtractionOptions().max_image_size &&
+        sift_options_.first_octave == SiftExtractionOptions().first_octave) {
+      std::cout
+          << "WARNING: Your current options use the maximum number of "
+             "threads on the machine to extract features. Exracting SIFT "
+             "features on the CPU can consume a lot of RAM per thread for "
+             "large images. Consider reducing the maximum image size and/or "
+             "the first octave or manually limit the number of extraction "
+             "threads. Ignore this warning, if your machine has sufficient "
+             "memory for the current settings."
+          << std::endl;
+    }
+
+    auto custom_sift_options = sift_options_;
+    custom_sift_options.use_gpu = false;
+    for (int i = 0; i < num_threads; ++i) {
+      extractors_.emplace_back(new internal::SiftFeatureExtractorThread(
+          custom_sift_options, camera_mask, extractor_queue_.get(),
+          writer_queue_.get()));
+    }
+  }
+
+  writer_.reset(new internal::FeatureWriterThread(0, database_.get(),
+                                                  writer_queue_.get()));
+}
+
+const boost::signals2::connection& SerialSiftFeatureExtractor::connectStateHandler(const boost::signals2::signal<void(size_t,size_t,size_t)>::slot_type& invokable)
+{
+  return _runStateHandlerConnections.emplace_back(_runStateHandler.connect(invokable));
+}
+
+void SerialSiftFeatureExtractor::Run() {
+  size_t currJobIndex= 0;
+  PrintHeading1("Feature extraction");
+
+  for (auto& resizer : resizers_) {
+    resizer->Start();
+  }
+
+  for (auto& extractor : extractors_) {
+    extractor->Start();
+  }
+
+  writer_->Start();
+
+  for (auto& extractor : extractors_) {
+    if (!extractor->CheckValidSetup()) {
+      return;
+    }
+  }
+
+  while (true) {
+    if (IsStopped()) {
+      resizer_queue_->Stop();
+      extractor_queue_->Stop();
+      resizer_queue_->Clear();
+      extractor_queue_->Clear();
+      break;
+    }
+
+    const auto input_job = reader_queue_->Pop();
+    if (input_job.IsValid()) {
+      auto image_data = input_job.Data();
+      
+      if (image_data.status != ImageReader::Status::SUCCESS) {
+        image_data.bitmap.Deallocate();
+      }
+
+      if (sift_options_.max_image_size > 0) {
+        CHECK(resizer_queue_->Push(image_data));
+      } else {
+        CHECK(extractor_queue_->Push(image_data));
+      }
+      currJobIndex++;
+      if(!_runStateHandler.empty())
+      {
+        _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
+      }
+    } else {
+      break;
+    }
+  }
+
+  resizer_queue_->Wait();
+  resizer_queue_->Stop();
+  _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
+  for (auto& resizer : resizers_) {
+    resizer->Wait();
+  }
+
+  extractor_queue_->Wait();
+  extractor_queue_->Stop();
+  _runStateHandler(currJobIndex,resizer_queue_->Size(),extractor_queue_->Size());
+  for (auto& extractor : extractors_) {
+    extractor->Wait();
+  }
+
+  writer_queue_->Wait();
+  writer_queue_->Stop();
+  writer_->Wait();
+
+  GetTimer().PrintMinutes();
 }
 
 void SiftFeatureExtractor::Run() {
@@ -196,6 +359,7 @@ void SiftFeatureExtractor::Run() {
       extractor_queue_->Stop();
       resizer_queue_->Clear();
       extractor_queue_->Clear();
+
       break;
     }
 
@@ -300,6 +464,8 @@ void FeatureImporter::Run() {
 
 namespace internal {
 
+ImageData::~ImageData()=default;
+
 ImageResizerThread::ImageResizerThread(const int max_image_size,
                                        JobQueue<ImageData>* input_queue,
                                        JobQueue<ImageData>* output_queue)
@@ -316,7 +482,7 @@ void ImageResizerThread::Run() {
     const auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
       auto image_data = input_job.Data();
-
+      
       if (image_data.status == ImageReader::Status::SUCCESS) {
         if (static_cast<int>(image_data.bitmap.Width()) > max_image_size_ ||
             static_cast<int>(image_data.bitmap.Height()) > max_image_size_) {
@@ -426,7 +592,7 @@ void SiftFeatureExtractorThread::Run() {
 }
 
 FeatureWriterThread::FeatureWriterThread(const size_t num_images,
-                                         Database* database,
+                                         IDatabase* database,
                                          JobQueue<ImageData>* input_queue)
     : num_images_(num_images), database_(database), input_queue_(input_queue) {}
 
@@ -447,8 +613,8 @@ void FeatureWriterThread::Run() {
                                 num_images_)
                 << std::endl;
 
-      std::cout << StringPrintf("  Name:            %s",
-                                image_data.image.Name().c_str())
+      std::cout << StringPrintf("  Name:           %d",
+                                image_data.image.ImageId())
                 << std::endl;
 
       if (image_data.status == ImageReader::Status::IMAGE_EXISTS) {

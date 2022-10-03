@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -177,7 +177,7 @@ bool IncrementalMapper::FindInitialImagePair(const Options& options,
       *image_id2 = image_ids2[i2];
 
       const image_pair_t pair_id =
-          Database::ImagePairToPairId(*image_id1, *image_id2);
+          DatabaseRoot::ImagePairToPairId(*image_id1, *image_id2);
 
       // Try every pair only once.
       if (init_image_pairs_.count(pair_id) > 0) {
@@ -269,7 +269,7 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
   num_reg_trials_[image_id2] += 1;
 
   const image_pair_t pair_id =
-      Database::ImagePairToPairId(image_id1, image_id2);
+      DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
   init_image_pairs_.insert(pair_id);
 
   Image& image1 = reconstruction_->Image(image_id1);
@@ -1145,7 +1145,7 @@ void IncrementalMapper::DeRegisterImageEvent(const image_t image_id) {
 bool IncrementalMapper::EstimateInitialTwoViewGeometry(
     const Options& options, const image_t image_id1, const image_t image_id2) {
   const image_pair_t image_pair_id =
-      Database::ImagePairToPairId(image_id1, image_id2);
+      DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
 
   if (prev_init_image_pair_id_ == image_pair_id) {
     return true;

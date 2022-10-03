@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 // Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
 #include "controllers/incremental_mapper.h"
+#include "base/database_sqlite.h"
 
 #include "util/misc.h"
 
@@ -89,12 +90,9 @@ void IterativeLocalRefinement(const IncrementalMapperOptions& options,
     std::cout << "  => Filtered observations: "
               << report.num_filtered_observations << std::endl;
     const double changed =
-        report.num_adjusted_observations == 0
-            ? 0
-            : (report.num_merged_observations +
-               report.num_completed_observations +
-               report.num_filtered_observations) /
-                  static_cast<double>(report.num_adjusted_observations);
+        (report.num_merged_observations + report.num_completed_observations +
+         report.num_filtered_observations) /
+        static_cast<double>(report.num_adjusted_observations);
     std::cout << StringPrintf("  => Changed observations: %.6f", changed)
               << std::endl;
     if (changed < options.ba_local_max_refinement_change) {
@@ -122,9 +120,7 @@ void IterativeGlobalRefinement(const IncrementalMapperOptions& options,
     num_changed_observations += CompleteAndMergeTracks(options, mapper);
     num_changed_observations += FilterPoints(options, mapper);
     const double changed =
-        num_observations == 0
-            ? 0
-            : static_cast<double>(num_changed_observations) / num_observations;
+        static_cast<double>(num_changed_observations) / num_observations;
     std::cout << StringPrintf("  => Changed observations: %.6f", changed)
               << std::endl;
     if (changed < options.ba_global_max_refinement_change) {
@@ -307,13 +303,29 @@ IncrementalMapperController::IncrementalMapperController(
     ReconstructionManager* reconstruction_manager)
     : options_(options),
       image_path_(image_path),
-      database_path_(database_path),
+      database_(std::make_shared<Database>(database_path)),
       reconstruction_manager_(reconstruction_manager) {
   CHECK(options_->Check());
   RegisterCallback(INITIAL_IMAGE_PAIR_REG_CALLBACK);
   RegisterCallback(NEXT_IMAGE_REG_CALLBACK);
   RegisterCallback(LAST_IMAGE_REG_CALLBACK);
 }
+
+IncrementalMapperController::IncrementalMapperController(
+    const IncrementalMapperOptions* options,
+    const std::string& image_path,
+    std::shared_ptr<IDatabase> database,
+    ReconstructionManager* reconstruction_manager)
+    : options_(options),
+      image_path_(image_path),
+      database_(database),
+      reconstruction_manager_(reconstruction_manager) {
+  CHECK(options_->Check());
+  RegisterCallback(INITIAL_IMAGE_PAIR_REG_CALLBACK);
+  RegisterCallback(NEXT_IMAGE_REG_CALLBACK);
+  RegisterCallback(LAST_IMAGE_REG_CALLBACK);
+}
+
 
 void IncrementalMapperController::Run() {
   if (!LoadDatabase()) {
@@ -360,11 +372,10 @@ bool IncrementalMapperController::LoadDatabase() {
     }
   }
 
-  Database database(database_path_);
   Timer timer;
   timer.Start();
   const size_t min_num_matches = static_cast<size_t>(options_->min_num_matches);
-  database_cache_.Load(database, min_num_matches, options_->ignore_watermarks,
+  database_cache_.Load(*database_, min_num_matches, options_->ignore_watermarks,
                        image_names);
   std::cout << std::endl;
   timer.PrintMinutes();

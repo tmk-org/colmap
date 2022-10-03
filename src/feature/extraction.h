@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,13 @@
 #define COLMAP_SRC_FEATURE_EXTRACTION_H_
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
+#include "base/database_memory.h"
 #include "base/image_reader.h"
 #include "feature/sift.h"
 #include "util/opengl_utils.h"
 #include "util/threading.h"
-
+#include <boost/signals2.hpp>
 namespace colmap {
 
 namespace internal {
@@ -47,19 +49,18 @@ struct ImageData;
 }  // namespace internal
 
 // Feature extraction class to extract features for all images in a directory.
-class SiftFeatureExtractor : public Thread {
+class ISiftFeatureExtractor : public Thread {
  public:
-  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
-                       const SiftExtractionOptions& sift_options);
+  ISiftFeatureExtractor(const SiftExtractionOptions& sift_options,
+                        std::shared_ptr<IDatabase> database)
+      : sift_options_(sift_options), database_(database){};
+  virtual ~ISiftFeatureExtractor() = default;
 
- private:
-  void Run();
+ protected:
+  virtual void Run() = 0;
 
-  const ImageReaderOptions reader_options_;
   const SiftExtractionOptions sift_options_;
-
-  Database database_;
-  ImageReader image_reader_;
+  std::shared_ptr<IDatabase> database_;
 
   std::vector<std::unique_ptr<Thread>> resizers_;
   std::vector<std::unique_ptr<Thread>> extractors_;
@@ -68,6 +69,35 @@ class SiftFeatureExtractor : public Thread {
   std::unique_ptr<JobQueue<internal::ImageData>> resizer_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> extractor_queue_;
   std::unique_ptr<JobQueue<internal::ImageData>> writer_queue_;
+};
+
+class SiftFeatureExtractor : public ISiftFeatureExtractor {
+ public:
+  SiftFeatureExtractor(const ImageReaderOptions& reader_options,
+                       const SiftExtractionOptions& sift_options);
+
+ private:
+  void Run();
+
+  const ImageReaderOptions reader_options_;
+
+  ImageReader image_reader_;
+};
+
+class SerialSiftFeatureExtractor : public ISiftFeatureExtractor {
+ public:
+  SerialSiftFeatureExtractor(const SiftExtractionOptions& sift_options,
+                             std::shared_ptr<IDatabase> database,
+                             JobQueue<internal::ImageData>* reader_queue);
+  const boost::signals2::connection& connectStateHandler(const boost::signals2::signal<void(size_t,size_t,size_t)>::slot_type& invokable);
+ private:
+  void Run();
+
+  image_t last_image_id_;
+
+  JobQueue<internal::ImageData>* reader_queue_;
+  boost::signals2::signal<void(size_t,size_t,size_t)> _runStateHandler;
+  std::list< boost::signals2::scoped_connection > _runStateHandlerConnections;
 };
 
 // Import features from text files. Each image must have a corresponding text
@@ -92,7 +122,7 @@ namespace internal {
 
 struct ImageData {
   ImageReader::Status status = ImageReader::Status::FAILURE;
-
+    ~ImageData();
   Camera camera;
   Image image;
   Bitmap bitmap;
@@ -137,14 +167,14 @@ class SiftFeatureExtractorThread : public Thread {
 
 class FeatureWriterThread : public Thread {
  public:
-  FeatureWriterThread(const size_t num_images, Database* database,
+  FeatureWriterThread(const size_t num_images, IDatabase* database,
                       JobQueue<ImageData>* input_queue);
 
  private:
   void Run();
 
   const size_t num_images_;
-  Database* database_;
+  IDatabase* database_;
   JobQueue<ImageData>* input_queue_;
 };
 

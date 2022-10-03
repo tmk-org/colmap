@@ -69,6 +69,33 @@ option(BOOST_STATIC "Whether to enable static boost library linker flags" ON)
 set(CUDA_ARCHS "Auto" CACHE STRING "List of CUDA architectures for which to \
 generate code, e.g., Auto, All, Maxwell, Pascal, ...")
 
+if (SIMD_ENABLED)
+    if( NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        if( ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+            string(REGEX MATCH "-O2" O2EXISTS "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+            if( O2EXISTS )
+                string(REGEX REPLACE "-O2" "-O3" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+                string(REGEX REPLACE "-O2" "-O3" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+            else()
+                set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O3")
+                set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O3")
+            endif()
+            
+        endif()
+        if( ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+            string(REGEX MATCH "-O2" O2EXISTS "${CMAKE_CXX_FLAGS_RELEASE}")
+            if( O2EXISTS )
+                string(REGEX REPLACE "-O2" "-O3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+                string(REGEX REPLACE "-O2" "-O3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+            else()
+                set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+                set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+            endif()
+        endif()
+        
+    endif()
+endif()
+
 if(TESTS_ENABLED)
     enable_testing()
 endif()
@@ -117,7 +144,11 @@ endif()
 set(CUDA_MIN_VERSION "7.0")
 if(CUDA_ENABLED)
     find_package(CUDA ${CUDA_MIN_VERSION} QUIET)
-endif()
+    message("CMAKE_CUDA_COMPILE_WHOLE_COMPILATION \"${CMAKE_CUDA_COMPILE_WHOLE_COMPILATION}\"")
+    if(NOT CMAKE_CUDA_COMPILE_WHOLE_COMPILATION)
+        set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
+    endif()    
+endif()    
 
 if(GUI_ENABLED)
     find_package(Qt5 5.4 COMPONENTS Core OpenGL Widgets)
@@ -170,10 +201,25 @@ if(IS_GNU)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
         message(FATAL_ERROR "GCC version 4.8 or older not supported")
     endif()
-
+    
+    set(WARNINGS_TO_REMOVE -Wall -Werror -pedantic)
+    
+    STRING(STRIP ${CMAKE_C_FLAGS} CMAKE_C_CXX_FLAGS_TEMP)
+    foreach(warning_ ${WARNINGS_TO_REMOVE})
+        STRING(REPLACE ${warning_} " " WO_WARN_STRING ${CMAKE_C_CXX_FLAGS_TEMP})
+        STRING(STRIP ${WO_WARN_STRING} CMAKE_C_CXX_FLAGS_TEMP)
+    endforeach()
+    
     # Hide incorrect warnings for uninitialized Eigen variables under GCC.
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+    set(CMAKE_C_FLAGS "${CMAKE_C_CXX_FLAGS_TEMP} -Wno-maybe-uninitialized")
+
+    STRING(STRIP ${CMAKE_CXX_FLAGS} CMAKE_C_CXX_FLAGS_TEMP)
+    foreach(warning_ ${WARNINGS_TO_REMOVE})
+        STRING(REPLACE ${warning_} " " WO_WARN_STRING ${CMAKE_C_CXX_FLAGS_TEMP})
+        STRING(STRIP ${WO_WARN_STRING} CMAKE_C_CXX_FLAGS_TEMP)
+    endforeach()
+    # Hide incorrect warnings for uninitialized Eigen variables under GCC.
+    set(CMAKE_CXX_FLAGS "${CMAKE_C_CXX_FLAGS_TEMP} -Wno-maybe-uninitialized")
 endif()
 
 if(IS_DEBUG)
@@ -219,7 +265,7 @@ if(CUDA_FOUND)
         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SelectCudaComputeArch.cmake)
 
         CUDA_SELECT_NVCC_ARCH_FLAGS(CUDA_ARCH_FLAGS ${CUDA_ARCHS})
-
+        CUDA_SELECT_SM_CC_FLAGS(CUDA_ARCH_SM_CC ${CUDA_ARCHS})
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_ARCH_FLAGS}")
 
         # Fix for gcc-11
@@ -231,7 +277,7 @@ if(CUDA_FOUND)
         set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Wno-deprecated-gpu-targets")
 
         message(STATUS "Enabling CUDA support (version: ${CUDA_VERSION_STRING},"
-                       " archs: ${CUDA_ARCH_FLAGS_readable})")
+                       " archs: ${CUDA_ARCH_FLAGS_readable} CUDA_ARCH_SM_CC \"${CUDA_ARCH_SM_CC}\")")
     else()
         set(CUDA_FOUND OFF)
         message(STATUS "Disabling CUDA support")
@@ -433,6 +479,10 @@ set_target_properties(
     EXCLUDE_FROM_ALL 1
     EXCLUDE_FROM_DEFAULT_BUILD 1)
 
+if((CMAKE_VERSION VERSION_GREATER_EQUAL 3.18.0) AND (CUDA_ENABLED))
+    message("set CUDA_ARCHITECTURES \"${CUDA_ARCH_SM_CC}\" to target \"${COLMAP_SRC_ROOT_FOLDER}\"")
+    set_property(TARGET ${COLMAP_SRC_ROOT_FOLDER} PROPERTY CUDA_ARCHITECTURES "${CUDA_ARCH_SM_CC}")
+endif()
 
 ################################################################################
 # Install and uninstall scripts
@@ -480,3 +530,4 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CMakeUninstall.cmake.in"
                IMMEDIATE @ONLY)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/CMakeUninstall.cmake)
 set_target_properties(uninstall PROPERTIES FOLDER ${CMAKE_TARGETS_ROOT_FOLDER})
+

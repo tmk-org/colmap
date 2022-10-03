@@ -31,6 +31,7 @@
 
 #include "exe/image.h"
 
+#include "base/database_sqlite.h"
 #include "base/reconstruction.h"
 #include "base/undistortion.h"
 #include "controllers/incremental_mapper.h"

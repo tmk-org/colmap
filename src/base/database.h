@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -34,245 +34,165 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <map>
 #include <vector>
 
 #include <Eigen/Core>
+#include <boost/signals2.hpp>
 
 #include "SQLite/sqlite3.h"
 #include "base/camera.h"
 #include "base/image.h"
 #include "estimators/two_view_geometry.h"
 #include "feature/types.h"
+
 #include "util/types.h"
+
 
 namespace colmap {
 
-// Database class to read and write images, features, cameras, matches, etc.
-// from a SQLite database. The class is not thread-safe and must not be accessed
-// concurrently. The class is optimized for single-thread speed and for optimal
-// performance, wrap multiple method calls inside a leading `BeginTransaction`
-// and trailing `EndTransaction`.
-class Database {
+class IDatabase {
  public:
+
+  using SignalFn = std::function<void(image_t)>;
+  using InputSignal = boost::signals2::signal<void(image_t)>;
+
   const static int kSchemaVersion = 1;
 
   // The maximum number of images, that can be stored in the database.
   // This limitation arises due to the fact, that we generate unique IDs for
   // image pairs manually. Note: do not change this to
   // another type than `size_t`.
-  const static size_t kMaxNumImages;
-
-  Database();
-  explicit Database(const std::string& path);
-  ~Database();
+//  const static size_t kMaxNumImages;
 
   // Open and close database. The same database should not be opened
   // concurrently in multiple threads or processes.
-  void Open(const std::string& path);
-  void Close();
+  virtual void Open(const std::string& path) = 0;
+  virtual void Close() = 0;
 
   // Check if entry already exists in database. For image pairs, the order of
   // `image_id1` and `image_id2` does not matter.
-  bool ExistsCamera(const camera_t camera_id) const;
-  bool ExistsImage(const image_t image_id) const;
-  bool ExistsImageWithName(std::string name) const;
-  bool ExistsKeypoints(const image_t image_id) const;
-  bool ExistsDescriptors(const image_t image_id) const;
-  bool ExistsMatches(const image_t image_id1, const image_t image_id2) const;
-  bool ExistsInlierMatches(const image_t image_id1,
-                           const image_t image_id2) const;
+  virtual bool ExistsCamera(const camera_t camera_id) const = 0;
+  virtual bool ExistsImage(const image_t image_id) const = 0;
+  virtual bool ExistsImageWithName(std::string name) const = 0;
+  virtual bool ExistsKeypoints(const image_t image_id) const = 0;
+  virtual bool ExistsDescriptors(const image_t image_id) const = 0;
+  virtual bool ExistsMatches(const image_t image_id1, const image_t image_id2) const = 0;
+  virtual bool ExistsInlierMatches(const image_t image_id1,
+                           const image_t image_id2) const = 0;
 
-  // Number of rows in `cameras` table.
-  size_t NumCameras() const;
-
-  //  Number of rows in `images` table.
-  size_t NumImages() const;
-
-  // Sum of `rows` column in `keypoints` table, i.e. number of total keypoints.
-  size_t NumKeypoints() const;
-
-  // The number of keypoints for the image with most features.
-  size_t MaxNumKeypoints() const;
-
-  // Number of descriptors for specific image.
-  size_t NumKeypointsForImage(const image_t image_id) const;
-
-  // Sum of `rows` column in `descriptors` table,
-  // i.e. number of total descriptors.
-  size_t NumDescriptors() const;
-
-  // The number of descriptors for the image with most features.
-  size_t MaxNumDescriptors() const;
-
-  // Number of descriptors for specific image.
-  size_t NumDescriptorsForImage(const image_t image_id) const;
-
-  // Sum of `rows` column in `matches` table, i.e. number of total matches.
-  size_t NumMatches() const;
-
-  // Sum of `rows` column in `two_view_geometries` table,
-  // i.e. number of total inlier matches.
-  size_t NumInlierMatches() const;
-
-  // Number of rows in `matches` table.
-  size_t NumMatchedImagePairs() const;
-
-  // Number of rows in `two_view_geometries` table.
-  size_t NumVerifiedImagePairs() const;
-
-  // Each image pair is assigned an unique ID in the `matches` and
-  // `two_view_geometries` table. We intentionally avoid to store the pairs in a
-  // separate table by using e.g. AUTOINCREMENT, since the overhead of querying
-  // the unique pair ID is significant.
-  inline static image_pair_t ImagePairToPairId(const image_t image_id1,
-                                               const image_t image_id2);
-
-  inline static void PairIdToImagePair(const image_pair_t pair_id,
-                                       image_t* image_id1, image_t* image_id2);
-
-  // Return true if image pairs should be swapped. Used to enforce a specific
-  // image order to generate unique image pair identifiers independent of the
-  // order in which the image identifiers are used.
-  inline static bool SwapImagePair(const image_t image_id1,
-                                   const image_t image_id2);
+  virtual size_t NumCameras() const = 0;
+  virtual size_t NumImages() const = 0;
+  virtual size_t NumKeypoints() const = 0;
+  virtual size_t MaxNumKeypoints() const = 0;
+  virtual size_t NumKeypointsForImage(const image_t image_id) const = 0;
+  virtual size_t NumDescriptors() const = 0;
+  virtual size_t MaxNumDescriptors() const = 0;
+  virtual size_t NumDescriptorsForImage(const image_t image_id) const = 0;
+  virtual size_t NumMatches() const = 0;
+  virtual size_t NumInlierMatches() const = 0;
+  virtual size_t NumMatchedImagePairs() const = 0;
+  virtual size_t NumVerifiedImagePairs() const = 0;
 
   // Read an existing entry in the database. The user is responsible for making
   // sure that the entry actually exists. For image pairs, the order of
   // `image_id1` and `image_id2` does not matter.
-  Camera ReadCamera(const camera_t camera_id) const;
-  std::vector<Camera> ReadAllCameras() const;
+  virtual Camera ReadCamera(const camera_t camera_id) const = 0;
+  virtual std::vector<Camera> ReadAllCameras() const = 0;
 
-  Image ReadImage(const image_t image_id) const;
-  Image ReadImageWithName(const std::string& name) const;
-  std::vector<Image> ReadAllImages() const;
+  virtual Image ReadImage(const image_t image_id) const = 0;
+  virtual Image ReadImageWithName(const std::string& name) const = 0;
+  virtual std::vector<Image> ReadAllImages() const = 0;
 
-  FeatureKeypoints ReadKeypoints(const image_t image_id) const;
-  FeatureDescriptors ReadDescriptors(const image_t image_id) const;
+  virtual FeatureKeypoints ReadKeypoints(const image_t image_id) const = 0;
+  virtual FeatureDescriptors ReadDescriptors(const image_t image_id) const = 0;
 
-  FeatureMatches ReadMatches(const image_t image_id1,
-                             const image_t image_id2) const;
-  std::vector<std::pair<image_pair_t, FeatureMatches>> ReadAllMatches() const;
+  virtual FeatureMatches ReadMatches(const image_t image_id1,
+                             const image_t image_id2) const = 0;
+  virtual std::vector<std::pair<image_pair_t, FeatureMatches>> ReadAllMatches() const = 0;
 
-  TwoViewGeometry ReadTwoViewGeometry(const image_t image_id1,
-                                      const image_t image_id2) const;
-  void ReadTwoViewGeometries(
+  virtual TwoViewGeometry ReadTwoViewGeometry(const image_t image_id1,
+                                      const image_t image_id2) const = 0;
+  virtual void ReadTwoViewGeometries(
       std::vector<image_pair_t>* image_pair_ids,
-      std::vector<TwoViewGeometry>* two_view_geometries) const;
+      std::vector<TwoViewGeometry>* two_view_geometries) const = 0;
 
   // Read all image pairs that have an entry in the `NumVerifiedImagePairs`
   // table with at least one inlier match and their number of inlier matches.
-  void ReadTwoViewGeometryNumInliers(
+  virtual void ReadTwoViewGeometryNumInliers(
       std::vector<std::pair<image_t, image_t>>* image_pairs,
-      std::vector<int>* num_inliers) const;
+      std::vector<int>* num_inliers) const = 0;
 
   // Add new camera and return its database identifier. If `use_camera_id`
   // is false a new identifier is automatically generated.
-  camera_t WriteCamera(const Camera& camera,
-                       const bool use_camera_id = false) const;
+  virtual camera_t WriteCamera(const Camera& camera,
+                       const bool use_camera_id = false) = 0;
 
   // Add new image and return its database identifier. If `use_image_id`
   // is false a new identifier is automatically generated.
-  image_t WriteImage(const Image& image, const bool use_image_id = false) const;
+  virtual image_t WriteImage(const Image& image, const bool use_image_id = false) = 0;
 
   // Write a new entry in the database. The user is responsible for making sure
   // that the entry does not yet exist. For image pairs, the order of
   // `image_id1` and `image_id2` does not matter.
-  void WriteKeypoints(const image_t image_id,
-                      const FeatureKeypoints& keypoints) const;
-  void WriteDescriptors(const image_t image_id,
-                        const FeatureDescriptors& descriptors) const;
-  void WriteMatches(const image_t image_id1, const image_t image_id2,
-                    const FeatureMatches& matches) const;
-  void WriteTwoViewGeometry(const image_t image_id1, const image_t image_id2,
-                            const TwoViewGeometry& two_view_geometry) const;
+  virtual void WriteKeypoints(const image_t image_id,
+                      const FeatureKeypoints& keypoints) = 0;
+  virtual void WriteDescriptors(const image_t image_id,
+                        const FeatureDescriptors& descriptors) = 0;
+  virtual void WriteMatches(const image_t image_id1, const image_t image_id2,
+                    const FeatureMatches& matches)  = 0;
+  virtual void WriteTwoViewGeometry(const image_t image_id1, const image_t image_id2,
+                            const TwoViewGeometry& two_view_geometry) = 0;
 
   // Update an existing camera in the database. The user is responsible for
   // making sure that the entry already exists.
-  void UpdateCamera(const Camera& camera) const;
+  virtual void UpdateCamera(const Camera& camera) = 0;
 
   // Update an existing image in the database. The user is responsible for
   // making sure that the entry already exists.
-  void UpdateImage(const Image& image) const;
+  virtual void UpdateImage(const Image& image) = 0;
 
   // Delete matches of an image pair.
-  void DeleteMatches(const image_t image_id1, const image_t image_id2) const;
+  virtual void DeleteMatches(const image_t image_id1, const image_t image_id2) = 0;
 
   // Delete inlier matches of an image pair.
-  void DeleteInlierMatches(const image_t image_id1,
-                           const image_t image_id2) const;
+  virtual void DeleteInlierMatches(const image_t image_id1,
+                           const image_t image_id2) = 0;
 
   // Clear all database tables
-  void ClearAllTables() const;
+  virtual void ClearAllTables() = 0;
 
   // Clear the entire cameras table
-  void ClearCameras() const;
+  virtual void ClearCameras() = 0;
 
   // Clear the entire images, keypoints, and descriptors tables
-  void ClearImages() const;
+  virtual void ClearImages() = 0;
 
   // Clear the entire descriptors table
-  void ClearDescriptors() const;
+  virtual void ClearDescriptors() = 0;
 
   // Clear the entire keypoints table
-  void ClearKeypoints() const;
+  virtual void ClearKeypoints() = 0;
 
   // Clear the entire matches table.
-  void ClearMatches() const;
+  virtual void ClearMatches() = 0;
 
   // Clear the entire inlier matches table.
-  void ClearTwoViewGeometries() const;
+  virtual void ClearTwoViewGeometries() = 0;
+
+  virtual void Connect(SignalFn fn) = 0;
 
   // Merge two databases into a single, new database.
-  static void Merge(const Database& database1, const Database& database2,
-                    Database* merged_database);
+  static void Merge(const IDatabase& database1, const IDatabase& database2,
+                    IDatabase* merged_database);
 
+  virtual ~IDatabase() = default;
  private:
   friend class DatabaseTransaction;
+  virtual void BeginTransaction() const = 0;
+  virtual void EndTransaction() const = 0;
 
-  // Combine multiple queries into one transaction by wrapping a code section
-  // into a `BeginTransaction` and `EndTransaction`. You can create a scoped
-  // transaction with `DatabaseTransaction` that ends when the transaction
-  // object is destructed. Combining queries results in faster transaction time
-  // due to reduced locking of the database etc.
-  void BeginTransaction() const;
-  void EndTransaction() const;
-
-  // Prepare SQL statements once at construction of the database, and reuse
-  // the statements for multiple queries by resetting their states.
-  void PrepareSQLStatements();
-  void FinalizeSQLStatements();
-
-  // Create database tables, if not existing, called when opening a database.
-  void CreateTables() const;
-  void CreateCameraTable() const;
-  void CreateImageTable() const;
-  void CreateKeypointsTable() const;
-  void CreateDescriptorsTable() const;
-  void CreateMatchesTable() const;
-  void CreateTwoViewGeometriesTable() const;
-
-  void UpdateSchema() const;
-
-  bool ExistsTable(const std::string& table_name) const;
-  bool ExistsColumn(const std::string& table_name,
-                    const std::string& column_name) const;
-
-  bool ExistsRowId(sqlite3_stmt* sql_stmt, const sqlite3_int64 row_id) const;
-  bool ExistsRowString(sqlite3_stmt* sql_stmt,
-                       const std::string& row_entry) const;
-
-  size_t CountRows(const std::string& table) const;
-  size_t CountRowsForEntry(sqlite3_stmt* sql_stmt,
-                           const sqlite3_int64 row_id) const;
-  size_t SumColumn(const std::string& column, const std::string& table) const;
-  size_t MaxColumn(const std::string& column, const std::string& table) const;
-
-  sqlite3* database_ = nullptr;
-
-  // Check if elements got removed from the database to only apply
-  // the VACUUM command in such case
-  mutable bool database_cleared_ = false;
-
+ protected:
   // Ensure that only one database object at a time updates the schema of a
   // database. Since the schema is updated every time a database is opened, this
   // is to ensure that there are no race conditions ("database locked" error
@@ -282,62 +202,28 @@ class Database {
 
   // Used to ensure that only one transaction is active at the same time.
   std::mutex transaction_mutex_;
+};
 
-  // A collection of all `sqlite3_stmt` objects for deletion in the destructor.
-  std::vector<sqlite3_stmt*> sql_stmts_;
+class DatabaseRoot : public IDatabase {
+// protected:
+ public:
+  static const size_t kMaxNumImages;
+  // Each image pair is assigned an unique ID in the `matches` and
+  // `two_view_geometries` table. We intentionally avoid to store the pairs in a
+  // separate table by using e.g. AUTOINCREMENT, since the overhead of querying
+  // the unique pair ID is significant.
+  inline static image_pair_t ImagePairToPairId(const image_t image_id1,
+                                        const image_t image_id2);
 
-  // num_*
-  sqlite3_stmt* sql_stmt_num_keypoints_ = nullptr;
-  sqlite3_stmt* sql_stmt_num_descriptors_ = nullptr;
+  inline static void PairIdToImagePair(const image_pair_t pair_id,
+                                image_t* image_id1, image_t* image_id2);
 
-  // exists_*
-  sqlite3_stmt* sql_stmt_exists_camera_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_image_id_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_image_name_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_keypoints_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_descriptors_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_matches_ = nullptr;
-  sqlite3_stmt* sql_stmt_exists_two_view_geometry_ = nullptr;
+  // Return true if image pairs should be swapped. Used to enforce a specific
+  // image order to generate unique image pair identifiers independent of the
+  // order in which the image identifiers are used.
+  inline static bool SwapImagePair(const image_t image_id1,
+                            const image_t image_id2);
 
-  // add_*
-  sqlite3_stmt* sql_stmt_add_camera_ = nullptr;
-  sqlite3_stmt* sql_stmt_add_image_ = nullptr;
-
-  // update_*
-  sqlite3_stmt* sql_stmt_update_camera_ = nullptr;
-  sqlite3_stmt* sql_stmt_update_image_ = nullptr;
-
-  // read_*
-  sqlite3_stmt* sql_stmt_read_camera_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_cameras_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_image_id_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_image_name_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_images_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_keypoints_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_descriptors_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_matches_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_matches_all_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_two_view_geometry_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_two_view_geometries_ = nullptr;
-  sqlite3_stmt* sql_stmt_read_two_view_geometry_num_inliers_ = nullptr;
-
-  // write_*
-  sqlite3_stmt* sql_stmt_write_keypoints_ = nullptr;
-  sqlite3_stmt* sql_stmt_write_descriptors_ = nullptr;
-  sqlite3_stmt* sql_stmt_write_matches_ = nullptr;
-  sqlite3_stmt* sql_stmt_write_two_view_geometry_ = nullptr;
-
-  // delete_*
-  sqlite3_stmt* sql_stmt_delete_matches_ = nullptr;
-  sqlite3_stmt* sql_stmt_delete_two_view_geometry_ = nullptr;
-
-  // clear_*
-  sqlite3_stmt* sql_stmt_clear_cameras_ = nullptr;
-  sqlite3_stmt* sql_stmt_clear_images_ = nullptr;
-  sqlite3_stmt* sql_stmt_clear_descriptors_ = nullptr;
-  sqlite3_stmt* sql_stmt_clear_keypoints_ = nullptr;
-  sqlite3_stmt* sql_stmt_clear_matches_ = nullptr;
-  sqlite3_stmt* sql_stmt_clear_two_view_geometries_ = nullptr;
 };
 
 // This class automatically manages the scope of a database transaction by
@@ -345,35 +231,32 @@ class Database {
 // destruction, respectively.
 class DatabaseTransaction {
  public:
-  explicit DatabaseTransaction(Database* database);
+  explicit DatabaseTransaction(IDatabase* database);
   ~DatabaseTransaction();
 
  private:
   NON_COPYABLE(DatabaseTransaction)
   NON_MOVABLE(DatabaseTransaction)
-  Database* database_;
+  IDatabase* database_;
   std::unique_lock<std::mutex> database_lock_;
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Implementation
-////////////////////////////////////////////////////////////////////////////////
-
-image_pair_t Database::ImagePairToPairId(const image_t image_id1,
-                                         const image_t image_id2) {
+image_pair_t DatabaseRoot::ImagePairToPairId(const image_t image_id1,
+                                             const image_t image_id2) {
   CHECK_GE(image_id1, 0);
   CHECK_GE(image_id2, 0);
   CHECK_LT(image_id1, kMaxNumImages);
   CHECK_LT(image_id2, kMaxNumImages);
-  if (SwapImagePair(image_id1, image_id2)) {
+  if (DatabaseRoot::SwapImagePair(image_id1, image_id2)) {
     return static_cast<image_pair_t>(kMaxNumImages) * image_id2 + image_id1;
   } else {
     return static_cast<image_pair_t>(kMaxNumImages) * image_id1 + image_id2;
   }
 }
 
-void Database::PairIdToImagePair(const image_pair_t pair_id, image_t* image_id1,
-                                 image_t* image_id2) {
+void DatabaseRoot::PairIdToImagePair(const image_pair_t pair_id,
+                                     image_t* image_id1,
+                                     image_t* image_id2) {
   *image_id2 = static_cast<image_t>(pair_id % kMaxNumImages);
   *image_id1 = static_cast<image_t>((pair_id - *image_id2) / kMaxNumImages);
   CHECK_GE(*image_id1, 0);
@@ -385,7 +268,8 @@ void Database::PairIdToImagePair(const image_pair_t pair_id, image_t* image_id1,
 // Return true if image pairs should be swapped. Used to enforce a specific
 // image order to generate unique image pair identifiers independent of the
 // order in which the image identifiers are used.
-bool Database::SwapImagePair(const image_t image_id1, const image_t image_id2) {
+bool DatabaseRoot::SwapImagePair(const image_t image_id1,
+                                 const image_t image_id2) {
   return image_id1 > image_id2;
 }
 

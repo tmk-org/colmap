@@ -32,6 +32,7 @@
 #include "exe/database.h"
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
 #include "util/misc.h"
 #include "util/option_manager.h"
 

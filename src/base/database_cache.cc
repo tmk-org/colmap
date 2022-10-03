@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ void DatabaseCache::AddImage(const class Image& image) {
   correspondence_graph_.AddImage(image.ImageId(), image.NumPoints2D());
 }
 
-void DatabaseCache::Load(const Database& database, const size_t min_num_matches,
+void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches,
                          const bool ignore_watermarks,
                          const std::unordered_set<std::string>& image_names) {
   //////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ void DatabaseCache::Load(const Database& database, const size_t min_num_matches,
       if (UseInlierMatchesCheck(two_view_geometries[i])) {
         image_t image_id1;
         image_t image_id2;
-        Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+        DatabaseRoot::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
         if (image_ids.count(image_id1) > 0 && image_ids.count(image_id2) > 0) {
           connected_image_ids.insert(image_id1);
           connected_image_ids.insert(image_id2);
@@ -176,7 +176,7 @@ void DatabaseCache::Load(const Database& database, const size_t min_num_matches,
     if (UseInlierMatchesCheck(two_view_geometries[i])) {
       image_t image_id1;
       image_t image_id2;
-      Database::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
+      DatabaseRoot::PairIdToImagePair(image_pair_ids[i], &image_id1, &image_id2);
       if (image_ids.count(image_id1) > 0 && image_ids.count(image_id2) > 0) {
         correspondence_graph_.AddCorrespondences(
             image_id1, image_id2, two_view_geometries[i].inlier_matches);

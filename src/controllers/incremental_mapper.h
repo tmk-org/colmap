@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@ struct IncrementalMapperOptions {
   int init_num_trials = 200;
 
   // Whether to extract colors for reconstructed points.
-  bool extract_colors = true;
+  bool extract_colors = false;
 
   // The number of threads to use during reconstruction.
   int num_threads = -1;
@@ -172,6 +172,11 @@ class IncrementalMapperController : public Thread {
                               const std::string& database_path,
                               ReconstructionManager* reconstruction_manager);
 
+  IncrementalMapperController(const IncrementalMapperOptions* options,
+                              const std::string& image_path,
+                              std::shared_ptr<IDatabase> database,
+                              ReconstructionManager* reconstruction_manager);
+
  private:
   void Run();
   bool LoadDatabase();
@@ -179,7 +184,7 @@ class IncrementalMapperController : public Thread {
 
   const IncrementalMapperOptions* options_;
   const std::string image_path_;
-  const std::string database_path_;
+  std::shared_ptr<IDatabase> database_;
   ReconstructionManager* reconstruction_manager_;
   DatabaseCache database_cache_;
 };

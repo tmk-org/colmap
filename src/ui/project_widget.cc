@@ -32,6 +32,7 @@
 #include "ui/project_widget.h"
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
 
 namespace colmap {
 

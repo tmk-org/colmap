@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(TestTwoView) {
   BOOST_CHECK_EQUAL(correspondence_graph.NumObservationsForImage(1), 0);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(0), 4);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(1), 4);
-  const image_pair_t pair_id = Database::ImagePairToPairId(0, 1);
+  const image_pair_t pair_id = DatabaseRoot::ImagePairToPairId(0, 1);
   BOOST_CHECK_EQUAL(
       correspondence_graph.NumCorrespondencesBetweenImages().size(), 1);
   BOOST_CHECK_EQUAL(
@@ -232,9 +232,9 @@ BOOST_AUTO_TEST_CASE(TestThreeView) {
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(0), 2);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(1), 3);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(2), 3);
-  const image_pair_t pair_id01 = Database::ImagePairToPairId(0, 1);
-  const image_pair_t pair_id02 = Database::ImagePairToPairId(0, 2);
-  const image_pair_t pair_id12 = Database::ImagePairToPairId(1, 2);
+  const image_pair_t pair_id01 = DatabaseRoot::ImagePairToPairId(0, 1);
+  const image_pair_t pair_id02 = DatabaseRoot::ImagePairToPairId(0, 2);
+  const image_pair_t pair_id12 = DatabaseRoot::ImagePairToPairId(1, 2);
   BOOST_CHECK_EQUAL(
       correspondence_graph.NumCorrespondencesBetweenImages().size(), 3);
   BOOST_CHECK_EQUAL(
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(TestOutOfBounds) {
   correspondence_graph.AddCorrespondences(0, 1, matches);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(0), 1);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(1), 1);
-  const image_pair_t pair_id = Database::ImagePairToPairId(0, 1);
+  const image_pair_t pair_id = DatabaseRoot::ImagePairToPairId(0, 1);
   BOOST_CHECK_EQUAL(
       correspondence_graph.NumCorrespondencesBetweenImages().at(pair_id), 1);
 }
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(TestDuplicate) {
   correspondence_graph.AddCorrespondences(0, 1, matches);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(0), 3);
   BOOST_CHECK_EQUAL(correspondence_graph.NumCorrespondencesForImage(1), 3);
-  const image_pair_t pair_id = Database::ImagePairToPairId(0, 1);
+  const image_pair_t pair_id = DatabaseRoot::ImagePairToPairId(0, 1);
   BOOST_CHECK_EQUAL(
       correspondence_graph.NumCorrespondencesBetweenImages().at(pair_id), 3);
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 
 #include "base/database.h"
 #include "base/pose.h"
+#include "database_sqlite.h"
 
 using namespace colmap;
 
@@ -86,18 +87,18 @@ BOOST_AUTO_TEST_CASE(TestEmpty) {
 }
 
 BOOST_AUTO_TEST_CASE(TestImagePairToPairId) {
-  BOOST_CHECK_EQUAL(Database::ImagePairToPairId(0, 0), 0);
-  BOOST_CHECK_EQUAL(Database::ImagePairToPairId(0, 1), 1);
-  BOOST_CHECK_EQUAL(Database::ImagePairToPairId(0, 2), 2);
-  BOOST_CHECK_EQUAL(Database::ImagePairToPairId(0, 3), 3);
-  BOOST_CHECK_EQUAL(Database::ImagePairToPairId(1, 2),
-                    Database::kMaxNumImages + 2);
+  BOOST_CHECK_EQUAL(DatabaseRoot::ImagePairToPairId(0, 0), 0);
+  BOOST_CHECK_EQUAL(DatabaseRoot::ImagePairToPairId(0, 1), 1);
+  BOOST_CHECK_EQUAL(DatabaseRoot::ImagePairToPairId(0, 2), 2);
+  BOOST_CHECK_EQUAL(DatabaseRoot::ImagePairToPairId(0, 3), 3);
+  BOOST_CHECK_EQUAL(DatabaseRoot::ImagePairToPairId(1, 2),
+                    DatabaseRoot::kMaxNumImages + 2);
   for (image_t i = 0; i < 20; ++i) {
     for (image_t j = 0; j < 20; ++j) {
-      const image_pair_t pair_id = Database::ImagePairToPairId(i, j);
+      const image_pair_t pair_id = DatabaseRoot::ImagePairToPairId(i, j);
       image_t image_id1;
       image_t image_id2;
-      Database::PairIdToImagePair(pair_id, &image_id1, &image_id2);
+      DatabaseRoot::PairIdToImagePair(pair_id, &image_id1, &image_id2);
       if (i < j) {
         BOOST_CHECK_EQUAL(i, image_id1);
         BOOST_CHECK_EQUAL(j, image_id2);
@@ -110,10 +111,10 @@ BOOST_AUTO_TEST_CASE(TestImagePairToPairId) {
 }
 
 BOOST_AUTO_TEST_CASE(TestSwapImagePair) {
-  BOOST_CHECK(!Database::SwapImagePair(0, 0));
-  BOOST_CHECK(!Database::SwapImagePair(0, 1));
-  BOOST_CHECK(Database::SwapImagePair(1, 0));
-  BOOST_CHECK(!Database::SwapImagePair(1, 1));
+  BOOST_CHECK(!DatabaseRoot::SwapImagePair(0, 0));
+  BOOST_CHECK(!DatabaseRoot::SwapImagePair(0, 1));
+  BOOST_CHECK(DatabaseRoot::SwapImagePair(1, 0));
+  BOOST_CHECK(!DatabaseRoot::SwapImagePair(1, 1));
 }
 
 BOOST_AUTO_TEST_CASE(TestCamera) {
@@ -307,7 +308,7 @@ BOOST_AUTO_TEST_CASE(TestMatches) {
   }
   BOOST_CHECK_EQUAL(database.ReadAllMatches().size(), 1);
   BOOST_CHECK_EQUAL(database.ReadAllMatches()[0].first,
-                    Database::ImagePairToPairId(image_id1, image_id2));
+                    DatabaseRoot::ImagePairToPairId(image_id1, image_id2));
   BOOST_CHECK_EQUAL(database.NumMatches(), 1000);
   database.DeleteMatches(image_id1, image_id2);
   BOOST_CHECK_EQUAL(database.NumMatches(), 0);
@@ -382,7 +383,7 @@ BOOST_AUTO_TEST_CASE(TestTwoViewGeometry) {
   BOOST_CHECK_EQUAL(image_pair_ids.size(), 1);
   BOOST_CHECK_EQUAL(two_view_geometries.size(), 1);
   BOOST_CHECK_EQUAL(image_pair_ids[0],
-                    Database::ImagePairToPairId(image_id1, image_id2));
+                    DatabaseRoot::ImagePairToPairId(image_id1, image_id2));
   BOOST_CHECK_EQUAL(two_view_geometry.config, two_view_geometries[0].config);
   BOOST_CHECK_EQUAL(two_view_geometry.F, two_view_geometries[0].F);
   BOOST_CHECK_EQUAL(two_view_geometry.E, two_view_geometries[0].E);

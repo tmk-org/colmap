@@ -30,5 +30,5 @@
 # Author: Johannes L. Schoenberger (jsch-at-demuc-dot-de)
 
 set(FOLDER_NAME "tools")
-
-# COLMAP_ADD_EXECUTABLE(example example.cc)
+SET(CMAKE_CXX_STANDARD 17)
+COLMAP_ADD_EXECUTABLE(colmap_processing_example example2.cc)

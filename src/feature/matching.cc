@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ void PrintElapsedTime(const Timer& timer) {
 void IndexImagesInVisualIndex(const int num_threads, const int num_checks,
                               const int max_num_features,
                               const std::vector<image_t>& image_ids,
-                              Thread* thread, FeatureMatcherCache* cache,
+                              Thread* thread, IFeatureMatcherCache* cache,
                               retrieval::VisualIndex<>* visual_index) {
   retrieval::VisualIndex<>::IndexOptions index_options;
   index_options.num_threads = num_threads;
@@ -87,7 +87,7 @@ void MatchNearestNeighborsInVisualIndex(
     const int num_threads, const int num_images, const int num_neighbors,
     const int num_checks, const int num_images_after_verification,
     const int max_num_features, const std::vector<image_t>& image_ids,
-    Thread* thread, FeatureMatcherCache* cache,
+    Thread* thread, IFeatureMatcherCache* cache,
     retrieval::VisualIndex<>* visual_index, SiftFeatureMatcher* matcher) {
   struct Retrieval {
     image_t image_id = kInvalidImageId;
@@ -212,11 +212,18 @@ bool ImagePairsMatchingOptions::Check() const {
 
 bool FeaturePairsMatchingOptions::Check() const { return true; }
 
-FeatureMatcherCache::FeatureMatcherCache(const size_t cache_size,
-                                         const Database* database)
+IFeatureMatcherCache::IFeatureMatcherCache(const size_t cache_size,
+                                           IDatabase* database)
     : cache_size_(cache_size), database_(database) {
   CHECK_NOTNULL(database_);
 }
+
+FeatureMatcherCache::FeatureMatcherCache(const size_t cache_size,
+                                         IDatabase* database)
+    : IFeatureMatcherCache(cache_size, database) {}
+
+MemoryFeatureMatcherCache::MemoryFeatureMatcherCache(IDatabase* database)
+    : IFeatureMatcherCache(0, database) {}
 
 void FeatureMatcherCache::Setup() {
   const std::vector<Camera> cameras = database_->ReadAllCameras();
@@ -252,28 +259,48 @@ void FeatureMatcherCache::Setup() {
       }));
 }
 
-const Camera& FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
+void MemoryFeatureMatcherCache::Setup() {}
+
+Camera FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
   return cameras_cache_.at(camera_id);
 }
 
-const Image& FeatureMatcherCache::GetImage(const image_t image_id) const {
+Camera MemoryFeatureMatcherCache::GetCamera(const camera_t camera_id) const {
+  return database_->ReadCamera(camera_id);
+}
+
+Image FeatureMatcherCache::GetImage(const image_t image_id) const {
   return images_cache_.at(image_id);
 }
 
-const FeatureKeypoints& FeatureMatcherCache::GetKeypoints(
-    const image_t image_id) {
+Image MemoryFeatureMatcherCache::GetImage(const image_t image_id) const {
+  return database_->ReadImage(image_id);
+}
+
+FeatureKeypoints FeatureMatcherCache::GetKeypoints(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return keypoints_cache_->Get(image_id);
 }
 
-const FeatureDescriptors& FeatureMatcherCache::GetDescriptors(
+FeatureKeypoints MemoryFeatureMatcherCache::GetKeypoints(
     const image_t image_id) {
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  return database_->ReadKeypoints(image_id);
+}
+
+FeatureDescriptors FeatureMatcherCache::GetDescriptors(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return descriptors_cache_->Get(image_id);
 }
 
-FeatureMatches FeatureMatcherCache::GetMatches(const image_t image_id1,
-                                               const image_t image_id2) {
+FeatureDescriptors MemoryFeatureMatcherCache::GetDescriptors(
+    const image_t image_id) {
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  return database_->ReadDescriptors(image_id);
+}
+
+FeatureMatches IFeatureMatcherCache::GetMatches(const image_t image_id1,
+                                                const image_t image_id2) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return database_->ReadMatches(image_id1, image_id2);
 }
@@ -287,9 +314,20 @@ std::vector<image_t> FeatureMatcherCache::GetImageIds() const {
   return image_ids;
 }
 
+std::vector<image_t> MemoryFeatureMatcherCache::GetImageIds() const {
+  std::vector<image_t> image_ids(database_->NumImages());
+  std::iota(image_ids.begin(), image_ids.end(), 1);
+  return image_ids;
+}
+
 bool FeatureMatcherCache::ExistsKeypoints(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return keypoints_exists_cache_->Get(image_id);
+}
+
+bool MemoryFeatureMatcherCache::ExistsKeypoints(const image_t image_id) {
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  return database_->ExistsKeypoints(image_id);
 }
 
 bool FeatureMatcherCache::ExistsDescriptors(const image_t image_id) {
@@ -297,46 +335,51 @@ bool FeatureMatcherCache::ExistsDescriptors(const image_t image_id) {
   return descriptors_exists_cache_->Get(image_id);
 }
 
-bool FeatureMatcherCache::ExistsMatches(const image_t image_id1,
-                                        const image_t image_id2) {
+bool MemoryFeatureMatcherCache::ExistsDescriptors(const image_t image_id) {
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  return database_->ExistsDescriptors(image_id);
+}
+
+bool IFeatureMatcherCache::ExistsMatches(const image_t image_id1,
+                                         const image_t image_id2) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return database_->ExistsMatches(image_id1, image_id2);
 }
 
-bool FeatureMatcherCache::ExistsInlierMatches(const image_t image_id1,
-                                              const image_t image_id2) {
+bool IFeatureMatcherCache::ExistsInlierMatches(const image_t image_id1,
+                                               const image_t image_id2) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return database_->ExistsInlierMatches(image_id1, image_id2);
 }
 
-void FeatureMatcherCache::WriteMatches(const image_t image_id1,
-                                       const image_t image_id2,
-                                       const FeatureMatches& matches) {
+void IFeatureMatcherCache::WriteMatches(const image_t image_id1,
+                                        const image_t image_id2,
+                                        const FeatureMatches& matches) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   database_->WriteMatches(image_id1, image_id2, matches);
 }
 
-void FeatureMatcherCache::WriteTwoViewGeometry(
+void IFeatureMatcherCache::WriteTwoViewGeometry(
     const image_t image_id1, const image_t image_id2,
     const TwoViewGeometry& two_view_geometry) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   database_->WriteTwoViewGeometry(image_id1, image_id2, two_view_geometry);
 }
 
-void FeatureMatcherCache::DeleteMatches(const image_t image_id1,
-                                        const image_t image_id2) {
+void IFeatureMatcherCache::DeleteMatches(const image_t image_id1,
+                                         const image_t image_id2) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   database_->DeleteMatches(image_id1, image_id2);
 }
 
-void FeatureMatcherCache::DeleteInlierMatches(const image_t image_id1,
-                                              const image_t image_id2) {
+void IFeatureMatcherCache::DeleteInlierMatches(const image_t image_id1,
+                                               const image_t image_id2) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   database_->DeleteInlierMatches(image_id1, image_id2);
 }
 
 FeatureMatcherThread::FeatureMatcherThread(const SiftMatchingOptions& options,
-                                           FeatureMatcherCache* cache)
+                                           IFeatureMatcherCache* cache)
     : options_(options), cache_(cache) {}
 
 void FeatureMatcherThread::SetMaxNumMatches(const int max_num_matches) {
@@ -344,7 +387,7 @@ void FeatureMatcherThread::SetMaxNumMatches(const int max_num_matches) {
 }
 
 SiftCPUFeatureMatcher::SiftCPUFeatureMatcher(const SiftMatchingOptions& options,
-                                             FeatureMatcherCache* cache,
+                                             IFeatureMatcherCache* cache,
                                              JobQueue<Input>* input_queue,
                                              JobQueue<Output>* output_queue)
     : FeatureMatcherThread(options, cache),
@@ -383,7 +426,7 @@ void SiftCPUFeatureMatcher::Run() {
 }
 
 SiftGPUFeatureMatcher::SiftGPUFeatureMatcher(const SiftMatchingOptions& options,
-                                             FeatureMatcherCache* cache,
+                                             IFeatureMatcherCache* cache,
                                              JobQueue<Input>* input_queue,
                                              JobQueue<Output>* output_queue)
     : FeatureMatcherThread(options, cache),
@@ -456,7 +499,7 @@ void SiftGPUFeatureMatcher::GetDescriptorData(
 }
 
 GuidedSiftCPUFeatureMatcher::GuidedSiftCPUFeatureMatcher(
-    const SiftMatchingOptions& options, FeatureMatcherCache* cache,
+    const SiftMatchingOptions& options, IFeatureMatcherCache* cache,
     JobQueue<Input>* input_queue, JobQueue<Output>* output_queue)
     : FeatureMatcherThread(options, cache),
       input_queue_(input_queue),
@@ -505,7 +548,7 @@ void GuidedSiftCPUFeatureMatcher::Run() {
 }
 
 GuidedSiftGPUFeatureMatcher::GuidedSiftGPUFeatureMatcher(
-    const SiftMatchingOptions& options, FeatureMatcherCache* cache,
+    const SiftMatchingOptions& options, IFeatureMatcherCache* cache,
     JobQueue<Input>* input_queue, JobQueue<Output>* output_queue)
     : FeatureMatcherThread(options, cache),
       input_queue_(input_queue),
@@ -593,7 +636,7 @@ void GuidedSiftGPUFeatureMatcher::GetFeatureData(
 }
 
 TwoViewGeometryVerifier::TwoViewGeometryVerifier(
-    const SiftMatchingOptions& options, FeatureMatcherCache* cache,
+    const SiftMatchingOptions& options, IFeatureMatcherCache* cache,
     JobQueue<Input>* input_queue, JobQueue<Output>* output_queue)
     : options_(options),
       cache_(cache),
@@ -611,7 +654,6 @@ TwoViewGeometryVerifier::TwoViewGeometryVerifier(
       static_cast<size_t>(options_.max_num_trials);
   two_view_geometry_options_.ransac_options.min_inlier_ratio =
       options_.min_inlier_ratio;
-  two_view_geometry_options_.force_H_use = options_.planar_scene;
 }
 
 void TwoViewGeometryVerifier::Run() {
@@ -654,8 +696,8 @@ void TwoViewGeometryVerifier::Run() {
 }
 
 SiftFeatureMatcher::SiftFeatureMatcher(const SiftMatchingOptions& options,
-                                       Database* database,
-                                       FeatureMatcherCache* cache)
+                                       IDatabase* database,
+                                       IFeatureMatcherCache* cache)
     : options_(options), database_(database), cache_(cache), is_setup_(false) {
   CHECK(options_.Check());
 
@@ -757,7 +799,11 @@ SiftFeatureMatcher::~SiftFeatureMatcher() {
 }
 
 bool SiftFeatureMatcher::Setup() {
-  const int max_num_features = CHECK_NOTNULL(database_)->MaxNumDescriptors();
+  // TODO: Reduce harcode
+  //  DatabaseTransaction database_transaction(database_);
+
+  const int max_num_features =
+      10000;  // CHECK_NOTNULL(database_)->MaxNumDescriptors();
   options_.max_num_matches =
       std::min(options_.max_num_matches, max_num_features);
 
@@ -818,7 +864,7 @@ void SiftFeatureMatcher::Match(
 
     // Avoid duplicate image pairs.
     const image_pair_t pair_id =
-        Database::ImagePairToPairId(image_pair.first, image_pair.second);
+        DatabaseRoot::ImagePairToPairId(image_pair.first, image_pair.second);
     if (image_pair_ids.count(pair_id) > 0) {
       continue;
     }
@@ -889,9 +935,23 @@ ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(5 * options_.block_size, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(5 * options_.block_size,
+                                                   database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
+  CHECK(options_.Check());
+  CHECK(match_options_.Check());
+}
+
+ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(
+    const ExhaustiveMatchingOptions& options,
+    const SiftMatchingOptions& match_options,
+    std::shared_ptr<IDatabase> database)
+    : options_(options),
+      match_options_(match_options),
+      database_(database),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -903,9 +963,9 @@ void ExhaustiveFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
-  const std::vector<image_t> image_ids = cache_.GetImageIds();
+  const std::vector<image_t> image_ids = cache_->GetImageIds();
 
   const size_t block_size = static_cast<size_t>(options_.block_size);
   const size_t num_blocks = static_cast<size_t>(
@@ -950,7 +1010,7 @@ void ExhaustiveFeatureMatcher::Run() {
         }
       }
 
-      DatabaseTransaction database_transaction(&database_);
+      DatabaseTransaction database_transaction(database_.get());
       matcher_.Match(image_pairs);
 
       PrintElapsedTime(timer);
@@ -960,16 +1020,133 @@ void ExhaustiveFeatureMatcher::Run() {
   GetTimer().PrintMinutes();
 }
 
+SerialSequentialFeatureMatcher::SerialSequentialFeatureMatcher(
+    const SequentialMatchingOptions& options,
+    const SiftMatchingOptions& match_options,
+    std::shared_ptr<IDatabase> database, JobQueue<image_t>* ids_queue)
+    : options_(options),
+      match_options_(match_options),
+      database_(database),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()),
+      ids_queue_(ids_queue) {
+  CHECK(options_.Check());
+  CHECK(match_options_.Check());
+}
+
+void SerialSequentialFeatureMatcher::Run() {
+  PrintHeading1("Sequential feature matching");
+
+  if (!matcher_.Setup()) {
+    return;
+  }
+
+  while (true) {
+    if (IsStopped()) {
+      break;
+    }
+
+    const auto input_job = ids_queue_->Pop();
+    if (input_job.IsValid()) {
+      auto data = input_job.Data();
+      RunSequentialMatching(data);
+    } else {
+      break;
+    }
+  }
+
+  auto ordered_image_ids = cache_->GetImageIds();
+  if (options_.loop_detection) {
+    RunLoopDetection(ordered_image_ids);
+  }
+
+  GetTimer().PrintMinutes();
+}
+
+void SerialSequentialFeatureMatcher::RunSequentialMatching(
+    const image_t& image_id1) {
+  std::vector<std::pair<image_t, image_t>> image_pairs;
+  image_pairs.reserve(options_.overlap);
+
+  DatabaseTransaction database_transaction(database_.get());
+  size_t images_num = database_->NumImages();
+
+  Timer timer;
+  timer.Start();
+
+  std::cout << StringPrintf("Matching image [%d/%d]", image_id1,
+                            image_id1)
+            << std::flush;
+
+  image_pairs.clear();
+  for (int i = 0; i < options_.overlap; ++i) {
+    const size_t image_id2 = image_id1 + i;
+    if (image_id2 <= images_num) {
+      image_pairs.emplace_back(image_id1, image_id2);
+    }
+  }
+  
+  matcher_.Match(image_pairs);
+
+  PrintElapsedTime(timer);
+}
+
+void SerialSequentialFeatureMatcher::RunLoopDetection(
+    const std::vector<image_t>& image_ids) {
+  // Read the pre-trained vocabulary tree from disk.
+  retrieval::VisualIndex<> visual_index;
+  visual_index.Read(options_.vocab_tree_path);
+
+  // Index all images in the visual index.
+  IndexImagesInVisualIndex(match_options_.num_threads,
+                           options_.loop_detection_num_checks,
+                           options_.loop_detection_max_num_features, image_ids,
+                           this, cache_.get(), &visual_index);
+
+  if (IsStopped()) {
+    return;
+  }
+
+  // Only perform loop detection for every n-th image.
+  std::vector<image_t> match_image_ids;
+  for (size_t i = 0; i < image_ids.size();
+       i += options_.loop_detection_period) {
+    match_image_ids.push_back(image_ids[i]);
+  }
+
+  MatchNearestNeighborsInVisualIndex(
+      match_options_.num_threads, options_.loop_detection_num_images,
+      options_.loop_detection_num_nearest_neighbors,
+      options_.loop_detection_num_checks,
+      options_.loop_detection_num_images_after_verification,
+      options_.loop_detection_max_num_features, match_image_ids, this,
+      cache_.get(), &visual_index, &matcher_);
+}
+
 SequentialFeatureMatcher::SequentialFeatureMatcher(
     const SequentialMatchingOptions& options,
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(std::max(5 * options_.loop_detection_num_images,
-                      5 * options_.overlap),
-             &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(
+          std::max(5 * options_.loop_detection_num_images,
+                   5 * options_.overlap),
+          database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
+  CHECK(options_.Check());
+  CHECK(match_options_.Check());
+}
+
+SequentialFeatureMatcher::SequentialFeatureMatcher(
+    const SequentialMatchingOptions& options,
+    const SiftMatchingOptions& match_options,
+    std::shared_ptr<IDatabase> database)
+    : options_(options),
+      match_options_(match_options),
+      database_(database),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -981,7 +1158,7 @@ void SequentialFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
   const std::vector<image_t> ordered_image_ids = GetOrderedImageIds();
 
@@ -991,29 +1168,6 @@ void SequentialFeatureMatcher::Run() {
   }
 
   GetTimer().PrintMinutes();
-}
-
-std::vector<image_t> SequentialFeatureMatcher::GetOrderedImageIds() const {
-  const std::vector<image_t> image_ids = cache_.GetImageIds();
-
-  std::vector<Image> ordered_images;
-  ordered_images.reserve(image_ids.size());
-  for (const auto image_id : image_ids) {
-    ordered_images.push_back(cache_.GetImage(image_id));
-  }
-
-  std::sort(ordered_images.begin(), ordered_images.end(),
-            [](const Image& image1, const Image& image2) {
-              return image1.Name() < image2.Name();
-            });
-
-  std::vector<image_t> ordered_image_ids;
-  ordered_image_ids.reserve(image_ids.size());
-  for (const auto& image : ordered_images) {
-    ordered_image_ids.push_back(image.ImageId());
-  }
-
-  return ordered_image_ids;
 }
 
 void SequentialFeatureMatcher::RunSequentialMatching(
@@ -1052,11 +1206,34 @@ void SequentialFeatureMatcher::RunSequentialMatching(
       }
     }
 
-    DatabaseTransaction database_transaction(&database_);
+    DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
 
     PrintElapsedTime(timer);
   }
+}
+
+std::vector<image_t> SequentialFeatureMatcher::GetOrderedImageIds() const {
+  const std::vector<image_t> image_ids = cache_->GetImageIds();
+
+  std::vector<Image> ordered_images;
+  ordered_images.reserve(image_ids.size());
+  for (const auto image_id : image_ids) {
+    ordered_images.push_back(cache_->GetImage(image_id));
+  }
+
+  std::sort(ordered_images.begin(), ordered_images.end(),
+            [](const Image& image1, const Image& image2) {
+              return image1.Name() < image2.Name();
+            });
+
+  std::vector<image_t> ordered_image_ids;
+  ordered_image_ids.reserve(image_ids.size());
+  for (const auto& image : ordered_images) {
+    ordered_image_ids.push_back(image.ImageId());
+  }
+
+  return ordered_image_ids;
 }
 
 void SequentialFeatureMatcher::RunLoopDetection(
@@ -1069,7 +1246,7 @@ void SequentialFeatureMatcher::RunLoopDetection(
   IndexImagesInVisualIndex(match_options_.num_threads,
                            options_.loop_detection_num_checks,
                            options_.loop_detection_max_num_features, image_ids,
-                           this, &cache_, &visual_index);
+                           this, cache_.get(), &visual_index);
 
   if (IsStopped()) {
     return;
@@ -1087,8 +1264,8 @@ void SequentialFeatureMatcher::RunLoopDetection(
       options_.loop_detection_num_nearest_neighbors,
       options_.loop_detection_num_checks,
       options_.loop_detection_num_images_after_verification,
-      options_.loop_detection_max_num_features, match_image_ids, this, &cache_,
-      &visual_index, &matcher_);
+      options_.loop_detection_max_num_features, match_image_ids, this,
+      cache_.get(), &visual_index, &matcher_);
 }
 
 VocabTreeFeatureMatcher::VocabTreeFeatureMatcher(
@@ -1096,9 +1273,10 @@ VocabTreeFeatureMatcher::VocabTreeFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(5 * options_.num_images, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(5 * options_.num_images,
+                                                   database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -1110,22 +1288,22 @@ void VocabTreeFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
   // Read the pre-trained vocabulary tree from disk.
   retrieval::VisualIndex<> visual_index;
   visual_index.Read(options_.vocab_tree_path);
 
-  const std::vector<image_t> all_image_ids = cache_.GetImageIds();
+  const std::vector<image_t> all_image_ids = cache_->GetImageIds();
   std::vector<image_t> image_ids;
   if (options_.match_list_path == "") {
-    image_ids = cache_.GetImageIds();
+    image_ids = cache_->GetImageIds();
   } else {
     // Map image names to image identifiers.
     std::unordered_map<std::string, image_t> image_name_to_image_id;
     image_name_to_image_id.reserve(all_image_ids.size());
     for (const auto image_id : all_image_ids) {
-      const auto& image = cache_.GetImage(image_id);
+      const auto& image = cache_->GetImage(image_id);
       image_name_to_image_id.emplace(image.Name(), image_id);
     }
 
@@ -1151,7 +1329,7 @@ void VocabTreeFeatureMatcher::Run() {
   // Index all images in the visual index.
   IndexImagesInVisualIndex(match_options_.num_threads, options_.num_checks,
                            options_.max_num_features, all_image_ids, this,
-                           &cache_, &visual_index);
+                           cache_.get(), &visual_index);
 
   if (IsStopped()) {
     GetTimer().PrintMinutes();
@@ -1163,7 +1341,7 @@ void VocabTreeFeatureMatcher::Run() {
       match_options_.num_threads, options_.num_images,
       options_.num_nearest_neighbors, options_.num_checks,
       options_.num_images_after_verification, options_.max_num_features,
-      image_ids, this, &cache_, &visual_index, &matcher_);
+      image_ids, this, cache_.get(), &visual_index, &matcher_);
 
   GetTimer().PrintMinutes();
 }
@@ -1173,9 +1351,10 @@ SpatialFeatureMatcher::SpatialFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(5 * options_.max_num_neighbors, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(
+          5 * options_.max_num_neighbors, database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -1187,9 +1366,9 @@ void SpatialFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
-  const std::vector<image_t> image_ids = cache_.GetImageIds();
+  const std::vector<image_t> image_ids = cache_->GetImageIds();
 
   //////////////////////////////////////////////////////////////////////////////
   // Spatial indexing
@@ -1213,7 +1392,7 @@ void SpatialFeatureMatcher::Run() {
 
   for (size_t i = 0; i < image_ids.size(); ++i) {
     const auto image_id = image_ids[i];
-    const auto& image = cache_.GetImage(image_id);
+    const auto& image = cache_->GetImage(image_id);
 
     if ((image.TvecPrior(0) == 0 && image.TvecPrior(1) == 0 &&
          options_.ignore_z) ||
@@ -1344,7 +1523,7 @@ void SpatialFeatureMatcher::Run() {
       image_pairs.emplace_back(image_id, nn_image_id);
     }
 
-    DatabaseTransaction database_transaction(&database_);
+    DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
 
     PrintElapsedTime(timer);
@@ -1358,9 +1537,10 @@ TransitiveFeatureMatcher::TransitiveFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(options_.batch_size, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(options_.batch_size,
+                                                   database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -1372,9 +1552,9 @@ void TransitiveFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
-  const std::vector<image_t> image_ids = cache_.GetImageIds();
+  const std::vector<image_t> image_ids = cache_->GetImageIds();
 
   std::vector<std::pair<image_t, image_t>> image_pairs;
   std::unordered_set<image_pair_t> image_pair_ids;
@@ -1394,8 +1574,8 @@ void TransitiveFeatureMatcher::Run() {
 
     std::vector<std::pair<image_t, image_t>> existing_image_pairs;
     std::vector<int> existing_num_inliers;
-    database_.ReadTwoViewGeometryNumInliers(&existing_image_pairs,
-                                            &existing_num_inliers);
+    database_->ReadTwoViewGeometryNumInliers(&existing_image_pairs,
+                                             &existing_num_inliers);
 
     CHECK_EQ(existing_image_pairs.size(), existing_num_inliers.size());
 
@@ -1416,7 +1596,7 @@ void TransitiveFeatureMatcher::Run() {
         if (adjacency.count(image_id2) > 0) {
           for (const auto& image_id3 : adjacency.at(image_id2)) {
             const auto image_pair_id =
-                Database::ImagePairToPairId(image_id1, image_id3);
+                DatabaseRoot::ImagePairToPairId(image_id1, image_id3);
             if (image_pair_ids.count(image_pair_id) == 0) {
               image_pairs.emplace_back(image_id1, image_id3);
               image_pair_ids.insert(image_pair_id);
@@ -1424,7 +1604,7 @@ void TransitiveFeatureMatcher::Run() {
                 num_batches += 1;
                 std::cout << StringPrintf("  Batch %d", num_batches)
                           << std::flush;
-                DatabaseTransaction database_transaction(&database_);
+                DatabaseTransaction database_transaction(database_.get());
                 matcher_.Match(image_pairs);
                 image_pairs.clear();
                 PrintElapsedTime(timer);
@@ -1443,7 +1623,7 @@ void TransitiveFeatureMatcher::Run() {
 
     num_batches += 1;
     std::cout << StringPrintf("  Batch %d", num_batches) << std::flush;
-    DatabaseTransaction database_transaction(&database_);
+    DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
     PrintElapsedTime(timer);
   }
@@ -1456,9 +1636,10 @@ ImagePairsFeatureMatcher::ImagePairsFeatureMatcher(
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(options.block_size, &database_),
-      matcher_(match_options, &database_, &cache_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(std::make_unique<FeatureMatcherCache>(options.block_size,
+                                                   database_.get())),
+      matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -1470,16 +1651,16 @@ void ImagePairsFeatureMatcher::Run() {
     return;
   }
 
-  cache_.Setup();
+  cache_->Setup();
 
   //////////////////////////////////////////////////////////////////////////////
   // Reading image pairs list
   //////////////////////////////////////////////////////////////////////////////
 
   std::unordered_map<std::string, image_t> image_name_to_image_id;
-  image_name_to_image_id.reserve(cache_.GetImageIds().size());
-  for (const auto image_id : cache_.GetImageIds()) {
-    const auto& image = cache_.GetImage(image_id);
+  image_name_to_image_id.reserve(cache_->GetImageIds().size());
+  for (const auto image_id : cache_->GetImageIds()) {
+    const auto& image = cache_->GetImage(image_id);
     image_name_to_image_id.emplace(image.Name(), image_id);
   }
 
@@ -1520,7 +1701,7 @@ void ImagePairsFeatureMatcher::Run() {
     const image_t image_id1 = image_name_to_image_id.at(image_name1);
     const image_t image_id2 = image_name_to_image_id.at(image_name2);
     const image_pair_t image_pair =
-        Database::ImagePairToPairId(image_id1, image_id2);
+        DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
     const bool image_pair_exists = image_pairs_set.insert(image_pair).second;
     if (image_pair_exists) {
       image_pairs.emplace_back(image_id1, image_id2);
@@ -1557,7 +1738,7 @@ void ImagePairsFeatureMatcher::Run() {
       block_image_pairs.push_back(image_pairs[j]);
     }
 
-    DatabaseTransaction database_transaction(&database_);
+    DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(block_image_pairs);
 
     PrintElapsedTime(timer);
@@ -1566,13 +1747,16 @@ void ImagePairsFeatureMatcher::Run() {
   GetTimer().PrintMinutes();
 }
 
+const size_t FeaturePairsFeatureMatcher::kCacheSize;
+
 FeaturePairsFeatureMatcher::FeaturePairsFeatureMatcher(
     const FeaturePairsMatchingOptions& options,
     const SiftMatchingOptions& match_options, const std::string& database_path)
     : options_(options),
       match_options_(match_options),
-      database_(database_path),
-      cache_(kCacheSize, &database_) {
+      database_(std::make_shared<Database>(database_path)),
+      cache_(
+          std::make_unique<FeatureMatcherCache>(kCacheSize, database_.get())) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
 }
@@ -1580,12 +1764,12 @@ FeaturePairsFeatureMatcher::FeaturePairsFeatureMatcher(
 void FeaturePairsFeatureMatcher::Run() {
   PrintHeading1("Importing matches");
 
-  cache_.Setup();
+  cache_->Setup();
 
   std::unordered_map<std::string, const Image*> image_name_to_image;
-  image_name_to_image.reserve(cache_.GetImageIds().size());
-  for (const auto image_id : cache_.GetImageIds()) {
-    const auto& image = cache_.GetImage(image_id);
+  image_name_to_image.reserve(cache_->GetImageIds().size());
+  for (const auto image_id : cache_->GetImageIds()) {
+    const auto& image = cache_->GetImage(image_id);
     image_name_to_image.emplace(image.Name(), &image);
   }
 
@@ -1635,7 +1819,7 @@ void FeaturePairsFeatureMatcher::Run() {
     const Image& image2 = *image_name_to_image[image_name2];
 
     bool skip_pair = false;
-    if (database_.ExistsInlierMatches(image1.ImageId(), image2.ImageId())) {
+    if (database_->ExistsInlierMatches(image1.ImageId(), image2.ImageId())) {
       std::cout << "SKIP: Matches for image pair already exist in database."
                 << std::endl;
       skip_pair = true;
@@ -1666,14 +1850,14 @@ void FeaturePairsFeatureMatcher::Run() {
       continue;
     }
 
-    const Camera& camera1 = cache_.GetCamera(image1.CameraId());
-    const Camera& camera2 = cache_.GetCamera(image2.CameraId());
+    const Camera& camera1 = cache_->GetCamera(image1.CameraId());
+    const Camera& camera2 = cache_->GetCamera(image2.CameraId());
 
     if (options_.verify_matches) {
-      database_.WriteMatches(image1.ImageId(), image2.ImageId(), matches);
+      database_->WriteMatches(image1.ImageId(), image2.ImageId(), matches);
 
-      const auto keypoints1 = cache_.GetKeypoints(image1.ImageId());
-      const auto keypoints2 = cache_.GetKeypoints(image2.ImageId());
+      const auto keypoints1 = cache_->GetKeypoints(image1.ImageId());
+      const auto keypoints2 = cache_->GetKeypoints(image2.ImageId());
 
       TwoViewGeometry two_view_geometry;
       TwoViewGeometry::Options two_view_geometry_options;
@@ -1695,8 +1879,8 @@ void FeaturePairsFeatureMatcher::Run() {
           FeatureKeypointsToPointsVector(keypoints2), matches,
           two_view_geometry_options);
 
-      database_.WriteTwoViewGeometry(image1.ImageId(), image2.ImageId(),
-                                     two_view_geometry);
+      database_->WriteTwoViewGeometry(image1.ImageId(), image2.ImageId(),
+                                      two_view_geometry);
     } else {
       TwoViewGeometry two_view_geometry;
 
@@ -1708,8 +1892,8 @@ void FeaturePairsFeatureMatcher::Run() {
 
       two_view_geometry.inlier_matches = matches;
 
-      database_.WriteTwoViewGeometry(image1.ImageId(), image2.ImageId(),
-                                     two_view_geometry);
+      database_->WriteTwoViewGeometry(image1.ImageId(), image2.ImageId(),
+                                      two_view_geometry);
     }
   }
 

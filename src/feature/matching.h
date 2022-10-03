@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,8 @@
 #include <vector>
 
 #include "base/database.h"
+#include "base/database_sqlite.h"
+#include "base/database_memory.h"
 #include "feature/sift.h"
 #include "util/alignment.h"
 #include "util/cache.h"
@@ -58,7 +60,7 @@ struct SequentialMatchingOptions {
   int overlap = 10;
 
   // Whether to match images against their quadratic neighbors.
-  bool quadratic_overlap = true;
+  bool quadratic_overlap = false;
 
   // Whether to enable vocabulary tree based loop detection.
   bool loop_detection = false;
@@ -177,21 +179,23 @@ struct FeatureMatcherData {
 }  // namespace internal
 
 // Cache for feature matching to minimize database access during matching.
-class FeatureMatcherCache {
+class IFeatureMatcherCache {
  public:
-  FeatureMatcherCache(const size_t cache_size, const Database* database);
+  IFeatureMatcherCache(const size_t cache_size, IDatabase* database);
+  virtual ~IFeatureMatcherCache() = default;
 
-  void Setup();
+  virtual void Setup() = 0;
 
-  const Camera& GetCamera(const camera_t camera_id) const;
-  const Image& GetImage(const image_t image_id) const;
-  const FeatureKeypoints& GetKeypoints(const image_t image_id);
-  const FeatureDescriptors& GetDescriptors(const image_t image_id);
+  virtual Camera GetCamera(const camera_t camera_id) const = 0;
+  virtual Image GetImage(const image_t image_id) const = 0;
+  virtual FeatureKeypoints GetKeypoints(const image_t image_id) = 0;
+  virtual FeatureDescriptors GetDescriptors(const image_t image_id) = 0;
+
   FeatureMatches GetMatches(const image_t image_id1, const image_t image_id2);
-  std::vector<image_t> GetImageIds() const;
+  virtual std::vector<image_t> GetImageIds() const = 0;
 
-  bool ExistsKeypoints(const image_t image_id);
-  bool ExistsDescriptors(const image_t image_id);
+  virtual bool ExistsKeypoints(const image_t image_id) = 0;
+  virtual bool ExistsDescriptors(const image_t image_id) = 0;
 
   bool ExistsMatches(const image_t image_id1, const image_t image_id2);
   bool ExistsInlierMatches(const image_t image_id1, const image_t image_id2);
@@ -204,10 +208,30 @@ class FeatureMatcherCache {
   void DeleteMatches(const image_t image_id1, const image_t image_id2);
   void DeleteInlierMatches(const image_t image_id1, const image_t image_id2);
 
- private:
+ protected:
   const size_t cache_size_;
-  const Database* database_;
+  IDatabase* database_;
   std::mutex database_mutex_;
+};
+
+class FeatureMatcherCache : public IFeatureMatcherCache {
+ public:
+  FeatureMatcherCache(const size_t cache_size, IDatabase* database);
+  ~FeatureMatcherCache() = default;
+
+  void Setup();
+
+  Camera GetCamera(const camera_t camera_id) const;
+  Image GetImage(const image_t image_id) const;
+  FeatureKeypoints GetKeypoints(const image_t image_id);
+  FeatureDescriptors GetDescriptors(const image_t image_id);
+
+  std::vector<image_t> GetImageIds() const;
+
+  bool ExistsKeypoints(const image_t image_id);
+  bool ExistsDescriptors(const image_t image_id);
+
+ private:
   EIGEN_STL_UMAP(camera_t, Camera) cameras_cache_;
   EIGEN_STL_UMAP(image_t, Image) images_cache_;
   std::unique_ptr<LRUCache<image_t, FeatureKeypoints>> keypoints_cache_;
@@ -216,16 +240,34 @@ class FeatureMatcherCache {
   std::unique_ptr<LRUCache<image_t, bool>> descriptors_exists_cache_;
 };
 
+class MemoryFeatureMatcherCache : public IFeatureMatcherCache {
+ public:
+  MemoryFeatureMatcherCache(IDatabase* database);
+  ~MemoryFeatureMatcherCache() = default;
+
+  void Setup();
+
+  Camera GetCamera(const camera_t camera_id) const;
+  Image GetImage(const image_t image_id) const;
+  FeatureKeypoints GetKeypoints(const image_t image_id);
+  FeatureDescriptors GetDescriptors(const image_t image_id);
+
+  std::vector<image_t> GetImageIds() const;
+
+  bool ExistsKeypoints(const image_t image_id);
+  bool ExistsDescriptors(const image_t image_id);
+};
+
 class FeatureMatcherThread : public Thread {
  public:
   FeatureMatcherThread(const SiftMatchingOptions& options,
-                       FeatureMatcherCache* cache);
+                       IFeatureMatcherCache* cache);
 
   void SetMaxNumMatches(const int max_num_matches);
 
  protected:
   SiftMatchingOptions options_;
-  FeatureMatcherCache* cache_;
+  IFeatureMatcherCache* cache_;
 };
 
 class SiftCPUFeatureMatcher : public FeatureMatcherThread {
@@ -234,7 +276,7 @@ class SiftCPUFeatureMatcher : public FeatureMatcherThread {
   typedef internal::FeatureMatcherData Output;
 
   SiftCPUFeatureMatcher(const SiftMatchingOptions& options,
-                        FeatureMatcherCache* cache,
+                        IFeatureMatcherCache* cache,
                         JobQueue<Input>* input_queue,
                         JobQueue<Output>* output_queue);
 
@@ -251,7 +293,7 @@ class SiftGPUFeatureMatcher : public FeatureMatcherThread {
   typedef internal::FeatureMatcherData Output;
 
   SiftGPUFeatureMatcher(const SiftMatchingOptions& options,
-                        FeatureMatcherCache* cache,
+                        IFeatureMatcherCache* cache,
                         JobQueue<Input>* input_queue,
                         JobQueue<Output>* output_queue);
 
@@ -277,7 +319,7 @@ class GuidedSiftCPUFeatureMatcher : public FeatureMatcherThread {
   typedef internal::FeatureMatcherData Output;
 
   GuidedSiftCPUFeatureMatcher(const SiftMatchingOptions& options,
-                              FeatureMatcherCache* cache,
+                              IFeatureMatcherCache* cache,
                               JobQueue<Input>* input_queue,
                               JobQueue<Output>* output_queue);
 
@@ -294,7 +336,7 @@ class GuidedSiftGPUFeatureMatcher : public FeatureMatcherThread {
   typedef internal::FeatureMatcherData Output;
 
   GuidedSiftGPUFeatureMatcher(const SiftMatchingOptions& options,
-                              FeatureMatcherCache* cache,
+                              IFeatureMatcherCache* cache,
                               JobQueue<Input>* input_queue,
                               JobQueue<Output>* output_queue);
 
@@ -322,7 +364,7 @@ class TwoViewGeometryVerifier : public Thread {
   typedef internal::FeatureMatcherData Output;
 
   TwoViewGeometryVerifier(const SiftMatchingOptions& options,
-                          FeatureMatcherCache* cache,
+                          IFeatureMatcherCache* cache,
                           JobQueue<Input>* input_queue,
                           JobQueue<Output>* output_queue);
 
@@ -331,7 +373,7 @@ class TwoViewGeometryVerifier : public Thread {
 
   const SiftMatchingOptions options_;
   TwoViewGeometry::Options two_view_geometry_options_;
-  FeatureMatcherCache* cache_;
+  IFeatureMatcherCache* cache_;
   JobQueue<Input>* input_queue_;
   JobQueue<Output>* output_queue_;
 };
@@ -343,8 +385,8 @@ class TwoViewGeometryVerifier : public Thread {
 // database should be in an active transaction while calling `Match`.
 class SiftFeatureMatcher {
  public:
-  SiftFeatureMatcher(const SiftMatchingOptions& options, Database* database,
-                     FeatureMatcherCache* cache);
+  SiftFeatureMatcher(const SiftMatchingOptions& options, IDatabase* database,
+                     IFeatureMatcherCache* cache);
 
   ~SiftFeatureMatcher();
 
@@ -356,8 +398,8 @@ class SiftFeatureMatcher {
 
  private:
   SiftMatchingOptions options_;
-  Database* database_;
-  FeatureMatcherCache* cache_;
+  IDatabase* database_;
+  IFeatureMatcherCache* cache_;
 
   bool is_setup_;
 
@@ -401,13 +443,17 @@ class ExhaustiveFeatureMatcher : public Thread {
                            const SiftMatchingOptions& match_options,
                            const std::string& database_path);
 
+  ExhaustiveFeatureMatcher(const ExhaustiveMatchingOptions& options,
+                           const SiftMatchingOptions& match_options,
+                           std::shared_ptr<IDatabase> database);
+
  private:
   void Run() override;
 
   const ExhaustiveMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
@@ -435,6 +481,10 @@ class SequentialFeatureMatcher : public Thread {
                            const SiftMatchingOptions& match_options,
                            const std::string& database_path);
 
+  SequentialFeatureMatcher(const SequentialMatchingOptions& options,
+                           const SiftMatchingOptions& match_options,
+                           std::shared_ptr<IDatabase> database);
+
  private:
   void Run() override;
 
@@ -444,9 +494,31 @@ class SequentialFeatureMatcher : public Thread {
 
   const SequentialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
+};
+
+class SerialSequentialFeatureMatcher : public Thread {
+ public:
+  SerialSequentialFeatureMatcher(const SequentialMatchingOptions& options,
+                                 const SiftMatchingOptions& match_options,
+                                 std::shared_ptr<IDatabase> database,
+                                 JobQueue<image_t>* ids_queue);
+
+ private:
+  void Run() override;
+
+  std::vector<image_t> GetOrderedImageIds() const;
+  void RunSequentialMatching(const image_t& image_ids);
+  void RunLoopDetection(const std::vector<image_t>& image_ids);
+
+  const SequentialMatchingOptions options_;
+  const SiftMatchingOptions match_options_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
+  SiftFeatureMatcher matcher_;
+  JobQueue<image_t>* ids_queue_;
 };
 
 // Match each image against its nearest neighbors using a vocabulary tree.
@@ -461,8 +533,8 @@ class VocabTreeFeatureMatcher : public Thread {
 
   const VocabTreeMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
@@ -479,8 +551,8 @@ class SpatialFeatureMatcher : public Thread {
 
   const SpatialMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
@@ -499,8 +571,8 @@ class TransitiveFeatureMatcher : public Thread {
 
   const TransitiveMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
@@ -524,8 +596,8 @@ class ImagePairsFeatureMatcher : public Thread {
 
   const ImagePairsMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
   SiftFeatureMatcher matcher_;
 };
 
@@ -557,8 +629,8 @@ class FeaturePairsFeatureMatcher : public Thread {
 
   const FeaturePairsMatchingOptions options_;
   const SiftMatchingOptions match_options_;
-  Database database_;
-  FeatureMatcherCache cache_;
+  std::shared_ptr<IDatabase> database_;
+  std::unique_ptr<IFeatureMatcherCache> cache_;
 };
 
 }  // namespace colmap

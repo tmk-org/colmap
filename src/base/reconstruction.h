@@ -1,4 +1,4 @@
-// Copyright (c) 2022, ETH Zurich and UNC Chapel Hill.
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -233,7 +233,7 @@ class Reconstruction {
 
   // Update the image identifiers to match the ones in the database by matching
   // the names of the images.
-  void TranscribeImageIdsToDatabase(const Database& database);
+  void TranscribeImageIdsToDatabase(const IDatabase& database);
 
   // Filter 3D points with large reprojection error, negative depth, or
   // insufficient triangulation angle.
@@ -467,7 +467,7 @@ const Reconstruction::ImagePairStat& Reconstruction::ImagePair(
 
 const Reconstruction::ImagePairStat& Reconstruction::ImagePair(
     const image_t image_id1, const image_t image_id2) const {
-  const auto pair_id = Database::ImagePairToPairId(image_id1, image_id2);
+  const auto pair_id = DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
   return image_pair_stats_.at(pair_id);
 }
 
@@ -490,7 +490,7 @@ Reconstruction::ImagePairStat& Reconstruction::ImagePair(
 
 Reconstruction::ImagePairStat& Reconstruction::ImagePair(
     const image_t image_id1, const image_t image_id2) {
-  const auto pair_id = Database::ImagePairToPairId(image_id1, image_id2);
+  const auto pair_id = DatabaseRoot::ImagePairToPairId(image_id1, image_id2);
   return image_pair_stats_.at(pair_id);
 }
 
