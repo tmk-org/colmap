@@ -144,6 +144,49 @@ struct IncrementalMapperOptions {
 
   bool Check() const;
 
+/*incremental mapper options transferring*/
+    int& init_min_num_inliers();
+
+    // Maximum error in pixels for two-view geometry estimation for initial
+    // image pair.
+    double& init_max_error();
+
+    // Maximum forward motion for initial image pair.
+    double& init_max_forward_motion();
+
+    // Minimum triangulation angle for initial image pair.
+    double& init_min_tri_angle();
+
+    // Maximum number of trials to use an image for initialization.
+    int& init_max_reg_trials();
+
+    // Maximum reprojection error in absolute pose estimation.
+    double& abs_pose_max_error();
+
+    // Minimum number of inliers in absolute pose estimation.
+    int& abs_pose_min_num_inliers();
+
+    // Minimum inlier ratio in absolute pose estimation.
+    double& abs_pose_min_inlier_ratio();
+
+    // Whether to estimate the focal length in absolute pose estimation.
+    
+    // Minimum triangulation for images to be chosen in local bundle adjustment.
+    double& local_ba_min_tri_angle();
+
+    // Maximum reprojection error in pixels for observations.
+    double& filter_max_reproj_error();
+
+    // Minimum triangulation angle in degrees for stable 3D points.
+    double& filter_min_tri_angle ();
+
+    // Maximum number of trials to register an image.
+    int& max_reg_trials();
+
+    
+    
+
+
  private:
   friend class OptionManager;
   friend class MapperGeneralOptionsWidget;
