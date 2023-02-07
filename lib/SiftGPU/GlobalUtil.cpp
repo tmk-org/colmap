@@ -465,3 +465,148 @@ int CreateLiteWindow(LiteWindow* window)
 {
     return GlobalUtil::CreateWindowEZ(window);
 }
+
+std::string GlobalParam::ToString()
+{
+    char* pStr=nullptr;
+    struct Holder{
+        explicit Holder(char** pFrom):
+            pHolder(pFrom)
+        {
+
+        }
+        ~Holder()
+        {
+            if(*pHolder!= nullptr)
+            {
+                free(*pHolder);
+            }
+        }
+        char** pHolder;
+    } aHaolder(&pStr);
+
+    asprintf(&pStr,
+    "_texTarget %u;"\
+	"_iTexFormat %u;"\
+	"_texMaxDim %d;"\
+	"_texMaxDimGL %d; "\
+    "_texMinDim %d;\n"\
+	"_MemCapGPU %d;"\
+	"_FitMemoryCap %d;"\
+	"_verbose %d;"\
+	"_timingS %d;"\
+	"_timingO %d;\n"\
+	"_timingL    %d;"\
+	"_usePackedTex %d;"\
+	"_IsNvidia %d;"\
+	"_KeepShaderLoop %d;"\
+	"_UseCUDA %d;"\
+    "_UseOpenCL %d;\n"\
+	"_UseDynamicIndexing %d; "\
+	"_debug %d;"\
+	"_MaxFilterWidth %d;"\
+	"_FilterWidthFactor %.6f;"\
+	"_OrientationWindowFactor %.6f;"\
+	"_DescriptorWindowFactor %.6f;\n "\
+	"_MaxOrientation %d;"\
+	"_OrientationPack2 %d;"\
+	"_ListGenGPU %d;"\
+	"_ListGenSkipGPU %d;"\
+	"_SupportNVFloat %d;\n"\
+	"_SupportTextureRG %d;"\
+	"_FullSupported %d;"\
+	"_MaxFeaturePercent %.5f;"\
+	"_MaxLevelFeatureNum %d;"\
+	"_DescriptorPPR %d; "\
+	"_DescriptorPPT %d;\n"\
+	"_FeatureTexBlock %d;"\
+	"_NarrowFeatureTex %d;"\
+	"_SubpixelLocalization %d;"\
+	"_ProcessOBO %d;"\
+    "_TruncateMethod %d;\n"\
+	"_PreciseBorder %d;"\
+	"_UseSiftGPUEX %d;"\
+	"_ForceTightPyramid %d;"\
+	"_octave_min_default %d;"\
+	"_octave_num_default %d;"\
+	"_InitPyramidWidth %d;\n"\
+	"_InitPyramidHeight %d;"\
+	"_PreProcessOnCPU %d;"\
+	"_GoodOpenGL %d;"\
+	"_FixedOrientation %d;"\
+	"_LoweOrigin %d;\n"\
+	"_ExitAfterSIFT %d; "\
+	"_NormalizedSIFT %d;"\
+	"_BinarySIFT %d;"\
+	"_KeepExtremumSign %d;"\
+	"_FeatureCountThreshold %d;\n"\
+    "_KeyPointListForceLevel0 %d;"\
+	"_DarknessAdaption %d;"\
+	
+	"_OrientationGaussianFactor %.5f;"\
+	"_MulitiOrientationThreshold %.5f;",
+
+    _texTarget,
+	_iTexFormat,
+	_texMaxDim,
+	_texMaxDimGL,
+    _texMinDim,
+	_MemCapGPU,
+	_FitMemoryCap,
+	_verbose,
+	_timingS,
+	_timingO,
+	_timingL,
+	_usePackedTex,
+	_IsNvidia,
+	_KeepShaderLoop,
+	_UseCUDA,
+    _UseOpenCL,
+	_UseDynamicIndexing, 
+	_debug,
+	_MaxFilterWidth,
+	_FilterWidthFactor,
+	_OrientationWindowFactor,
+	_DescriptorWindowFactor,
+	_MaxOrientation,
+	_OrientationPack2,
+	_ListGenGPU,
+	_ListGenSkipGPU,
+	_SupportNVFloat,
+	_SupportTextureRG,
+	_FullSupported,
+	_MaxFeaturePercent,
+	_MaxLevelFeatureNum,
+	_DescriptorPPR,
+	_DescriptorPPT,
+	_FeatureTexBlock,
+	_NarrowFeatureTex,
+	_SubpixelLocalization,
+	_ProcessOBO,
+    _TruncateMethod,
+	_PreciseBorder,
+	_UseSiftGPUEX,
+	_ForceTightPyramid,
+	_octave_min_default,
+	_octave_num_default,
+	_InitPyramidWidth,
+	_InitPyramidHeight,
+	_PreProcessOnCPU,
+	_GoodOpenGL,
+	_FixedOrientation,
+	_LoweOrigin,
+	_ExitAfterSIFT,
+	_NormalizedSIFT,
+	_BinarySIFT,
+	_KeepExtremumSign,
+	_FeatureCountThreshold, 
+    _KeyPointListForceLevel0,
+	_DarknessAdaption,
+	_OrientationGaussianFactor,
+	_MulitiOrientationThreshold);
+    if(pStr!=nullptr)
+    {
+        return std::string(pStr);
+    }
+    return "Unknown";
+}
