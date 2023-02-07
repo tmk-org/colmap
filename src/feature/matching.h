@@ -178,18 +178,22 @@ struct FeatureMatcherData {
 
 }  // namespace internal
 
+using FeatureKeypointsPtr = std::shared_ptr<FeatureKeypoints>;
+using FeatureDescriptorsPtr = std::shared_ptr<FeatureDescriptors>;
+
 // Cache for feature matching to minimize database access during matching.
 class IFeatureMatcherCache {
  public:
   IFeatureMatcherCache(const size_t cache_size, IDatabase* database);
   virtual ~IFeatureMatcherCache() = default;
 
-  virtual void Setup() = 0;
+  virtual void Setup() ;
 
-  virtual Camera GetCamera(const camera_t camera_id) const = 0;
-  virtual Image GetImage(const image_t image_id) const = 0;
-  virtual FeatureKeypoints GetKeypoints(const image_t image_id) = 0;
-  virtual FeatureDescriptors GetDescriptors(const image_t image_id) = 0;
+  virtual const Camera& GetCamera(const camera_t camera_id) const = 0;
+  virtual const Image& GetImage(const image_t image_id) const = 0;
+  virtual FeatureKeypointsPtr GetKeypoints(const image_t image_id) = 0;
+  virtual FeatureDescriptorsPtr GetDescriptors(const image_t image_id) = 0;
+
 
   FeatureMatches GetMatches(const image_t image_id1, const image_t image_id2);
   virtual std::vector<image_t> GetImageIds() const = 0;
@@ -211,7 +215,14 @@ class IFeatureMatcherCache {
  protected:
   const size_t cache_size_;
   IDatabase* database_;
-  std::mutex database_mutex_;
+  mutable std::mutex database_mutex_;
+ protected:
+  mutable EIGEN_STL_UMAP(camera_t, Camera) cameras_cache_;
+  mutable EIGEN_STL_UMAP(image_t, Image) images_cache_;
+  std::unique_ptr<LRUCache<image_t, FeatureKeypointsPtr>> keypoints_cache_;
+  std::unique_ptr<LRUCache<image_t, FeatureDescriptorsPtr>> descriptors_cache_;
+  std::unique_ptr<LRUCache<image_t, bool>> keypoints_exists_cache_;
+  std::unique_ptr<LRUCache<image_t, bool>> descriptors_exists_cache_;
 };
 
 class FeatureMatcherCache : public IFeatureMatcherCache {
@@ -219,43 +230,38 @@ class FeatureMatcherCache : public IFeatureMatcherCache {
   FeatureMatcherCache(const size_t cache_size, IDatabase* database);
   ~FeatureMatcherCache() = default;
 
-  void Setup();
+  //void Setup();
 
-  Camera GetCamera(const camera_t camera_id) const;
-  Image GetImage(const image_t image_id) const;
-  FeatureKeypoints GetKeypoints(const image_t image_id);
-  FeatureDescriptors GetDescriptors(const image_t image_id);
+  const Camera& GetCamera(const camera_t camera_id) const;
+  const Image& GetImage(const image_t image_id) const;
+  FeatureKeypointsPtr GetKeypoints(const image_t image_id);
+  FeatureDescriptorsPtr GetDescriptors(const image_t image_id);
 
   std::vector<image_t> GetImageIds() const;
 
   bool ExistsKeypoints(const image_t image_id);
   bool ExistsDescriptors(const image_t image_id);
 
- private:
-  EIGEN_STL_UMAP(camera_t, Camera) cameras_cache_;
-  EIGEN_STL_UMAP(image_t, Image) images_cache_;
-  std::unique_ptr<LRUCache<image_t, FeatureKeypoints>> keypoints_cache_;
-  std::unique_ptr<LRUCache<image_t, FeatureDescriptors>> descriptors_cache_;
-  std::unique_ptr<LRUCache<image_t, bool>> keypoints_exists_cache_;
-  std::unique_ptr<LRUCache<image_t, bool>> descriptors_exists_cache_;
+ 
 };
 
 class MemoryFeatureMatcherCache : public IFeatureMatcherCache {
  public:
-  MemoryFeatureMatcherCache(IDatabase* database);
+  MemoryFeatureMatcherCache(size_t size,IDatabase* database);
   ~MemoryFeatureMatcherCache() = default;
 
-  void Setup();
+  //void Setup();
 
-  Camera GetCamera(const camera_t camera_id) const;
-  Image GetImage(const image_t image_id) const;
-  FeatureKeypoints GetKeypoints(const image_t image_id);
-  FeatureDescriptors GetDescriptors(const image_t image_id);
+  const Camera& GetCamera(const camera_t camera_id) const;
+  const Image& GetImage(const image_t image_id) const;
+  FeatureKeypointsPtr GetKeypoints(const image_t image_id);
+  FeatureDescriptorsPtr GetDescriptors(const image_t image_id);
 
   std::vector<image_t> GetImageIds() const;
 
   bool ExistsKeypoints(const image_t image_id);
   bool ExistsDescriptors(const image_t image_id);
+ private:
 };
 
 class FeatureMatcherThread : public Thread {
@@ -310,7 +316,7 @@ class SiftGPUFeatureMatcher : public FeatureMatcherThread {
 
   // The previously uploaded images to the GPU.
   std::array<image_t, 2> prev_uploaded_image_ids_;
-  std::array<FeatureDescriptors, 2> prev_uploaded_descriptors_;
+  std::array<FeatureDescriptorsPtr, 2> prev_uploaded_descriptors_;
 };
 
 class GuidedSiftCPUFeatureMatcher : public FeatureMatcherThread {
@@ -354,8 +360,8 @@ class GuidedSiftGPUFeatureMatcher : public FeatureMatcherThread {
 
   // The previously uploaded images to the GPU.
   std::array<image_t, 2> prev_uploaded_image_ids_;
-  std::array<FeatureKeypoints, 2> prev_uploaded_keypoints_;
-  std::array<FeatureDescriptors, 2> prev_uploaded_descriptors_;
+  std::array<FeatureKeypointsPtr, 2> prev_uploaded_keypoints_;
+  std::array<FeatureDescriptorsPtr, 2> prev_uploaded_descriptors_;
 };
 
 class TwoViewGeometryVerifier : public Thread {

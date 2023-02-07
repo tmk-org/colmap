@@ -68,8 +68,8 @@ void IndexImagesInVisualIndex(const int num_threads, const int num_checks,
     std::cout << StringPrintf("Indexing image [%d/%d]", i + 1, image_ids.size())
               << std::flush;
 
-    auto keypoints = cache->GetKeypoints(image_ids[i]);
-    auto descriptors = cache->GetDescriptors(image_ids[i]);
+    auto keypoints = *cache->GetKeypoints(image_ids[i]);
+    auto descriptors = *cache->GetDescriptors(image_ids[i]);
     if (max_num_features > 0 && descriptors.rows() > max_num_features) {
       ExtractTopScaleFeatures(&keypoints, &descriptors, max_num_features);
     }
@@ -107,8 +107,8 @@ void MatchNearestNeighborsInVisualIndex(
   query_options.num_checks = num_checks;
   query_options.num_images_after_verification = num_images_after_verification;
   auto QueryFunc = [&](const image_t image_id) {
-    auto keypoints = cache->GetKeypoints(image_id);
-    auto descriptors = cache->GetDescriptors(image_id);
+    auto keypoints = *cache->GetKeypoints(image_id);
+    auto descriptors = *cache->GetDescriptors(image_id);
     if (max_num_features > 0 && descriptors.rows() > max_num_features) {
       ExtractTopScaleFeatures(&keypoints, &descriptors, max_num_features);
     }
@@ -218,14 +218,9 @@ IFeatureMatcherCache::IFeatureMatcherCache(const size_t cache_size,
   CHECK_NOTNULL(database_);
 }
 
-FeatureMatcherCache::FeatureMatcherCache(const size_t cache_size,
-                                         IDatabase* database)
-    : IFeatureMatcherCache(cache_size, database) {}
-
-MemoryFeatureMatcherCache::MemoryFeatureMatcherCache(IDatabase* database)
-    : IFeatureMatcherCache(0, database) {}
-
-void FeatureMatcherCache::Setup() {
+void IFeatureMatcherCache::Setup()
+{
+  std::scoped_lock lock(database_mutex_);
   const std::vector<Camera> cameras = database_->ReadAllCameras();
   cameras_cache_.reserve(cameras.size());
   for (const auto& camera : cameras) {
@@ -238,65 +233,89 @@ void FeatureMatcherCache::Setup() {
     images_cache_.emplace(image.ImageId(), image);
   }
 
-  keypoints_cache_.reset(new LRUCache<image_t, FeatureKeypoints>(
+  keypoints_cache_.reset(new LRUCache<image_t, FeatureKeypointsPtr>(
       cache_size_, [this](const image_t image_id) {
-        return database_->ReadKeypoints(image_id);
+        return std::make_shared<FeatureKeypoints>(
+            database_->ReadKeypoints(image_id));
       }));
 
-  descriptors_cache_.reset(new LRUCache<image_t, FeatureDescriptors>(
+  descriptors_cache_.reset(new LRUCache<image_t, FeatureDescriptorsPtr>(
       cache_size_, [this](const image_t image_id) {
-        return database_->ReadDescriptors(image_id);
+        return std::make_shared<FeatureDescriptors>(
+            database_->ReadDescriptors(image_id));
       }));
 
   keypoints_exists_cache_.reset(new LRUCache<image_t, bool>(
-      images.size(), [this](const image_t image_id) {
+      images.size()==0 ? cache_size_ : images.size(), [this](const image_t image_id) {
         return database_->ExistsKeypoints(image_id);
       }));
 
   descriptors_exists_cache_.reset(new LRUCache<image_t, bool>(
-      images.size(), [this](const image_t image_id) {
+      images.size()==0 ? cache_size_ : images.size(), [this](const image_t image_id) {
         return database_->ExistsDescriptors(image_id);
       }));
 }
 
-void MemoryFeatureMatcherCache::Setup() {}
+FeatureMatcherCache::FeatureMatcherCache(const size_t cache_size,
+                                         IDatabase* database)
+    : IFeatureMatcherCache(cache_size, database) {}
 
-Camera FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
+MemoryFeatureMatcherCache::MemoryFeatureMatcherCache(size_t size,IDatabase* database)
+    : IFeatureMatcherCache(size, database) {}
+
+
+const Camera& FeatureMatcherCache::GetCamera(const camera_t camera_id) const {
   return cameras_cache_.at(camera_id);
 }
 
-Camera MemoryFeatureMatcherCache::GetCamera(const camera_t camera_id) const {
-  return database_->ReadCamera(camera_id);
+const Camera& MemoryFeatureMatcherCache::GetCamera(const camera_t camera_id) const {
+  //return cameras_cache_.at(camera_id);
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  if(!cameras_cache_.contains(camera_id))
+  {
+    auto image= database_->ReadCamera(camera_id);
+    cameras_cache_.insert(std::make_pair(camera_id,std::move(image)));
+  }
+  return cameras_cache_.at(camera_id);
 }
 
-Image FeatureMatcherCache::GetImage(const image_t image_id) const {
+const Image& FeatureMatcherCache::GetImage(const image_t image_id) const {
   return images_cache_.at(image_id);
 }
 
-Image MemoryFeatureMatcherCache::GetImage(const image_t image_id) const {
-  return database_->ReadImage(image_id);
+const Image& MemoryFeatureMatcherCache::GetImage(const image_t image_id) const {
+  std::unique_lock<std::mutex> lock(database_mutex_);
+  if(!images_cache_.contains(image_id))
+  {
+    auto image= database_->ReadImage(image_id);
+    images_cache_.insert(std::make_pair(image_id,std::move(image)));
+  }
+  return images_cache_.at(image_id);
 }
 
-FeatureKeypoints FeatureMatcherCache::GetKeypoints(const image_t image_id) {
+
+FeatureKeypointsPtr FeatureMatcherCache::GetKeypoints(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return keypoints_cache_->Get(image_id);
 }
 
-FeatureKeypoints MemoryFeatureMatcherCache::GetKeypoints(
+FeatureKeypointsPtr MemoryFeatureMatcherCache::GetKeypoints(
     const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return database_->ReadKeypoints(image_id);
+  return keypoints_cache_->Get(image_id);
+  //return database_->ReadKeypoints(image_id);
 }
 
-FeatureDescriptors FeatureMatcherCache::GetDescriptors(const image_t image_id) {
+FeatureDescriptorsPtr FeatureMatcherCache::GetDescriptors(const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
   return descriptors_cache_->Get(image_id);
 }
 
-FeatureDescriptors MemoryFeatureMatcherCache::GetDescriptors(
+FeatureDescriptorsPtr MemoryFeatureMatcherCache::GetDescriptors(
     const image_t image_id) {
   std::unique_lock<std::mutex> lock(database_mutex_);
-  return database_->ReadDescriptors(image_id);
+  return descriptors_cache_->Get(image_id);
+  //return database_->ReadDescriptors(image_id);
 }
 
 FeatureMatches IFeatureMatcherCache::GetMatches(const image_t image_id1,
@@ -414,11 +433,10 @@ void SiftCPUFeatureMatcher::Run() {
         continue;
       }
 
-      const FeatureDescriptors descriptors1 =
-          cache_->GetDescriptors(data.image_id1);
-      const FeatureDescriptors descriptors2 =
-          cache_->GetDescriptors(data.image_id2);
-      MatchSiftFeaturesCPU(options_, descriptors1, descriptors2, &data.matches);
+      const auto descriptors1 = cache_->GetDescriptors(data.image_id1);
+      const auto descriptors2 = cache_->GetDescriptors(data.image_id2);
+      MatchSiftFeaturesCPU(options_, *descriptors1, *descriptors2,
+                           &data.matches);
 
       CHECK(output_queue_->Push(std::move(data)));
     }
@@ -493,7 +511,7 @@ void SiftGPUFeatureMatcher::GetDescriptorData(
     *descriptors_ptr = nullptr;
   } else {
     prev_uploaded_descriptors_[index] = cache_->GetDescriptors(image_id);
-    *descriptors_ptr = &prev_uploaded_descriptors_[index];
+    *descriptors_ptr = prev_uploaded_descriptors_[index].get();
     prev_uploaded_image_ids_[index] = image_id;
   }
 }
@@ -533,14 +551,13 @@ void GuidedSiftCPUFeatureMatcher::Run() {
         continue;
       }
 
-      const FeatureKeypoints keypoints1 = cache_->GetKeypoints(data.image_id1);
-      const FeatureKeypoints keypoints2 = cache_->GetKeypoints(data.image_id2);
-      const FeatureDescriptors descriptors1 =
-          cache_->GetDescriptors(data.image_id1);
-      const FeatureDescriptors descriptors2 =
-          cache_->GetDescriptors(data.image_id2);
-      MatchGuidedSiftFeaturesCPU(options_, keypoints1, keypoints2, descriptors1,
-                                 descriptors2, &data.two_view_geometry);
+      const auto keypoints1 = cache_->GetKeypoints(data.image_id1);
+      const auto keypoints2 = cache_->GetKeypoints(data.image_id2);
+      const auto descriptors1 = cache_->GetDescriptors(data.image_id1);
+      const auto descriptors2 = cache_->GetDescriptors(data.image_id2);
+      MatchGuidedSiftFeaturesCPU(options_, *keypoints1, *keypoints2,
+                                 *descriptors1, *descriptors2,
+                                 &data.two_view_geometry);
 
       CHECK(output_queue_->Push(std::move(data)));
     }
@@ -629,8 +646,8 @@ void GuidedSiftGPUFeatureMatcher::GetFeatureData(
   } else {
     prev_uploaded_keypoints_[index] = cache_->GetKeypoints(image_id);
     prev_uploaded_descriptors_[index] = cache_->GetDescriptors(image_id);
-    *keypoints_ptr = &prev_uploaded_keypoints_[index];
-    *descriptors_ptr = &prev_uploaded_descriptors_[index];
+    *keypoints_ptr = prev_uploaded_keypoints_[index].get();
+    *descriptors_ptr = prev_uploaded_descriptors_[index].get();
     prev_uploaded_image_ids_[index] = image_id;
   }
 }
@@ -677,8 +694,8 @@ void TwoViewGeometryVerifier::Run() {
           cache_->GetCamera(cache_->GetImage(data.image_id2).CameraId());
       const auto keypoints1 = cache_->GetKeypoints(data.image_id1);
       const auto keypoints2 = cache_->GetKeypoints(data.image_id2);
-      const auto points1 = FeatureKeypointsToPointsVector(keypoints1);
-      const auto points2 = FeatureKeypointsToPointsVector(keypoints2);
+      const auto& points1 = FeatureKeypointsToPointsVector(*keypoints1);
+      const auto& points2 = FeatureKeypointsToPointsVector(*keypoints2);
 
       if (options_.multiple_models) {
         data.two_view_geometry.EstimateMultiple(camera1, points1, camera2,
@@ -950,7 +967,7 @@ ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(
     : options_(options),
       match_options_(match_options),
       database_(database),
-      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(5 * options_.block_size,database_.get())),
       matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
@@ -1027,7 +1044,9 @@ SerialSequentialFeatureMatcher::SerialSequentialFeatureMatcher(
     : options_(options),
       match_options_(match_options),
       database_(database),
-      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(std::max(  5 * options_.loop_detection_num_images,
+                                                                    5 * options_.overlap),
+                                                        database_.get())),
       matcher_(match_options, database_.get(), cache_.get()),
       ids_queue_(ids_queue) {
   CHECK(options_.Check());
@@ -1040,7 +1059,7 @@ void SerialSequentialFeatureMatcher::Run() {
   if (!matcher_.Setup()) {
     return;
   }
-
+  cache_->Setup();
   while (true) {
     if (IsStopped()) {
       break;
@@ -1145,7 +1164,9 @@ SequentialFeatureMatcher::SequentialFeatureMatcher(
     : options_(options),
       match_options_(match_options),
       database_(database),
-      cache_(std::make_unique<MemoryFeatureMatcherCache>(database_.get())),
+      cache_(std::make_unique<MemoryFeatureMatcherCache>(std::max(  5 * options_.loop_detection_num_images,
+                                                                    5 * options_.overlap),
+                                                            database_.get())),
       matcher_(match_options, database_.get(), cache_.get()) {
   CHECK(options_.Check());
   CHECK(match_options_.Check());
@@ -1875,8 +1896,8 @@ void FeaturePairsFeatureMatcher::Run() {
           match_options_.min_inlier_ratio;
 
       two_view_geometry.Estimate(
-          camera1, FeatureKeypointsToPointsVector(keypoints1), camera2,
-          FeatureKeypointsToPointsVector(keypoints2), matches,
+          camera1, FeatureKeypointsToPointsVector(*keypoints1), camera2,
+          FeatureKeypointsToPointsVector(*keypoints2), matches,
           two_view_geometry_options);
 
       database_->WriteTwoViewGeometry(image1.ImageId(), image2.ImageId(),
