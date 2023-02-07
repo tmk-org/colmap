@@ -118,7 +118,7 @@ void MatchNearestNeighborsInVisualIndex(
     visual_index->Query(query_options, keypoints, descriptors,
                         &retrieval.image_scores);
 
-    CHECK(retrieval_queue.Push(retrieval));
+    CHECK(retrieval_queue.Push(std::move(retrieval)));
   };
 
   // Initially, make all retrieval threads busy and continue with the matching.
@@ -151,7 +151,7 @@ void MatchNearestNeighborsInVisualIndex(
     }
 
     // Pop the next results from the retrieval queue.
-    const auto retrieval = retrieval_queue.Pop();
+    auto retrieval = retrieval_queue.Pop();
     CHECK(retrieval.IsValid());
 
     const auto& image_id = retrieval.Data().image_id;
@@ -404,13 +404,13 @@ void SiftCPUFeatureMatcher::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto data = input_job.Data();
+      auto& data = input_job.Data();
 
       if (!cache_->ExistsDescriptors(data.image_id1) ||
           !cache_->ExistsDescriptors(data.image_id2)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -420,7 +420,7 @@ void SiftCPUFeatureMatcher::Run() {
           cache_->GetDescriptors(data.image_id2);
       MatchSiftFeaturesCPU(options_, descriptors1, descriptors2, &data.matches);
 
-      CHECK(output_queue_->Push(data));
+      CHECK(output_queue_->Push(std::move(data)));
     }
   }
 }
@@ -462,13 +462,13 @@ void SiftGPUFeatureMatcher::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto data = input_job.Data();
+      auto& data = input_job.Data();
 
       if (!cache_->ExistsDescriptors(data.image_id1) ||
           !cache_->ExistsDescriptors(data.image_id2)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -479,7 +479,7 @@ void SiftGPUFeatureMatcher::Run() {
       MatchSiftFeaturesGPU(options_, descriptors1_ptr, descriptors2_ptr,
                            &sift_match_gpu, &data.matches);
 
-      CHECK(output_queue_->Push(data));
+      CHECK(output_queue_->Push(std::move(data)));
     }
   }
 }
@@ -515,13 +515,13 @@ void GuidedSiftCPUFeatureMatcher::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto data = input_job.Data();
+      auto& data = input_job.Data();
 
       if (data.two_view_geometry.inlier_matches.size() <
           static_cast<size_t>(options_.min_num_inliers)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -529,7 +529,7 @@ void GuidedSiftCPUFeatureMatcher::Run() {
           !cache_->ExistsKeypoints(data.image_id2) ||
           !cache_->ExistsDescriptors(data.image_id1) ||
           !cache_->ExistsDescriptors(data.image_id2)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -542,7 +542,7 @@ void GuidedSiftCPUFeatureMatcher::Run() {
       MatchGuidedSiftFeaturesCPU(options_, keypoints1, keypoints2, descriptors1,
                                  descriptors2, &data.two_view_geometry);
 
-      CHECK(output_queue_->Push(data));
+      CHECK(output_queue_->Push(std::move(data)));
     }
   }
 }
@@ -583,13 +583,13 @@ void GuidedSiftGPUFeatureMatcher::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto data = input_job.Data();
+      auto& data = input_job.Data();
 
       if (data.two_view_geometry.inlier_matches.size() <
           static_cast<size_t>(options_.min_num_inliers)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -597,7 +597,7 @@ void GuidedSiftGPUFeatureMatcher::Run() {
           !cache_->ExistsKeypoints(data.image_id2) ||
           !cache_->ExistsDescriptors(data.image_id1) ||
           !cache_->ExistsDescriptors(data.image_id2)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -612,7 +612,7 @@ void GuidedSiftGPUFeatureMatcher::Run() {
                                  descriptors1_ptr, descriptors2_ptr,
                                  &sift_match_gpu, &data.two_view_geometry);
 
-      CHECK(output_queue_->Push(data));
+      CHECK(output_queue_->Push(std::move(data)));
     }
   }
 }
@@ -662,12 +662,12 @@ void TwoViewGeometryVerifier::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto data = input_job.Data();
+      auto& data = input_job.Data();
 
       if (data.matches.size() < static_cast<size_t>(options_.min_num_inliers)) {
-        CHECK(output_queue_->Push(data));
+        CHECK(output_queue_->Push(std::move(data)));
         continue;
       }
 
@@ -690,7 +690,7 @@ void TwoViewGeometryVerifier::Run() {
                                         two_view_geometry_options_);
       }
 
-      CHECK(output_queue_->Push(data));
+      CHECK(output_queue_->Push(std::move(data)));
     }
   }
 }
@@ -898,9 +898,9 @@ void SiftFeatureMatcher::Match(
     if (exists_matches) {
       data.matches = cache_->GetMatches(image_pair.first, image_pair.second);
       cache_->DeleteMatches(image_pair.first, image_pair.second);
-      CHECK(verifier_queue_.Push(data));
+      CHECK(verifier_queue_.Push(std::move(data)));
     } else {
-      CHECK(matcher_queue_.Push(data));
+      CHECK(matcher_queue_.Push(std::move(data)));
     }
   }
 
@@ -909,9 +909,9 @@ void SiftFeatureMatcher::Match(
   //////////////////////////////////////////////////////////////////////////////
 
   for (size_t i = 0; i < num_outputs; ++i) {
-    const auto output_job = output_queue_.Pop();
+    auto output_job = output_queue_.Pop();
     CHECK(output_job.IsValid());
-    auto output = output_job.Data();
+    auto& output = output_job.Data();
 
     if (output.matches.size() < static_cast<size_t>(options_.min_num_inliers)) {
       output.matches = {};

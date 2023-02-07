@@ -373,9 +373,9 @@ void SiftFeatureExtractor::Run() {
     }
 
     if (sift_options_.max_image_size > 0) {
-      CHECK(resizer_queue_->Push(image_data));
+      CHECK(resizer_queue_->Push(std::move(image_data)));
     } else {
-      CHECK(extractor_queue_->Push(image_data));
+      CHECK(extractor_queue_->Push(std::move(image_data)));
     }
   }
 
@@ -479,10 +479,10 @@ void ImageResizerThread::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto image_data = input_job.Data();
-      
+      auto& image_data = input_job.Data();
+
       if (image_data.status == ImageReader::Status::SUCCESS) {
         if (static_cast<int>(image_data.bitmap.Width()) > max_image_size_ ||
             static_cast<int>(image_data.bitmap.Height()) > max_image_size_) {
@@ -499,7 +499,7 @@ void ImageResizerThread::Run() {
         }
       }
 
-      output_queue_->Push(image_data);
+      output_queue_->Push(std::move(image_data));
     } else {
       break;
     }
@@ -547,9 +547,9 @@ void SiftFeatureExtractorThread::Run() {
       break;
     }
 
-    const auto input_job = input_queue_->Pop();
+    auto input_job = input_queue_->Pop();
     if (input_job.IsValid()) {
-      auto image_data = input_job.Data();
+      auto& image_data = input_job.Data();
 
       if (image_data.status == ImageReader::Status::SUCCESS) {
         bool success = false;
@@ -585,7 +585,7 @@ void SiftFeatureExtractorThread::Run() {
 
       image_data.bitmap.Deallocate();
 
-      output_queue_->Push(image_data);
+      output_queue_->Push(std::move(image_data));
     } else {
       break;
     }
