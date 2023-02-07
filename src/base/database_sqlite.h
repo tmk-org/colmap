@@ -203,7 +203,9 @@ class Database : public DatabaseRoot {
   size_t MaxColumn(const std::string& column, const std::string& table) const;
 
   sqlite3* database_ = nullptr;
-
+  // Check if elements got removed from the database to only apply
+  // the VACUUM command in such case
+  mutable bool database_cleared_ = false;
   // A collection of all `sqlite3_stmt` objects for deletion in the destructor.
   std::vector<sqlite3_stmt*> sql_stmts_;
 

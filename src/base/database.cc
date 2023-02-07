@@ -44,7 +44,7 @@ const size_t DatabaseRoot::kMaxNumImages =
 std::mutex IDatabase::update_schema_mutex_;
 
 void IDatabase::Merge(const IDatabase& database1, const IDatabase& database2,
-                         IDatabase* merged_database) {
+                     IDatabase* merged_database) {
   // Merge the cameras.
 
   std::unordered_map<camera_t, camera_t> new_camera_ids1;

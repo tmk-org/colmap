@@ -1,7 +1,7 @@
 #include "util/sqlite3_utils.h"
 #include "database_sqlite.h"
 #include "util/version.h"
-
+//our
 namespace colmap {
 namespace {
 
@@ -122,12 +122,12 @@ MatrixType ReadDynamicMatrixBlob(sqlite3_stmt* sql_stmt, const int rc,
   } else {
     const typename MatrixType::Index rows =
         (MatrixType::RowsAtCompileTime == Eigen::Dynamic)
-        ? 0
-        : MatrixType::RowsAtCompileTime;
+            ? 0
+            : MatrixType::RowsAtCompileTime;
     const typename MatrixType::Index cols =
         (MatrixType::ColsAtCompileTime == Eigen::Dynamic)
-        ? 0
-        : MatrixType::ColsAtCompileTime;
+            ? 0
+            : MatrixType::ColsAtCompileTime;
     matrix = MatrixType(rows, cols);
   }
 
@@ -246,7 +246,10 @@ void Database::Open(const std::string& path) {
 void Database::Close() {
   if (database_ != nullptr) {
     FinalizeSQLStatements();
-    SQLITE3_EXEC(database_, "VACUUM", nullptr);
+    if (database_cleared_) {
+      SQLITE3_EXEC(database_, "VACUUM", nullptr);
+      database_cleared_ = false;
+    }
     sqlite3_close_v2(database_);
     database_ = nullptr;
   }
@@ -437,7 +440,7 @@ FeatureMatches Database::ReadMatches(image_t image_id1,
 }
 
 std::vector<std::pair<image_pair_t, FeatureMatches>> Database::ReadAllMatches()
-const {
+  const {
   std::vector<std::pair<image_pair_t, FeatureMatches>> all_matches;
 
   int rc;
@@ -773,6 +776,7 @@ void Database::DeleteMatches(const image_t image_id1,
                                   static_cast<sqlite3_int64>(pair_id)));
   SQLITE3_CALL(sqlite3_step(sql_stmt_delete_matches_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_delete_matches_));
+  database_cleared_ = true;
 }
 
 void Database::DeleteInlierMatches(const image_t image_id1,
@@ -782,6 +786,7 @@ void Database::DeleteInlierMatches(const image_t image_id1,
                                   static_cast<sqlite3_int64>(pair_id)));
   SQLITE3_CALL(sqlite3_step(sql_stmt_delete_two_view_geometry_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_delete_two_view_geometry_));
+  database_cleared_ = true;
 }
 
 void Database::ClearAllTables() {
@@ -796,31 +801,37 @@ void Database::ClearAllTables() {
 void Database::ClearCameras() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_cameras_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_cameras_));
+  database_cleared_ = true;
 }
 
 void Database::ClearImages() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_images_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_images_));
+  database_cleared_ = true;
 }
 
 void Database::ClearDescriptors() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_descriptors_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_descriptors_));
+  database_cleared_ = true;
 }
 
 void Database::ClearKeypoints() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_keypoints_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_keypoints_));
+  database_cleared_ = true;
 }
 
 void Database::ClearMatches() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_matches_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_matches_));
+  database_cleared_ = true;
 }
 
 void Database::ClearTwoViewGeometries() {
   SQLITE3_CALL(sqlite3_step(sql_stmt_clear_two_view_geometries_));
   SQLITE3_CALL(sqlite3_reset(sql_stmt_clear_two_view_geometries_));
+  database_cleared_ = true;
 }
 
 void Database::BeginTransaction() const {
