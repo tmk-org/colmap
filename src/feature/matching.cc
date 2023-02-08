@@ -464,7 +464,7 @@ SiftGPUFeatureMatcher::SiftGPUFeatureMatcher(const SiftMatchingOptions& options,
 void SiftGPUFeatureMatcher::Run() {
 #ifndef CUDA_ENABLED
   CHECK(opengl_context_);
-  opengl_context_->MakeCurrent();
+  CHECK(opengl_context_->MakeCurrent());
 #endif
 
   SiftMatchGPU sift_match_gpu;
@@ -584,7 +584,7 @@ GuidedSiftGPUFeatureMatcher::GuidedSiftGPUFeatureMatcher(
 void GuidedSiftGPUFeatureMatcher::Run() {
 #ifndef CUDA_ENABLED
   CHECK(opengl_context_);
-  opengl_context_->MakeCurrent();
+  CHECK(opengl_context_->MakeCurrent());
 #endif
 
   SiftMatchGPU sift_match_gpu;
@@ -672,6 +672,8 @@ TwoViewGeometryVerifier::TwoViewGeometryVerifier(
       static_cast<size_t>(options_.max_num_trials);
   two_view_geometry_options_.ransac_options.min_inlier_ratio =
       options_.min_inlier_ratio;
+  two_view_geometry_options_.force_H_use = options_.planar_scene;
+  two_view_geometry_options_.compute_relative_pose = options_.compute_relative_pose;
 }
 
 void TwoViewGeometryVerifier::Run() {

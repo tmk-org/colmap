@@ -39,8 +39,8 @@
 
 #include <Eigen/Core>
 #include <boost/signals2.hpp>
+#include <sqlite3.h>
 
-#include "SQLite/sqlite3.h"
 #include "base/camera.h"
 #include "base/image.h"
 #include "estimators/two_view_geometry.h"

@@ -37,13 +37,9 @@ if(CUDA_ENABLED)
         SiftMatchCU.h
     )
 
-    COLMAP_ADD_STATIC_CUDA_LIBRARY(sift_gpu ${SIFT_GPU_SOURCE_FILES})
-    if((CMAKE_VERSION VERSION_GREATER_EQUAL 3.18.0) AND (CUDA_ENABLED))
-        message("set CUDA_ARCHITECTURES \"${CUDA_ARCH_SM_CC}\" to target \"sift_gpu\"")
-        set_property(TARGET sift_gpu PROPERTY CUDA_ARCHITECTURES "${CUDA_ARCH_SM_CC}")
-    endif()
+    COLMAP_ADD_CUDA_LIBRARY(sift_gpu ${SIFT_GPU_SOURCE_FILES})
 else()
-    COLMAP_ADD_STATIC_LIBRARY(sift_gpu ${SIFT_GPU_SOURCE_FILES})
+    COLMAP_ADD_LIBRARY(sift_gpu ${SIFT_GPU_SOURCE_FILES})
 endif()
 
 target_link_libraries(sift_gpu
