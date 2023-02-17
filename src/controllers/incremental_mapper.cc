@@ -329,12 +329,13 @@ IncrementalMapperController::IncrementalMapperController(
 
 void IncrementalMapperController::Run() {
   if (!LoadDatabase()) {
+    LOG(WARNING)<< "LoadDatabase() returned false";
     return;
   }
 
   IncrementalMapper::Options init_mapper_options = options_->Mapper();
   Reconstruct(init_mapper_options);
-
+  LOG(INFO) << "Reconstruct() finished, reconstruction size "<<reconstruction_manager_->Size()<<" IsStopped() "<<IsStopped();
   const size_t kNumInitRelaxations = 2;
   for (size_t i = 0; i < kNumInitRelaxations; ++i) {
     if (reconstruction_manager_->Size() > 0 || IsStopped()) {
@@ -427,7 +428,7 @@ void IncrementalMapperController::Reconstruct(
         reconstruction_manager_->Get(reconstruction_idx);
 
     mapper.BeginReconstruction(&reconstruction);
-
+    LOG(INFO)<<"mapper.BeginReconstruction(&reconstruction) finished";
     ////////////////////////////////////////////////////////////////////////////
     // Register initial pair
     ////////////////////////////////////////////////////////////////////////////
