@@ -49,7 +49,8 @@ if(CUDA_ENABLED)
 else()
     COLMAP_ADD_STATIC_LIBRARY(sift_gpu ${SIFT_GPU_SOURCE_FILES})
 endif()
-
+message("for sift_gpu enabled GLOG_INCLUDE_DIRS \"${GLOG_INCLUDE_DIRS}\"")
+target_include_directories(sift_gpu PRIVATE ${GLOG_INCLUDE_DIRS})
 target_link_libraries(sift_gpu
     ${SIFT_GPU_LIBRARIES}
     ${GLEW_LIBRARIES}

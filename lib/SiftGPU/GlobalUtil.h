@@ -26,7 +26,7 @@
 #ifndef _GLOBAL_UTILITY_H
 #define _GLOBAL_UTILITY_H
 #include <string>
-
+#include <glog/logging.h>
 //wrapper for some shader function
 //class ProgramGPU;
 class LiteWindow;
