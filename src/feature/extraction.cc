@@ -525,6 +525,7 @@ SiftFeatureExtractorThread::SiftFeatureExtractorThread(
 
 void SiftFeatureExtractorThread::Run() {
   std::unique_ptr<SiftGPU> sift_gpu;
+  std::cout << sift_options_;
   if (sift_options_.use_gpu) {
 #ifndef CUDA_ENABLED
     CHECK(opengl_context_);

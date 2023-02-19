@@ -1288,4 +1288,58 @@ void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,
   }
 }
 
+std::ostream& operator << (std::ostream& s,const SiftExtractionOptions& options)
+{
+    s << StringPrintf(
+    "SiftExtractionOptions:\nint num_threads %d\n \
+    use_gpu %s \n \
+    gpu_index %s\n \
+    max_image_size %d\n \
+    max_num_features %d\n \
+    first_octave  %d\n \
+    num_octaves %d\n\
+    octave_resolution %d\n\
+    peak_threshold %.6f\n\
+    edge_threshold %.6f\n\
+    estimate_affine_shape %s\n\
+    max_num_orientations %d\n\
+    upright %s\n\
+    darkness_adaptivity %s\n\
+    domain_size_pooling %s\n\
+    dsp_min_scale %.6f\n\
+    dsp_max_scale %.6f\n\
+    dsp_num_scales %d\n\
+    Normalization %s\n",
+    options.num_threads, 
+    options.use_gpu ? "true" : "false",  
+    options.gpu_index.c_str(),
+    options.max_image_size,
+    options.max_num_features,
+    options.first_octave,
+    options.num_octaves,
+    options.octave_resolution,
+    options.peak_threshold,
+    options.edge_threshold,
+    options.estimate_affine_shape ? "true" : "false",  
+    options.max_num_orientations,
+    options.upright ? "true" : "false",  
+    options.darkness_adaptivity ? "true" : "false",  
+    options.domain_size_pooling ? "true" : "false",  
+    options.dsp_min_scale,
+    options.dsp_max_scale,
+    options.dsp_num_scales,
+    [&]()->std::string{ 
+        switch (options.normalization) 
+        {
+            case SiftExtractionOptions::Normalization::L1_ROOT:
+                return "L1_ROOT";
+            case SiftExtractionOptions::Normalization::L2:
+                return "L2";
+        }
+        return "unknown";
+        }().c_str()
+    );
+    return s<<std::endl;
+}
+
 }  //  namespace colmap

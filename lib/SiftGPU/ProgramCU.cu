@@ -1205,6 +1205,7 @@ int ProgramCU::CheckErrorCUDA(const char* location)
 	{
         if(location) fprintf(stderr, "%s:\t",  location);
 		fprintf(stderr, "%s\n",  cudaGetErrorString(e));
+        LOG(WARNING)<<"in " << std::string(location) << " Cuda error caught: " << e << " \"" << std::string(cudaGetErrorString(e)) << "\""; cudaGetErrorString(e);
 		//assert(0);
         return 1;
 	}else

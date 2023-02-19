@@ -113,6 +113,8 @@ struct SiftExtractionOptions {
   bool Check() const;
 };
 
+std::ostream& operator << (std::ostream& s,const SiftExtractionOptions& options);
+
 struct SiftMatchingOptions {
   // Number of threads for feature matching and geometric verification.
   int num_threads = -1;

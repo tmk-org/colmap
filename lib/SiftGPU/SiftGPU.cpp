@@ -1157,7 +1157,7 @@ void SiftGPU::ParseParam(const int argc, const char **argv)
 
 	////////////////////////
 	GlobalUtil::SelectDisplay();
-
+    std::cout<< GlobalUtil::ToString()<<std::endl;
 
 	//do not write result if there are more than one input images
 	if(_outpath[0] && _list->size()>1)		_outpath[0] = 0;
