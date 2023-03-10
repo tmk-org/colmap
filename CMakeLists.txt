@@ -79,7 +79,7 @@ endif()
 # Build position-independent code, so that shared libraries can link against
 # COLMAP's static libraries.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
+set(CMAKE_CUDA_ARCHITECTURES "native")
 ################################################################################
 # Find packages
 ################################################################################
