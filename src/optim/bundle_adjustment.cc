@@ -271,7 +271,7 @@ bool BundleAdjuster::Solve(Reconstruction* reconstruction) {
   ceres::Solver::Options solver_options = options_.solver_options;
   const bool has_sparse =
       solver_options.sparse_linear_algebra_library_type != ceres::NO_SPARSE;
-
+  solver_options.dense_linear_algebra_library_type= ceres::DenseLinearAlgebraLibraryType::LAPACK;
   // Empirical choice.
   const size_t kMaxNumImagesDirectDenseSolver = 50;
   const size_t kMaxNumImagesDirectSparseSolver = 1000;

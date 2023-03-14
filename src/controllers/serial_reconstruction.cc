@@ -79,7 +79,7 @@ SerialReconstructionController::SerialReconstructionController(
 void SerialReconstructionController::Stop(bool isReconstruct) {
   reader_queue_->Wait();
   reader_queue_->Stop();
-
+  LOG(INFO) << "after stopping reader_queue_.size() "<< reader_queue_->Size();
   feature_extractor_->Wait();
   feature_extractor_.reset();
   reader_queue_->Clear();
@@ -92,7 +92,7 @@ void SerialReconstructionController::Stop(bool isReconstruct) {
   }
   matching_queue_->Wait();
   matching_queue_->Stop();
-
+  LOG(INFO) << "after stopping matching_queue_.size() "<< matching_queue_->Size();
   sequential_matcher_->Wait();
   sequential_matcher_.reset();
   matching_queue_->Clear();
@@ -100,7 +100,7 @@ void SerialReconstructionController::Stop(bool isReconstruct) {
   if (isReconstruct) {
     RunIncrementalMapper();
   }
-
+  LOG(INFO) << "RunIncrementalMapper() finished";
   Thread::Stop();
 }
 
@@ -131,7 +131,9 @@ void SerialReconstructionController::RunFeatureMatching() {
 void SerialReconstructionController::RunIncrementalMapper() {
   CHECK(incremental_mapper_);
   incremental_mapper_->Start();
+  LOG(INFO)<< "incremental mapper started...";
   incremental_mapper_->Wait();
+  LOG(INFO)<< "incremental mapper finished...";
   incremental_mapper_.reset();
 
   const auto sparse_path = JoinPaths(*option_manager_.project_path, "sparse");
