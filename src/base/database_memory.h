@@ -7,7 +7,7 @@ namespace colmap {
 
 class MemoryDatabase : public DatabaseRoot {
  public:
-  MemoryDatabase() = default;
+  MemoryDatabase(size_t capacity = 1024);
   ~MemoryDatabase() override = default;
 
   // Open and close database. The same database should not be opened

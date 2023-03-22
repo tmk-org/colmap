@@ -209,7 +209,7 @@ void SerialReconstructionController::onLoad( image_t id )
 }
 
 void SerialReconstructionController::AddImageData(
-    internal::ImageData image_data )
+    internal::ImageData &&image_data )
 {
 //  Timer timer;
     std::list<std::tuple<std::string , int , double> > times;
@@ -261,7 +261,7 @@ void SerialReconstructionController::AddImageData(
             FeatureExtractorStateChanged( _max_buffer_size , 0 , 0 );
         }
     }
-    reader_queue_->Push( image_data );
+    reader_queue_->Push(std::move(image_data));
   //  timer.Pause();
   //  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
   //  double prev_dur=0;
