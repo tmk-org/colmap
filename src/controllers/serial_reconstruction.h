@@ -31,8 +31,8 @@ class SerialReconstructionController : public Thread {
   void SetExcludeRange(const image_id_range_t& range);
   void SetExcludeRangeFromIdToEnd(image_t idfrom);
   void SetExcludeRangeFromBeginToId(image_t idto);
-  void AddImageData(internal::ImageData image_data);
-  
+  void AddImageData(internal::ImageData &&image_data);
+
   const std::unordered_map<camera_t, camera_t>& getImageCorrespondences() const;
   const std::unordered_map<image_t, image_t>& getCameraCorrespondences() const;
     boost::signals2::signal<bool()> OnFeatureExtractionStart,   OnFeatureExtractionStop;

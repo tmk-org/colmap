@@ -2,6 +2,11 @@
 
 namespace colmap {
 
+MemoryDatabase::MemoryDatabase(size_t capacity) {
+  images_.reserve(capacity);
+  cameras_.reserve(capacity);
+}
+
 void MemoryDatabase::Open(const std::string& path) {
   Close();
 }
