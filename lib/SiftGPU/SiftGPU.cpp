@@ -44,6 +44,8 @@ using namespace std;
 #include "SiftPyramid.h"
 #include "PyramidGL.h"
 
+#include <log/trace.h>
+
 //CUDA works only with vc8 or higher
 #if defined(CUDA_SIFTGPU_ENABLED)
 #include "PyramidCU.h"
@@ -151,10 +153,10 @@ inline void SiftGPU::InitSiftGPU()
 	if(GlobalUtil::_UseCUDA)
 	{
 		GlobalUtil::_UseCUDA = 0;
-		std::cerr	<< "---------------------------------------------------------------------------\n"
-					<< "CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
-					<< "solution for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
-					<< "----------------------------------------------------------------------------\n";
+		CONSOLE("---------------------------------------------------------------------------\n"
+				"CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
+				"solution for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
+				"----------------------------------------------------------------------------");
 	}
 #else
 	if(GlobalUtil::_UseCUDA == 0  && GlobalUtil::_UseOpenCL == 0)
@@ -164,22 +166,24 @@ inline void SiftGPU::InitSiftGPU()
     if(GlobalUtil::_GoodOpenGL == 0)
     {
         GlobalUtil::_UseCUDA = 1;
-        std::cerr << "Switch from OpenGL to CUDA\n";
+        CONSOLE("Switch from OpenGL to CUDA");
     }
 
     if(GlobalUtil::_UseCUDA && !PyramidCU::CheckCudaDevice(GlobalUtil::_DeviceIndex))
     {
-        std::cerr << "Switch from CUDA to OpenGL\n";
+        CONSOLE("Switch from CUDA to OpenGL");
         GlobalUtil::_UseCUDA = 0;
     }
 #endif
 
-	if(GlobalUtil::_verbose)	std::cout   <<"\n[SiftGPU Language]:\t"
-                                            << (GlobalUtil::_UseCUDA? "CUDA" :
-                                            (GlobalUtil::_UseOpenCL? "OpenCL" : "GLSL")) <<"\n";
+	if(GlobalUtil::_verbose)
+                CONSOLE("\n[SiftGPU Language]:\t%s",
+                        (GlobalUtil::_UseCUDA
+                             ? "CUDA"
+                             : (GlobalUtil::_UseOpenCL ? "OpenCL" : "GLSL")));
 
 #if defined(CUDA_SIFTGPU_ENABLED)
-	if(GlobalUtil::_UseCUDA)
+        if(GlobalUtil::_UseCUDA)
 		_pyramid = new PyramidCU(*this);
 	else
 #endif
@@ -360,9 +364,9 @@ int SiftGPU::RunSIFT()
 	if(GlobalUtil::_ExitAfterSIFT && GlobalUtil::_UseSiftGPUEX) exit(0);
 
 	timer.StopTimer();
-	if(GlobalUtil::_verbose)std::cout<<endl;
+        if (GlobalUtil::_verbose) CONSOLE("");
 
-    return _pyramid->GetSucessStatus();
+        return _pyramid->GetSucessStatus();
 }
 
 
@@ -393,7 +397,7 @@ void SiftGPU::SetVerbose(int verbose)
 			GlobalUtil::_verbose  = GlobalUtil::_timingS;
 			GlobalUtil::_timingS = 0;
 			if(GlobalUtil::_verbose ==0 && GlobalUtil::_UseSiftGPUEX)
-				std::cout << "Console output disabled, press Q/V to enable\n\n";
+				CONSOLE("Console output disabled, press Q/V to enable\n");
 		}else
 		{
 			GlobalUtil::_verbose = 1;
@@ -671,50 +675,50 @@ void SiftGPUEX::SetView(int view, int sub_view, char *title)
 
 void SiftGPU::PrintUsage()
 {
-	std::cout
-	<<"SiftGPU Usage:\n"
-	<<"-h -help          : Parameter information\n"
-	<<"-i <strings>      : Filename(s) of the input image(s)\n"
-	<<"-il <string>      : Filename of an image list file\n"
-	<<"-o <string>       : Where to save SIFT features\n"
-	<<"-f <float>        : Filter width factor; Width will be 2*factor+1 (default : 4.0)\n"
-	<<"-w  <float>       : Orientation sample window factor (default: 2.0)\n"
-	<<"-dw <float>  *    : Descriptor grid size factor (default : 3.0)\n"
-	<<"-fo <int>    *    : First octave to detect DOG keypoints(default : 0)\n"
-	<<"-no <int>         : Maximum number of Octaves (default : no limit)\n"
-	<<"-d <int>          : Number of DOG levels in an octave (default : 3)\n"
-	<<"-t <float>        : DOG threshold (default : 0.02/3)\n"
-	<<"-e <float>        : Edge Threshold (default : 10.0)\n"
-	<<"-m  <int=2>       : Multi Feature Orientations (default : 1)\n"
-	<<"-m2p              : 2 Orientations packed as one float\n"
-	<<"-s  <int=1>       : Sub-Pixel, Sub-Scale Localization, Multi-Refinement(num)\n"
-	<<"-lcpu -lc <int>   : CPU/GPU mixed Feature List Generation (default: 6)\n"
-	<<"                    Use GPU first, and use CPU when reduction size <= pow(2,num)\n"
-	<<"                    When <num> is missing or equals -1, no GPU will be used\n"
-	<<"-noprep           : Upload raw data to GPU (default: RGB->LUM and down-sample on CPU)\n"
-	<<"-sd               : Skip descriptor computation if specified\n"
-	<<"-unn    *         : Write unnormalized descriptor if specified\n"
-	<<"-b      *         : Write binary sift file if specified\n"
-	<<"-fs <int>         : Block Size for freature storage <default : 4>\n"
-    <<"-cuda <int=0>     : Use CUDA SiftGPU, and specify the device index\n"
-	<<"-tight            : Automatically resize pyramid to fit new images tightly\n"
-	<<"-p  <W>x<H>       : Inititialize the pyramids to contain image of WxH (eg -p 1024x768)\n"
-	<<"-tc[1|2|3] <int> *: Threshold for limiting the overall number of features (3 methods)\n"
-	<<"-v <int>          : Level of timing details. Same as calling Setverbose() function\n"
-	<<"-loweo            : (0, 0) at center of top-left pixel (default: corner)\n"
-	<<"-maxd <int> *     : Max working dimension (default : 2560 (unpacked) / 3200 (packed))\n"
-	<<"-nomc             : Disabling auto-downsamping that try to fit GPU memory cap\n"
-	<<"-exit             : Exit program after processing the input image\n"
-	<<"-unpack           : Use the old unpacked implementation\n"
-	<<"-di               : Use dynamic array indexing if available (default : no)\n"
-	<<"                    It could make computation faster on cards like GTX 280\n"
-	<<"-ofix     *       : use 0 as feature orientations.\n"
-	<<"-ofix-not *       : disable -ofix.\n"
-	<<"-winpos <X>x<Y> * : Screen coordinate used in Win32 to select monitor/GPU.\n"
-    <<"-display <string>*: Display name used in Linux/Mac to select monitor/GPU.\n"
-    <<"\n"
-    <<"NOTE: parameters marked with * can be changed after initialization\n"
-	<<"\n";
+	CONSOLE(
+	    "SiftGPU Usage:\n"
+	    "-h -help          : Parameter information\n"
+	    "-i <strings>      : Filename(s) of the input image(s)\n"
+	    "-il <string>      : Filename of an image list file\n"
+	    "-o <string>       : Where to save SIFT features\n"
+	    "-f <float>        : Filter width factor; Width will be 2*factor+1 (default : 4.0)\n"
+	    "-w  <float>       : Orientation sample window factor (default: 2.0)\n"
+	    "-dw <float>  *    : Descriptor grid size factor (default : 3.0)\n"
+	    "-fo <int>    *    : First octave to detect DOG keypoints(default : 0)\n"
+	    "-no <int>         : Maximum number of Octaves (default : no limit)\n"
+	    "-d <int>          : Number of DOG levels in an octave (default : 3)\n"
+	    "-t <float>        : DOG threshold (default : 0.02/3)\n"
+	    "-e <float>        : Edge Threshold (default : 10.0)\n"
+	    "-m  <int=2>       : Multi Feature Orientations (default : 1)\n"
+	    "-m2p              : 2 Orientations packed as one float\n"
+	    "-s  <int=1>       : Sub-Pixel, Sub-Scale Localization, Multi-Refinement(num)\n"
+	    "-lcpu -lc <int>   : CPU/GPU mixed Feature List Generation (default: 6)\n"
+	    "                    Use GPU first, and use CPU when reduction size <= pow(2,num)\n"
+	    "                    When <num> is missing or equals -1, no GPU will be used\n"
+	    "-noprep           : Upload raw data to GPU (default: RGB->LUM and down-sample on CPU)\n"
+	    "-sd               : Skip descriptor computation if specified\n"
+	    "-unn    *         : Write unnormalized descriptor if specified\n"
+	    "-b      *         : Write binary sift file if specified\n"
+	    "-fs <int>         : Block Size for freature storage <default : 4>\n"
+        "-cuda <int=0>     : Use CUDA SiftGPU, and specify the device index\n"
+	    "-tight            : Automatically resize pyramid to fit new images tightly\n"
+	    "-p  <W>x<H>       : Inititialize the pyramids to contain image of WxH (eg -p 1024x768)\n"
+	    "-tc[1|2|3] <int> *: Threshold for limiting the overall number of features (3 methods)\n"
+	    "-v <int>          : Level of timing details. Same as calling Setverbose() function\n"
+	    "-loweo            : (0, 0) at center of top-left pixel (default: corner)\n"
+	    "-maxd <int> *     : Max working dimension (default : 2560 (unpacked) / 3200 (packed))\n"
+	    "-nomc             : Disabling auto-downsamping that try to fit GPU memory cap\n"
+	    "-exit             : Exit program after processing the input image\n"
+	    "-unpack           : Use the old unpacked implementation\n"
+	    "-di               : Use dynamic array indexing if available (default : no)\n"
+	    "                    It could make computation faster on cards like GTX 280\n"
+	    "-ofix     *       : use 0 as feature orientations.\n"
+	    "-ofix-not *       : disable -ofix.\n"
+	    "-winpos <X>x<Y> * : Screen coordinate used in Win32 to select monitor/GPU.\n"
+        "-display <string>*: Display name used in Linux/Mac to select monitor/GPU.\n"
+        "\n"
+        "NOTE: parameters marked with * can be changed after initialization\n"
+	);
 }
 
 void SiftGPU::ParseParam(const int argc, const char **argv)
@@ -796,19 +800,19 @@ void SiftGPU::ParseParam(const int argc, const char **argv)
                 }
             }
 #else
- 		std::cerr	<< "---------------------------------------------------------------------------\n"
-					<< "CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
-					<< "solution for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
-					<< "----------------------------------------------------------------------------\n";
+ 		CONSOLE("---------------------------------------------------------------------------\n"
+				"CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
+				"solution for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
+				"----------------------------------------------------------------------------");
 #endif
             break;
         case MAKEINT2(c, l):
 #if defined(CL_SIFTGPU_ENABLED)
             if(!_initialized) GlobalUtil::_UseOpenCL = 1;
 #else
-		    std::cerr	<< "---------------------------------------------------------------------------\n"
-					    << "OpenCL not supported in this binary! Define CL_CUDA_SIFTGPU_ENABLED to..\n"
-					    << "----------------------------------------------------------------------------\n";
+		    CONSOLE("---------------------------------------------------------------------------\n"
+					"OpenCL not supported in this binary! Define CL_CUDA_SIFTGPU_ENABLED to..\n"
+					"----------------------------------------------------------------------------");
 #endif
             break;
 

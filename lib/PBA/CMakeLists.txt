@@ -43,3 +43,5 @@ else()
         util.h
     )
 endif()
+
+target_link_libraries(pba log)  

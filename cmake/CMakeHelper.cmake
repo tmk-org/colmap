@@ -137,6 +137,7 @@ endmacro(COLMAP_ADD_CUDA_LIBRARY)
 macro(COLMAP_ADD_STATIC_CUDA_LIBRARY TARGET_NAME)
     # ${ARGN} will store the list of source files passed to this function.
     cuda_add_library(${TARGET_NAME} STATIC ${ARGN})
+    target_link_libraries(${TARGET_NAME} log)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
         ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap/)

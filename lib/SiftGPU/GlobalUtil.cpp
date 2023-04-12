@@ -36,6 +36,8 @@ using std::cout;
 
 #include "LiteWindow.h"
 
+#include <log/trace.h>
+
 //
 int GlobalParam::		_verbose =  1;
 int	GlobalParam::       _timingS = 1;  //print out information of each step
@@ -134,19 +136,16 @@ ClockTimer GlobalUtil::	_globalTimer;
 void GlobalUtil::CheckErrorsGL(const char* location)
 {
 	GLuint errnum;
-	const char *errstr;
+	std::string errstr;
 	while (errnum = glGetError())
 	{
-		errstr = (const char *)(gluErrorString(errnum));
-		if(errstr) {
-			std::cerr << errstr;
-		}
-		else {
-			std::cerr  << "Error " << errnum;
+		errstr = (gluErrorString(errnum));
+		if(errstr.empty()) {
+			errstr = fmt::format("Error {}", errnum);
 		}
 
-		if(location) std::cerr  << " at " << location;
-		std::cerr  << "\n";
+		if(location) errstr += fmt::format(" at {}", location);
+		CONSOLE(errstr.c_str());
 	}
 	return;
 }
@@ -254,25 +253,25 @@ bool GlobalUtil::CheckFramebufferStatus() {
         case GL_FRAMEBUFFER_COMPLETE_EXT:
             return true;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-            std::cerr<<("Framebuffer incomplete,incomplete attachment\n");
+            CONSOLE("Framebuffer incomplete,incomplete attachment");
             return false;
         case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-            std::cerr<<("Unsupported framebuffer format\n");
+            CONSOLE("Unsupported framebuffer format");
             return false;
         case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-            std::cerr<<("Framebuffer incomplete,missing attachment\n");
+            CONSOLE("Framebuffer incomplete,missing attachment");
             return false;
         case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
-            std::cerr<<("Framebuffer incomplete,attached images must have same dimensions\n");
+            CONSOLE("Framebuffer incomplete,attached images must have same dimensions");
             return false;
         case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
-             std::cerr<<("Framebuffer incomplete,attached images must have same format\n");
+             CONSOLE("Framebuffer incomplete,attached images must have same format");
             return false;
         case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:
-            std::cerr<<("Framebuffer incomplete,missing draw buffer\n");
+            CONSOLE("Framebuffer incomplete,missing draw buffer");
             return false;
         case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
-            std::cerr<<("Framebuffer incomplete,missing read buffer\n");
+            CONSOLE("Framebuffer incomplete,missing read buffer");
             return false;
     }
 	return false;
@@ -355,15 +354,15 @@ void GlobalUtil::InitGLParam(int NotTargetGL)
 			{
 				glGetIntegerv(0x9049/*GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX*/, &_MemCapGPU);
 				_MemCapGPU /= (1024);
-			  if(GlobalUtil::_verbose) std::cout << "[GPU VENDOR]:\t" << vendor << ' ' <<_MemCapGPU << "MB\n";
+			  if(GlobalUtil::_verbose) CONSOLE("[GPU VENDOR]:\t%s %dMB", vendor, _MemCapGPU);
 			}else if(strstr(vendor, "ATI") && glewGetExtension("GL_ATI_meminfo"))
 			{
 				int info[4]; 	glGetIntegerv(0x87FC/*GL_TEXTURE_FREE_MEMORY_ATI*/, info);
 				_MemCapGPU = info[0] / (1024);
-			    if(GlobalUtil::_verbose) std::cout << "[GPU VENDOR]:\t" << vendor << ' ' <<_MemCapGPU << "MB\n";
+			    if(GlobalUtil::_verbose) CONSOLE("[GPU VENDOR]:\t%s %dMB", vendor, _MemCapGPU);
 			}else
 			{
-				if(GlobalUtil::_verbose) std::cout << "[GPU VENDOR]:\t" << vendor << "\n";
+				if(GlobalUtil::_verbose) CONSOLE("[GPU VENDOR]:\t%s", vendor);
 			}
 
 	    }
@@ -373,13 +372,13 @@ void GlobalUtil::InitGLParam(int NotTargetGL)
 		    glewGetExtension("GL_ARB_shader_objects")       != GL_TRUE ||
 		    glewGetExtension("GL_ARB_shading_language_100") != GL_TRUE)
 	    {
-		    std::cerr << "Shader not supported by your hardware!\n";
+		    CONSOLE("Shader not supported by your hardware!");
 		    GlobalUtil::_GoodOpenGL = 0;
 	    }
 
 	    if (glewGetExtension("GL_EXT_framebuffer_object") != GL_TRUE)
 	    {
-		    std::cerr << "Framebuffer object not supported!\n";
+		    CONSOLE("Framebuffer object not supported!");
 		    GlobalUtil::_GoodOpenGL = 0;
 	    }
 
@@ -389,7 +388,7 @@ void GlobalUtil::InitGLParam(int NotTargetGL)
 		    GlobalUtil::_texTarget =  GL_TEXTURE_RECTANGLE_ARB;
 		    glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE_EXT, &value);
 		    GlobalUtil::_texMaxDimGL = value;
-		    if(GlobalUtil::_verbose) std::cout << "TEXTURE:\t" << GlobalUtil::_texMaxDimGL << "\n";
+		    if(GlobalUtil::_verbose) CONSOLE("TEXTURE:\t%d", GlobalUtil::_texMaxDimGL);
 
 		    if(GlobalUtil::_texMaxDim == 0 || GlobalUtil::_texMaxDim > GlobalUtil::_texMaxDimGL)
 		    {
@@ -398,7 +397,7 @@ void GlobalUtil::InitGLParam(int NotTargetGL)
 		    glEnable(GlobalUtil::_texTarget);
 	    }else
 	    {
-		    std::cerr << "GL_ARB_texture_rectangle not supported!\n";
+		    CONSOLE("GL_ARB_texture_rectangle not supported!");
 		    GlobalUtil::_GoodOpenGL = 0;
 	    }
 
@@ -423,7 +422,7 @@ void GlobalUtil::SelectDisplay()
 	_WindowDisplay = NULL;
 	if(hdc == NULL)
 	{
-		std::cout << "ERROR: invalid dispaly specified\n";
+		CONSOLE("ERROR: invalid dispaly specified");
 		return;
 	}
 
@@ -449,8 +448,8 @@ int GlobalUtil::CreateWindowEZ(LiteWindow* window)
     }
     else
     {
-        std::cerr << "Unable to create OpenGL Context!\n";
-		std::cerr << "For nVidia cards, you can try change to CUDA mode in this case\n";
+        CONSOLE("Unable to create OpenGL Context!");
+		CONSOLE("For nVidia cards, you can try change to CUDA mode in this case");
         return 0;
     }
 }

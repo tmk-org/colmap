@@ -42,6 +42,8 @@
 #include "util/misc.h"
 #include "util/threading.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace {
 
@@ -303,7 +305,7 @@ bool RefineAbsolutePose(const AbsolutePoseRefinementOptions& options,
   ceres::Solve(solver_options, &problem, &summary);
 
   if (solver_options.minimizer_progress_to_stdout) {
-    std::cout << std::endl;
+    CONSOLE("");
   }
 
   if (options.print_summary) {

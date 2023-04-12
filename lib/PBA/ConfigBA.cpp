@@ -26,7 +26,8 @@
 #include <fstream>
 #include <string>
 
-using std::cout;
+#include <log/trace.h>
+
 using std::ofstream;
 using std::string;
 
@@ -141,8 +142,7 @@ void ConfigBA::ResetBundleStatistics() {
   for (int i = 0; i < NUM_TIMER; ++i) __timer_record[i] = 0;
   __bundle_records.resize(0);
   if (__num_cpu_thread_all) {
-    std::cout << "WARNING: set all thread number to " << __num_cpu_thread_all
-              << '\n';
+    CONSOLE("WARNING: set all thread number to %d", __num_cpu_thread_all);
     for (int i = 0; i < NUM_FUNC; ++i)
       __num_cpu_thread[i] = __num_cpu_thread_all;
   }
@@ -229,56 +229,61 @@ void ConfigBA::SaveBundleStatistics(int ncam, int npt, int nproj) {
     if (__matlab_format_stat) out << "];\n\n";
 
     if (__verbose_level)
-      std::cout << "\n---------------------------------------\n" << filenamebuf;
+     CONSOLE("\n---------------------------------------%s", filenamebuf);
   }
 }
 
-#define REPORT_FUNCTION_TIME(FID)                                         \
-  std::setw(5) << (((int)(BundleTimerGet(FID) * 100 + 50)) * 0.01) << "(" \
-               << std::setw(2)                                            \
-               << 0.1f * ((int)(1000 * BundleTimerGet(FID) /              \
-                                BundleTimerGet(TIMER_OPTIMIZATION)))      \
-               << "%)"
+#define REPORT_FUNCTION_TIME(FID)                              \
+  fmt::format("{:>5}({:>2}%)",                                 \
+              (((int)(BundleTimerGet(FID) * 100 + 50)) * 0.01),\
+              0.1f * ((int)(1000 * BundleTimerGet(FID) /       \
+              BundleTimerGet(TIMER_OPTIMIZATION))))            \
+              
 
 void ConfigBA::PrintBundleStatistics() {
   if (__profile_pba) return;
 
+  if (__verbose_level) {
+    CONSOLE(fmt::format("\n---------------------------------------\n"
+                        "{:>10}\t successful iterations;\n"
+                        "{:>10}\t linear systems solved;\n"
+                        "{:>10}\t conjugated gradient steps;\n"
+                        "{:>10}\t seconds used overall;\n"
+                        "{:>10}\t seconds on allocation;\n"
+                        "{:>10}\t seconds on pre-processing;\n"
+                        "{:>10}\t seconds on upload;\n"
+                        "{:>10}\t seconds on optimization;\n",
+                        __num_lm_success, __num_lm_iteration, __num_cg_iteration, BundleTimerGet(TIMER_OVERALL),
+                        BundleTimerGet(TIMER_GPU_ALLOCATION), BundleTimerGet(TIMER_PREPROCESSING),
+                        BundleTimerGet(TIMER_GPU_UPLOAD), BundleTimerGet(TIMER_OPTIMIZATION)).c_str()
+    );
+  }
+
+  if (__verbose_level && __cpu_data_precision) {
+    CONSOLE(
+        "%s\t seconds on jacobians;\n"
+        "%s\t seconds on projections;\n"
+        "%s\t seconds on JX;\n"
+        "%s\t seconds on JtE;\n"
+        "%s\t seconds to compute preconditioner;\n"
+        "%s\t seconds to apply preconditioner;\n"
+        "%s\t seconds to update parameters;\n",
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_JJ),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_PJ),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_JX),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_JTE),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_BC),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_MP),
+        REPORT_FUNCTION_TIME(TIMER_FUNCTION_UP));
+  }
   if (__verbose_level)
-    std::cout << "\n---------------------------------------\n" << std::setw(10)
-              << __num_lm_success << "\t successful iterations;\n"
-              << std::setw(10) << __num_lm_iteration
-              << "\t linear systems solved;\n" << std::setw(10)
-              << __num_cg_iteration << "\t conjugated gradient steps;\n"
-              << std::setw(10) << BundleTimerGet(TIMER_OVERALL)
-              << "\t seconds used overall;\n" << std::setw(10)
-              << BundleTimerGet(TIMER_GPU_ALLOCATION)
-              << "\t seconds on allocation;\n" << std::setw(10)
-              << BundleTimerGet(TIMER_PREPROCESSING)
-              << "\t seconds on pre-processing;\n" << std::setw(10)
-              << BundleTimerGet(TIMER_GPU_UPLOAD) << "\t seconds on upload;\n"
-              << std::setw(10) << BundleTimerGet(TIMER_OPTIMIZATION)
-              << "\t seconds on optimization;\n";
-  if (__verbose_level && __cpu_data_precision)
-    std::cout << REPORT_FUNCTION_TIME(TIMER_FUNCTION_JJ)
-              << "\t seconds on jacobians;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_PJ)
-              << "\t seconds on projections;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_JX)
-              << "\t seconds on JX;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_JTE)
-              << "\t seconds on JtE;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_BC)
-              << "\t seconds to compute preconditioner;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_MP)
-              << "\t seconds to apply preconditioner;\n"
-              << REPORT_FUNCTION_TIME(TIMER_FUNCTION_UP)
-              << "\t seconds to update parameters;\n";
-  if (__verbose_level)
-    std::cout << "---------------------------------------\n"
-              << "mse = " << __initial_mse << " -> " << __final_mse << ""
-              << "  (" << __final_mse_x
-              << (__use_radial_distortion == -1 ? 'D' : 'U') << ")\n"
-              << "---------------------------------------\n";
+    CONSOLE("---------------------------------------\n"
+            "mse = %f -> %f (%f%s)\n"
+            "---------------------------------------\n",
+            __initial_mse,
+            __final_mse,
+            __final_mse_x,
+            (__use_radial_distortion == -1 ? 'D' : 'U'));
 }
 
 double ConfigBA::MyClock() {

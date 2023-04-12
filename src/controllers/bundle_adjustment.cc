@@ -36,6 +36,8 @@
 #include "optim/bundle_adjustment.h"
 #include "util/misc.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace {
 
@@ -74,7 +76,7 @@ void BundleAdjustmentController::Run() {
   const std::vector<image_t>& reg_image_ids = reconstruction_->RegImageIds();
 
   if (reg_image_ids.size() < 2) {
-    std::cout << "ERROR: Need at least two views." << std::endl;
+    CONSOLE("ERROR: Need at least two views.");
     return;
   }
 

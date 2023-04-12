@@ -38,6 +38,8 @@
 
 #include "util/string.h"
 
+// #include <log/trace.h>
+
 // Option checker macros. In contrast to glog, this function does not abort the
 // program, but simply returns false on failure.
 #define CHECK_OPTION_IMPL(expr) \

@@ -38,6 +38,8 @@
 #include "util/logging.h"
 #include "util/misc.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 std::vector<PlyPoint> ReadPly(const std::string& path) {
@@ -116,8 +118,7 @@ std::vector<PlyPoint> ReadPly(const std::string& path) {
         num_vertices = std::stoll(line_elems[2]);
         in_vertex_section = true;
       } else if (std::stoll(line_elems[2]) > 0) {
-        std::cout << "WARN: Only vertex elements supported; ignoring "
-                  << line_elems[1] << std::endl;
+        CONSOLE("WARN: Only vertex elements supported; ignoring %s", line_elems[1]);
       }
     }
 

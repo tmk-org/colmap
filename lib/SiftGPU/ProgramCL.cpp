@@ -40,6 +40,8 @@ using namespace std;
 #include "ProgramCL.h"
 #include "SiftGPU.h"
 
+#include <log/trace.h>
+
 
 #if  defined(_WIN32) 
 	#pragma comment (lib, "OpenCL.lib")
@@ -95,11 +97,11 @@ void ProgramCL::PrintBuildLog(cl_device_id device, int all)
         _program, device, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, NULL);
     if(all )  
     {
-        std::cerr << buffer  << endl; 
+        CONSOLE(buffer); 
     }else
     {
         const char * pos = strstr(buffer, "ptxas");
-        if(pos) std::cerr << pos << endl; 
+        if(pos) CONSOLE(pos); 
     }
 }
 
@@ -199,7 +201,7 @@ bool ProgramBagCL::InitializeContext()
     {
         cl_device_mem_cache_type is_gcache; 
         clGetDeviceInfo(_device, CL_DEVICE_GLOBAL_MEM_CACHE_TYPE, sizeof(is_gcache), &is_gcache, NULL);
-        if(is_gcache == CL_NONE) std::cout << "No cache for global memory\n";
+        if(is_gcache == CL_NONE) CONSOLE("No cache for global memory");
         //else if(is_gcache == CL_READ_ONLY_CACHE) std::cout << "Read only cache for global memory\n";
         //else std::cout << "Read/Write cache for global memory\n";
     }
@@ -460,7 +462,7 @@ FilterCL* ProgramBagCL::CreateGaussianFilter(float sigma)
 	//filter size truncation
 	if(GlobalUtil::_MaxFilterWidth >0 && width > GlobalUtil::_MaxFilterWidth)
 	{
-		std::cout<<"Filter size truncated from "<<width<<" to "<<GlobalUtil::_MaxFilterWidth<<endl;
+		CONSOLE("Filter size truncated from %d to %d", width, GlobalUtil::_MaxFilterWidth);
 		sz = GlobalUtil::_MaxFilterWidth>>1;
 		width = 2 * sz + 1;
 	}
@@ -483,7 +485,7 @@ FilterCL* ProgramBagCL::CreateGaussianFilter(float sigma)
 
     FilterCL * filter = CreateFilter(kernel, width);
     delete [] kernel;
-    if(GlobalUtil::_verbose && GlobalUtil::_timingL) std::cout<<"Filter: sigma = "<<sigma<<", size = "<<width<<"x"<<width<<endl;
+    if(GlobalUtil::_verbose && GlobalUtil::_timingL) CONSOLE("Filter: sigma = %f, size = %dx%d",sigma, width, width);
     return filter;
 }
 
@@ -1297,11 +1299,11 @@ const char* ProgramBagCL::GetErrorString(cl_int error)
 bool ProgramBagCL::CheckErrorCL(cl_int error, const char* location)
 {
     if(error == CL_SUCCESS) return true;
-	const char *errstr = GetErrorString(error);
-	if(errstr && errstr[0]) std::cerr << errstr; 
-	else std::cerr  << "Error " << error;
-	if(location) std::cerr  << " at " << location;		
-	std::cerr  << "\n";
+	std::string errstr = GetErrorString(error);
+	if(errstr.empty())
+	    errstr += fmt::format("Error {}", error);
+	if(location) errstr  += fmt::format(" at %s", location);
+	CONSOLE(errstr.c_str());
     exit(0);
     return false;
 

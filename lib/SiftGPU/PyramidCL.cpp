@@ -118,10 +118,10 @@ void PyramidCL::InitPyramid(int w, int h, int ds)
 	}
 	if(toobig && GlobalUtil::_verbose && _octave_min > 0)
 	{
-		std::cout<< "**************************************************************\n"
-					"Image larger than allowed dimension, data will be downsampled!\n"
-					"use -maxd to change the settings\n"
-					"***************************************************************\n";
+		CONSOLE("**************************************************************\n"
+				"Image larger than allowed dimension, data will be downsampled!\n"
+				"use -maxd to change the settings\n"
+				"***************************************************************");
 	}
 
 	if( wp == _pyramid_width && hp == _pyramid_height && _allocated )
@@ -156,7 +156,7 @@ void PyramidCL::ResizePyramid(int w, int h)
 
 	if(w > GlobalUtil::_texMaxDim || h > GlobalUtil::_texMaxDim) return ;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<w<<"x"<<h<<endl;
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dx%d", w, h);
 	//first octave does not change
 	_pyramid_octave_first = 0;
 
@@ -235,7 +235,7 @@ void PyramidCL::ResizePyramid(int w, int h)
 
 	_allocated = 1;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<(totalkb/1024)<<"MB\n";
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dMB", (totalkb/1024));
 
 }
 
@@ -467,7 +467,7 @@ void PyramidCL::GenerateFeatureListTex()
 
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 
 }
@@ -554,7 +554,7 @@ void PyramidCL::ReshapeFeatureListCPU()
 	delete[] buffer;
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features MO:\t"<<_featureNum<<endl;
+		CONSOLE("#Features MO:\t,%d", _featureNum);
 	}
 }
 
@@ -880,7 +880,7 @@ void PyramidCL::ConvertInputToCL(GLTexInput* input, CLTexImage* output)
 		ProgramCL::ReduceToSingleChannel(output, &texPBO, !input->_rgb_converted);
 	}else*/
 	{
-		std::cerr<< "Unable To Convert Intput\n";
+		CONSOLE("Unable To Convert Intput");
 	}
 }
 
@@ -968,10 +968,11 @@ void PyramidCL::DetectKeypointsEX()
 
 	for ( i = _octave_min; i < _octave_min + _octave_num; i++)
 	{
+		std::string str_out;
 		if(GlobalUtil::_timingO)
 		{
 			t0 = CLOCK();
-			std::cout<<"#"<<(i + _down_sample_factor)<<"\t";
+			str_out = fmt::format("#{}\t", (i + _down_sample_factor));
 		}
 		CLTexImage * dog = GetBaseLevel(i, DATA_DOG) + 2;
 		CLTexImage * key = GetBaseLevel(i, DATA_KEYPOINT) +2;
@@ -985,12 +986,12 @@ void PyramidCL::DetectKeypointsEX()
 			_OpenCL->ComputeKEY(dog, key, param._dog_threshold, param._edge_threshold);
 			if(GlobalUtil::_timingL)
 			{
-				std::cout<<(CLOCK()-t)<<"\t";
+				str_out = fmt::format("{}\t", CLOCK()-t);
 			}
 		}
 		if(GlobalUtil::_timingO)
 		{
-			std::cout<<"|\t"<<(CLOCK()-t0)<<"\n";
+			CONSOLE("%s|\t%d", str_out, (CLOCK()-t0));
 		}
 	}
 
@@ -1000,8 +1001,8 @@ void PyramidCL::DetectKeypointsEX()
 		if(GlobalUtil::_verbose) 
 		{	
 			t2 = CLOCK();
-			std::cout	<<"<Gradient, DOG  >\t"<<(t1-ts)<<"\n"
-						<<"<Get Keypoints  >\t"<<(t2-t1)<<"\n";
+			CONSOLE(fmt::format("<Gradient, DOG  >\t{}\n"
+						        "<Get Keypoints  >\t{}", (t1-ts), (t2-t1)).c_str());
 		}				
 	}
 }

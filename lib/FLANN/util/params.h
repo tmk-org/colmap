@@ -35,6 +35,7 @@
 #include <iostream>
 #include <map>
 
+#include <log/trace.h>
 
 namespace flann
 {
@@ -120,16 +121,14 @@ inline void print_params(const IndexParams& params)
     IndexParams::const_iterator it;
 
     for(it=params.begin(); it!=params.end(); ++it) {
-        std::cout << it->first << " : " << it->second << std::endl;
+        CONSOLE("%s : %s", it->first,  fmt::v7::format("{}", it->second));
     }
 }
 
 inline void print_params(const SearchParams& params)
 {
-	std::cout << "checks : " << params.checks << std::endl;
-	std::cout << "eps : " << params.eps << std::endl;
-	std::cout << "sorted : " << params.sorted << std::endl;
-	std::cout << "max_neighbors : " << params.max_neighbors << std::endl;
+    CONSOLE("checks : %d\neps : %f\nsorted : %d\nmax_neighbors : %d",
+            params.checks, params.eps, params.sorted, params.max_neighbors);
 }
 
 

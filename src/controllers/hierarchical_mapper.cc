@@ -36,6 +36,8 @@
 #include "base/database_memory.h"
 #include "util/misc.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace {
 
@@ -126,7 +128,7 @@ void HierarchicalMapperController::Run() {
 
   Database database(options_.database_path);
 
-  std::cout << "Reading images..." << std::endl;
+  CONSOLE("Reading images...");
   const auto images = database.ReadAllImages();
   for (const auto& image : images) {
     image_id_to_name.emplace(image.ImageId(), image.Name());
@@ -140,13 +142,11 @@ void HierarchicalMapperController::Run() {
   size_t total_num_images = 0;
   for (size_t i = 0; i < leaf_clusters.size(); ++i) {
     total_num_images += leaf_clusters[i]->image_ids.size();
-    std::cout << StringPrintf("  Cluster %d with %d images", i + 1,
-                              leaf_clusters[i]->image_ids.size())
-              << std::endl;
+    CONSOLE(StringPrintf("  Cluster %d with %d images", i + 1,
+                              leaf_clusters[i]->image_ids.size()).c_str());
   }
 
-  std::cout << StringPrintf("Clusters have %d images", total_num_images)
-            << std::endl;
+  CONSOLE(StringPrintf("Clusters have %d images", total_num_images).c_str());
 
   //////////////////////////////////////////////////////////////////////////////
   // Reconstruct clusters
@@ -223,7 +223,7 @@ void HierarchicalMapperController::Run() {
   CHECK_EQ(reconstruction_managers.size(), 1);
   *reconstruction_manager_ = std::move(reconstruction_managers.begin()->second);
 
-  std::cout << std::endl;
+  CONSOLE("");
   GetTimer().PrintMinutes();
 }
 

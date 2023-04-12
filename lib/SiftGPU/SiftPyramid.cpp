@@ -44,7 +44,7 @@ using namespace std;
 #include <sys/stat.h>
 #endif
 
-
+#include <log/trace.h>
 
 void SiftPyramid::RunSIFT(GLTexInput*input)
 {
@@ -185,7 +185,7 @@ void SiftPyramid::LimitFeatureCount(int have_keylist)
             _featureNum = new_feature_num;
             if(GlobalUtil::_verbose )
             {
-	            std::cout<<"#Features Reduced:\t"<<_featureNum<<endl;
+	            CONSOLE("#Features Reduced:\t%d", _featureNum);
             }
         }
     }else
@@ -203,7 +203,7 @@ void SiftPyramid::LimitFeatureCount(int have_keylist)
         }
         if(GlobalUtil::_verbose &&  num_to_erase > 0)
         {
-	        std::cout<<"#Features Reduced:\t"<<_featureNum<<endl;
+	        CONSOLE("#Features Reduced:\t%d", _featureNum);
         }
     }
 
