@@ -194,7 +194,7 @@ int RunImageFilterer(int argc, char** argv) {
       num_reg_images - reconstruction.NumRegImages();
 
   CONSOLE(StringPrintf("Filtered %d images from a total of %d images",
-                            num_filtered_images, num_reg_images).c_str();
+                            num_filtered_images, num_reg_images).c_str());
 
   reconstruction.Write(output_path);
 
