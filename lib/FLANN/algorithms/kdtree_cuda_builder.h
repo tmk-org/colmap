@@ -510,7 +510,7 @@ public:
         (*aabb_max_)[0]=make_float4((*points_x_)[(*index_x_)[points_->size()-1]],(*points_y_)[(*index_y_)[points_->size()-1]],(*points_z_)[(*index_z_)[points_->size()-1]],0);
         #ifdef PRINT_DEBUG_TIMING
         cudaDeviceSynchronize();
-        std::cout<<" initial stuff:"<<stepTimer.elapsed()<<std::endl;
+        CONSOLE(" initial stuff:%f", stepTimer.elapsed());
         stepTimer.restart();
         #endif
         int last_node_count=0;
@@ -546,7 +546,7 @@ public:
             }
             #ifdef PRINT_DEBUG_TIMING
             cudaDeviceSynchronize();
-            std::cout<<" node split:"<<stepTimer.elapsed()<<std::endl;
+            CONSOLE(" node split:%f", stepTimer.elapsed());
             stepTimer.restart();
             #endif
 
@@ -569,7 +569,7 @@ public:
 
             #ifdef PRINT_DEBUG_TIMING
             cudaDeviceSynchronize();
-            std::cout<<" set new owners:"<<stepTimer.elapsed()<<std::endl;
+            CONSOLE(" set new owners:%f", stepTimer.elapsed());
             stepTimer.restart();
             #endif
 
@@ -584,14 +584,14 @@ public:
 
             #ifdef PRINT_DEBUG_TIMING
             cudaDeviceSynchronize();
-            std::cout<<" split:"<<stepTimer.elapsed()<<std::endl;
+            CONSOLE(" split:%f", stepTimer.elapsed());
             stepTimer.restart();
             #endif
             // calculate new AABB etc
             update_leftright_and_aabb( *points_x_, *points_y_, *points_z_, *index_x_, *index_y_, *index_z_, *owners_x_, *splits_,*aabb_min_, *aabb_max_);
             #ifdef PRINT_DEBUG_TIMING
             cudaDeviceSynchronize();
-            std::cout<<" update_leftright_and_aabb:"<<stepTimer.elapsed()<<std::endl;
+            CONSOLE(" update_leftright_and_aabb:%f", stepTimer.elapsed());
             stepTimer.restart();
             print_vector(node_count_);
             #endif

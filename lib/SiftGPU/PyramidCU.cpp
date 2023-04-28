@@ -40,6 +40,7 @@ using namespace std;
 #include "ProgramCU.h"
 #include "PyramidCU.h"
 
+#include <log/trace.h>
 
 //#include "imdebug/imdebuggl.h"
 //#pragma comment (lib, "../lib/imdebug.lib")
@@ -143,8 +144,8 @@ void PyramidCU::InitPyramid(int w, int h, int ds)
 
 	if(toobig && GlobalUtil::_verbose && _octave_min > 0)
 	{
-		std::cout<<(toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
-					"[**SKIP OCTAVES**]:\tReaching the dimension limit(-maxd)!\n");
+		CONSOLE((toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
+					"[**SKIP OCTAVES**]:\tReaching the dimension limit(-maxd)!\n"));
 	}
 	//ResizePyramid(wp, hp);
 	if( wp == _pyramid_width && hp == _pyramid_height && _allocated )
@@ -177,7 +178,7 @@ void PyramidCU::ResizePyramid(int w, int h)
 
 	if(w > GlobalUtil::_texMaxDim || h > GlobalUtil::_texMaxDim) return ;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<w<<"x"<<h<<endl;
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dx%d", w, h);
 	//first octave does not change
 	_pyramid_octave_first = 0;
 
@@ -253,7 +254,7 @@ void PyramidCU::ResizePyramid(int w, int h)
 
 	_allocated = 1;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<(totalkb/1024)<<"MB\n";
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dMB", totalkb/1024);
 
 }
 
@@ -495,7 +496,7 @@ void PyramidCU::GenerateFeatureListTex()
 
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t, %d", _featureNum);
 	}
 
 }
@@ -582,7 +583,7 @@ void PyramidCU::ReshapeFeatureListCPU()
 	delete[] buffer;
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features MO:\t"<<_featureNum<<endl;
+		CONSOLE("#Features MO:\t%d", _featureNum);
 	}
 }
 
@@ -808,6 +809,7 @@ void PyramidCU::GenerateFeatureList()
 	//for(int i = 0, idx = 0; i < _octave_num; i++)
     FOR_EACH_OCTAVE(i, reverse)
 	{
+		std::string str_out;
         CuTexImage* tex = GetBaseLevel(_octave_min + i, DATA_KEYPOINT) + 2;
 		reduction_count = FitHistogramPyramid(tex);
 
@@ -815,7 +817,7 @@ void PyramidCU::GenerateFeatureList()
 		{
 			t1 = CLOCK(); 
 			ocount = 0;
-			std::cout<<"#"<<i+_octave_min + _down_sample_factor<<":\t";
+			str_out = fmt::format("#{}:\t", i+_octave_min + _down_sample_factor);
 		}
 		//for(int j = 0; j < param._dog_level_num; j++, idx++)
         FOR_EACH_LEVEL(j, reverse)
@@ -836,13 +838,13 @@ void PyramidCU::GenerateFeatureList()
 			{
                 int idx = i * param._dog_level_num + j;
 				ocount += _levelFeatureNum[idx];
-				std::cout<< _levelFeatureNum[idx] <<"\t";
+				str_out += fmt::format("{}\t", _levelFeatureNum[idx]);
 			}
 		}
 		if(GlobalUtil::_timingO)
 		{	
 			t2 = CLOCK(); 
-			std::cout << "| \t" << int(ocount) << " :\t(" << (t2 - t1) << ")\n";
+			CONSOLE("%s| \t%d :\t(%f)", str_out, int(ocount), (t2 - t1));
 		}
 	}
 	/////
@@ -852,7 +854,7 @@ void PyramidCU::GenerateFeatureList()
 
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 
 	if(ProgramCU::CheckErrorCUDA("PyramidCU::GenerateFeatureList")) SetFailStatus();
@@ -947,7 +949,7 @@ void PyramidCU::ConvertInputToCU(GLTexInput* input)
 		    ProgramCU::ReduceToSingleChannel(_inputTex, &texPBO, !input->_rgb_converted);
 	    }else
 	    {
-		    std::cerr<< "Unable To Convert Intput\n";
+		    CONSOLE("Unable To Convert Intput");
 	    }
     }
 }
@@ -1036,10 +1038,11 @@ void PyramidCU::DetectKeypointsEX()
 
 	for ( i = _octave_min; i < _octave_min + _octave_num; i++)
 	{
+		std::string str_out;
 		if(GlobalUtil::_timingO)
 		{
 			t0 = CLOCK();
-			std::cout<<"#"<<(i + _down_sample_factor)<<"\t";
+			str_out = fmt::format("#%d\t", i + _down_sample_factor);
 		}
 		CuTexImage * dog = GetBaseLevel(i, DATA_DOG) + 2;
 		CuTexImage * key = GetBaseLevel(i, DATA_KEYPOINT) +2;
@@ -1053,12 +1056,12 @@ void PyramidCU::DetectKeypointsEX()
 			ProgramCU::ComputeKEY(dog, key, param._dog_threshold, param._edge_threshold);
 			if(GlobalUtil::_timingL)
 			{
-				std::cout<<(CLOCK()-t)<<"\t";
+				str_out += fmt::format("%f\t", (CLOCK()-t));
 			}
 		}
 		if(GlobalUtil::_timingO)
 		{
-			std::cout<<"|\t"<<(CLOCK()-t0)<<"\n";
+			CONSOLE("%s|\t", str_out, (CLOCK()-t0));
 		}
 	}
 
@@ -1068,8 +1071,7 @@ void PyramidCU::DetectKeypointsEX()
 		if(GlobalUtil::_verbose) 
 		{	
 			t2 = CLOCK();
-			std::cout	<<"<Gradient, DOG  >\t"<<(t1-ts)<<"\n"
-						<<"<Get Keypoints  >\t"<<(t2-t1)<<"\n";
+			CONSOLE("<Gradient, DOG  >\t%f\n<Get Keypoints  >\t%f", (t1-ts), (t2-t1));
 		}				
 	}
 }
@@ -1095,7 +1097,7 @@ void PyramidCU::CopyGradientTex()
 		if(GlobalUtil::_verbose)
 		{
 			t1 = CLOCK();
-			std::cout	<<"<Copy Grad/Orientation>\t"<<(t1-ts)<<"\n";
+			CONSOLE("<Copy Grad/Orientation>\t%f", (t1-ts));
 		}
 	}
 }
@@ -1126,7 +1128,7 @@ void PyramidCU::ComputeGradient()
 		if(GlobalUtil::_verbose)
 		{
 			t1 = CLOCK();
-			std::cout	<<"<Gradient, DOG  >\t"<<(t1-ts)<<"\n";
+			CONSOLE("<Gradient, DOG  >\t%f", (t1-ts));
 		}
 	}
 }

@@ -44,6 +44,8 @@
 #include "util/threading.h"
 #include "util/timer.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -306,7 +308,7 @@ bool BundleAdjuster::Solve(Reconstruction* reconstruction) {
   ceres::Solve(solver_options, problem_.get(), &summary_);
 
   if (solver_options.minimizer_progress_to_stdout) {
-    std::cout << std::endl;
+    CONSOLE("");
   }
 
   if (options_.print_summary) {
@@ -861,7 +863,7 @@ bool RigBundleAdjuster::Solve(Reconstruction* reconstruction,
   ceres::Solve(solver_options, problem_.get(), &summary_);
 
   if (solver_options.minimizer_progress_to_stdout) {
-    std::cout << std::endl;
+    CONSOLE("");
   }
 
   if (options_.print_summary) {
@@ -1150,59 +1152,44 @@ void RigBundleAdjuster::ParameterizeCameraRigs(Reconstruction* reconstruction) {
 }
 
 void PrintSolverSummary(const ceres::Solver::Summary& summary) {
-  std::cout << std::right << std::setw(16) << "Residuals : ";
-  std::cout << std::left << summary.num_residuals_reduced << std::endl;
+  CONSOLE(fmt::format("{:>16}{:<}", "Residuals : ", summary.num_residuals_reduced).c_str());
 
-  std::cout << std::right << std::setw(16) << "Parameters : ";
-  std::cout << std::left << summary.num_effective_parameters_reduced
-            << std::endl;
+  CONSOLE(fmt::format("{:>16}{:<}", "Parameters : ", summary.num_effective_parameters_reduced).c_str());
 
-  std::cout << std::right << std::setw(16) << "Iterations : ";
-  std::cout << std::left
-            << summary.num_successful_steps + summary.num_unsuccessful_steps
-            << std::endl;
+  CONSOLE(fmt::format("{:>16}{:<}", "Iterations : ", summary.num_successful_steps + summary.num_unsuccessful_steps).c_str());
 
-  std::cout << std::right << std::setw(16) << "Time : ";
-  std::cout << std::left << summary.total_time_in_seconds << " [s]"
-            << std::endl;
+  CONSOLE(fmt::format("{:>16}{:<} [s]", "Time : ", summary.total_time_in_seconds).c_str());
 
-  std::cout << std::right << std::setw(16) << "Initial cost : ";
-  std::cout << std::right << std::setprecision(6)
-            << std::sqrt(summary.initial_cost / summary.num_residuals_reduced)
-            << " [px]" << std::endl;
+  CONSOLE(fmt::format("{:>16}{:>.6} [px]", "Initial cost : ",
+                      std::sqrt(summary.initial_cost / summary.num_residuals_reduced)).c_str());
+  
+  CONSOLE(fmt::format("{:>16}{:>.6} [px]", "Final cost : ", 
+                      std::sqrt(summary.final_cost / summary.num_residuals_reduced)).c_str());
 
-  std::cout << std::right << std::setw(16) << "Final cost : ";
-  std::cout << std::right << std::setprecision(6)
-            << std::sqrt(summary.final_cost / summary.num_residuals_reduced)
-            << " [px]" << std::endl;
-
-  std::cout << std::right << std::setw(16) << "Termination : ";
-
-  std::string termination = "";
+  std::string termination = fmt::format("{:>16}", "Termination : ");
 
   switch (summary.termination_type) {
     case ceres::CONVERGENCE:
-      termination = "Convergence";
+      termination += "Convergence";
       break;
     case ceres::NO_CONVERGENCE:
-      termination = "No convergence";
+      termination += "No convergence";
       break;
     case ceres::FAILURE:
-      termination = "Failure";
+      termination += "Failure";
       break;
     case ceres::USER_SUCCESS:
-      termination = "User success";
+      termination += "User success";
       break;
     case ceres::USER_FAILURE:
-      termination = "User failure";
+      termination += "User failure";
       break;
     default:
-      termination = "Unknown";
+      termination += "Unknown";
       break;
   }
 
-  std::cout << std::right << termination << std::endl;
-  std::cout << std::endl;
+  CONSOLE(fmt::format("{:>}\n", termination).c_str());
 }
 
 }  // namespace colmap

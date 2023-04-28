@@ -41,6 +41,8 @@ using namespace std;
 #include "SiftMatchCU.h"
 #endif
 
+#include <log/trace.h>
+
 
 SiftMatchGL::SiftMatchGL(int max_sift, int use_glsl): SiftMatchGPU()
 {
@@ -592,10 +594,10 @@ int SiftMatchGPU::_VerifyContextGL()
 #else
     if((__language == SIFTMATCH_SAME_AS_SIFTGPU && GlobalUtil::_UseCUDA) || __language >= SIFTMATCH_CUDA)
     {
-	    std::cerr	<< "---------------------------------------------------------------------------\n"
-				    << "CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
-				    << "Project for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
-				    << "----------------------------------------------------------------------------\n";
+	    CONSOLE("---------------------------------------------------------------------------\n"
+				"CUDA not supported in this binary! To enable it, please use SiftGPU_CUDA_Enable\n"
+				"Project for VS2005+ or set siftgpu_enable_cuda to 1 in makefile\n"
+				"----------------------------------------------------------------------------");
     }
 #endif
 	{
@@ -604,7 +606,7 @@ int SiftMatchGPU::_VerifyContextGL()
 	}
 
 	if(GlobalUtil::_verbose)
-        std::cout   << "[SiftMatchGPU]: " << (__language == SIFTMATCH_CUDA? "CUDA" : "GLSL") <<"\n\n";
+        CONSOLE("[SiftMatchGPU]: %s", (__language == SIFTMATCH_CUDA? "CUDA" : "GLSL"));
 
 	__matcher->InitSiftMatch();
 	return GlobalUtil::_GoodOpenGL;

@@ -36,6 +36,8 @@
 #include "base/pose.h"
 #include "util/string.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 CorrespondenceGraph::CorrespondenceGraph() {}
@@ -79,8 +81,7 @@ void CorrespondenceGraph::AddCorrespondences(const image_t image_id1,
                                              const FeatureMatches& matches) {
   // Avoid self-matches - should only happen, if user provides custom matches.
   if (image_id1 == image_id2) {
-    std::cout << "WARNING: Cannot use self-matches for image_id=" << image_id1
-              << std::endl;
+    CONSOLE("WARNING: Cannot use self-matches for image_id=%d", image_id1);
     return;
   }
 
@@ -127,13 +128,12 @@ void CorrespondenceGraph::AddCorrespondences(const image_t image_id1,
         image1.num_correspondences -= 1;
         image2.num_correspondences -= 1;
         image_pair.num_correspondences -= 1;
-        std::cout << StringPrintf(
+        CONSOLE(StringPrintf(
                          "WARNING: Duplicate correspondence between "
                          "point2D_idx=%d in image_id=%d and point2D_idx=%d in "
                          "image_id=%d",
                          match.point2D_idx1, image_id1, match.point2D_idx2,
-                         image_id2)
-                  << std::endl;
+                         image_id2).c_str());
       } else {
         corrs1.emplace_back(image_id2, match.point2D_idx2);
         corrs2.emplace_back(image_id1, match.point2D_idx1);

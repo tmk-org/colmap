@@ -151,7 +151,7 @@ public:
      */
     LshTable(unsigned int /*feature_size*/, unsigned int /*key_size*/)
     {
-        std::cerr << "LSH is not implemented for that type" << std::endl;
+        CONSOLE("LSH is not implemented for that type");
         throw;
     }
 
@@ -234,7 +234,7 @@ public:
      */
     size_t getKey(const ElementType* /*feature*/) const
     {
-        std::cerr << "LSH is not implemented for that type" << std::endl;
+        CONSOLE("LSH is not implemented for that type");
         throw;
         return 1;
     }

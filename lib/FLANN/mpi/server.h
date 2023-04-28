@@ -43,6 +43,8 @@
 
 #include "queries.h"
 
+#include <log/trace.h>
+
 namespace flann {
 
 namespace mpi {
@@ -63,7 +65,7 @@ class Server
 			Request<ElementType> req;
 			if (world.rank()==0) {
 				read_object(*sock,req);
-				std::cout << "Received query\n";
+				CONSOLE("Received query");
 			}
 			// broadcast request to all MPI processes
 			boost::mpi::broadcast(world, req, 0);
@@ -76,11 +78,11 @@ class Server
 				resp.dists = flann::Matrix<DistanceType>(new DistanceType[rows*cols], rows, cols);
 			}
 
-			std::cout << "Searching in process " << world.rank() << "\n";
+			CONSOLE("Searching in process %d", world.rank());
 			index_->knnSearch(req.queries, resp.indices, resp.dists, req.nn, flann::SearchParams(req.checks));
 
 			if (world.rank()==0) {
-				std::cout << "Sending result\n";
+				CONSOLE("Sending result");
 				write_object(*sock,resp);
 			}
 
@@ -92,7 +94,7 @@ class Server
 
 		}
 		catch (std::exception& e) {
-			std::cerr << "Exception in thread: " << e.what() << "\n";
+			CONSOLE("Exception in thread: %s", e.what());
 		}
 	}
 
@@ -104,14 +106,14 @@ public:
 	{
 		boost::mpi::communicator world;
 		if (world.rank()==0) {
-			std::cout << "Reading dataset and building index...";
+			CONSOLE("Reading dataset and building index...");
 			std::flush(std::cout);
 		}
 		index_ = new FlannIndex(filename, dataset, params);
 		index_->buildIndex();
 		world.barrier(); // wait for data to be loaded and indexes to be created
 		if (world.rank()==0) {
-			std::cout << "done.\n";
+			CONSOLE("done.");
 		}
 	}
 
@@ -125,14 +127,14 @@ public:
 		if (world.rank()==0) {
 			io_service.reset(new boost::asio::io_service());
 			acceptor.reset(new tcp::acceptor(*io_service, tcp::endpoint(tcp::v4(), port_)));
-			std::cout << "Start listening for queries...\n";
+			CONSOLE("Start listening for queries...");
 		}
 		for (;;) {
 			socket_ptr sock;
 			if (world.rank()==0) {
 				sock.reset(new tcp::socket(*io_service));
 				acceptor->accept(*sock);
-				std::cout << "Accepted connection\n";
+				CONSOLE("Accepted connection");
 			}
 			world.barrier(); // everybody waits here for a connection
 			boost::thread t(boost::bind(&Server::session, this, sock));

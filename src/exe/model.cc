@@ -40,6 +40,8 @@
 #include "util/option_manager.h"
 #include "util/threading.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace {
 
@@ -118,18 +120,17 @@ std::vector<Eigen::Vector3d> ConvertCameraLocations(
   if (ref_is_gps) {
     const GPSTransform gps_transform(GPSTransform::WGS84);
     if (alignment_type != "enu") {
-      std::cout << "\nConverting Alignment Coordinates from GPS (lat/lon/alt) "
-                   "to ECEF.\n";
+      CONSOLE("\nConverting Alignment Coordinates from GPS (lat/lon/alt) to ECEF.");
       return gps_transform.EllToXYZ(ref_locations);
     } else {
-      std::cout << "\nConverting Alignment Coordinates from GPS (lat/lon/alt) "
-                   "to ENU.\n";
+      CONSOLE("\nConverting Alignment Coordinates from GPS (lat/lon/alt) "
+                   "to ENU.");
       return gps_transform.EllToENU(ref_locations, ref_locations[0](0),
                                     ref_locations[0](1));
     }
   } else {
-    std::cout << "\nCartesian Alignment Coordinates extracted (MUST NOT BE "
-                 "GPS coords!).\n";
+    CONSOLE("\nCartesian Alignment Coordinates extracted (MUST NOT BE "
+                 "GPS coords!).");
     return ref_locations;
   }
 }
@@ -306,8 +307,7 @@ int RunModelAligner(int argc, char** argv) {
   }
 
   if (robust_alignment && ransac_options.max_error <= 0) {
-    std::cout << "ERROR: You must provide a maximum alignment error > 0"
-              << std::endl;
+    CONSOLE("ERROR: You must provide a maximum alignment error > 0");
     return EXIT_FAILURE;
   }
 
@@ -334,8 +334,7 @@ int RunModelAligner(int argc, char** argv) {
 
   if (alignment_type != "plane" &&
       static_cast<int>(ref_locations.size()) < min_common_images) {
-    std::cout << "ERROR: Cannot align with insufficient reference locations."
-              << std::endl;
+    CONSOLE("ERROR: Cannot align with insufficient reference locations.");
     return EXIT_FAILURE;
   }
 
@@ -349,9 +348,8 @@ int RunModelAligner(int argc, char** argv) {
     AlignToPrincipalPlane(&reconstruction, &tform);
   } else {
     PrintHeading2("Aligning reconstruction to " + alignment_type);
-    std::cout << StringPrintf(" => Using %d reference images",
-                              ref_image_names.size())
-              << std::endl;
+    CONSOLE(StringPrintf(" => Using %d reference images",
+                              ref_image_names.size()).c_str());
 
     if (estimate_scale) {
       if (robust_alignment) {
@@ -382,9 +380,8 @@ int RunModelAligner(int argc, char** argv) {
         errors.push_back((image->ProjectionCenter() - ref_locations[i]).norm());
       }
     }
-    std::cout << StringPrintf("=> Alignment error: %f (mean), %f (median)",
-                              Mean(errors), Median(errors))
-              << std::endl;
+    CONSOLE(StringPrintf("=> Alignment error: %f (mean), %f (median)",
+                              Mean(errors), Median(errors)).c_str());
 
     if (alignment_success && StringStartsWith(alignment_type, "enu-plane")) {
       PrintHeading2("Aligning ECEF aligned reconstruction to ENU plane");

@@ -42,6 +42,8 @@
 #include "util/misc.h"
 #include "util/ply.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 Reconstruction::Reconstruction()
@@ -839,9 +841,8 @@ bool Reconstruction::ExportNVM(const std::string& path,
     } else if (camera.ModelId() == SimpleRadialCameraModel::model_id) {
       k = -1 * camera.Params(SimpleRadialCameraModel::extra_params_idxs[0]);
     } else {
-      std::cout << "WARNING: NVM only supports `SIMPLE_RADIAL` "
-                   "and pinhole camera models."
-                << std::endl;
+      CONSOLE("WARNING: NVM only supports `SIMPLE_RADIAL` "
+                   "and pinhole camera models.");
       return false;
     }
 
@@ -930,9 +931,8 @@ bool Reconstruction::ExportCam(const std::string& path,
       k1 = camera.Params(RadialCameraModel::extra_params_idxs[0]);
       k2 = camera.Params(RadialCameraModel::extra_params_idxs[1]);
     } else {
-      std::cout << "WARNING: CAM only supports `SIMPLE_RADIAL`, `RADIAL`, "
-                   "and pinhole camera models."
-                << std::endl;
+      CONSOLE("WARNING: CAM only supports `SIMPLE_RADIAL`, `RADIAL`, "
+                   "and pinhole camera models.");
       return false;
     }
 
@@ -1018,9 +1018,8 @@ bool Reconstruction::ExportRecon3D(const std::string& path,
       k1 = -1 * camera.Params(RadialCameraModel::extra_params_idxs[0]);
       k2 = -1 * camera.Params(RadialCameraModel::extra_params_idxs[1]);
     } else {
-      std::cout << "WARNING: Recon3D only supports `SIMPLE_RADIAL`, "
-                   "`RADIAL`, and pinhole camera models."
-                << std::endl;
+      CONSOLE("WARNING: Recon3D only supports `SIMPLE_RADIAL`, "
+                   "`RADIAL`, and pinhole camera models.");
       return false;
     }
 
@@ -1122,9 +1121,8 @@ bool Reconstruction::ExportBundler(const std::string& path,
       k1 = camera.Params(RadialCameraModel::extra_params_idxs[0]);
       k2 = camera.Params(RadialCameraModel::extra_params_idxs[1]);
     } else {
-      std::cout << "WARNING: Bundler only supports `SIMPLE_RADIAL`, "
-                   "`RADIAL`, and pinhole camera models."
-                << std::endl;
+      CONSOLE("WARNING: Bundler only supports `SIMPLE_RADIAL`, "
+                   "`RADIAL`, and pinhole camera models.");
       return false;
     }
 
@@ -1348,9 +1346,8 @@ void Reconstruction::ExtractColorsForAllImages(const std::string& path) {
 
     Bitmap bitmap;
     if (!bitmap.Read(image_path)) {
-      std::cout << StringPrintf("Could not read image %s at path %s.",
-                                image.Name().c_str(), image_path.c_str())
-                << std::endl;
+      CONSOLE(StringPrintf("Could not read image %s at path %s.",
+                                image.Name().c_str(), image_path.c_str()).c_str());
       continue;
     }
 

@@ -31,6 +31,8 @@
 
 #include "util/logging.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 void InitializeGlog(char** argv) {
@@ -53,9 +55,8 @@ bool __CheckOptionImpl(const char* file, const int line, const bool result,
   if (result) {
     return true;
   } else {
-    std::cerr << StringPrintf("[%s:%d] Check failed: %s",
-                              __GetConstFileBaseName(file), line, expr_str)
-              << std::endl;
+    CONSOLE(StringPrintf("[%s:%d] Check failed: %s",
+                              __GetConstFileBaseName(file), line, expr_str).c_str());
     return false;
   }
 }

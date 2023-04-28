@@ -29,7 +29,6 @@
 #include <cmath>
 
 using std::vector;
-using std::cout;
 using std::pair;
 using std::ofstream;
 using std::max;
@@ -39,6 +38,8 @@ using std::max;
 #include <float.h>
 #include "pba.h"
 #include "SparseBundleCPU.h"
+
+#include <log/trace.h>
 
 #if defined(WINAPI_FAMILY) && WINAPI_FAMILY == WINAPI_FAMILY_APP
 #include <thread>
@@ -2565,13 +2566,15 @@ SparseBundleCPU<Float>::SparseBundleCPU(const int num_threads)
   } else {
     __num_cpu_cores = num_threads;
   }
-  if (__verbose_level)
-    std::cout << "CPU " << (__cpu_data_precision == 4 ? "single" : "double")
-              << "-precision solver; " << __num_cpu_cores << " cores"
+  if (__verbose_level) {
+    CONSOLE("CPU %s-precision solver; %d cores"
 #ifdef CPUPBA_USE_AVX
-              << " (AVX)"
+              " (AVX)"
 #endif
-              << ".\n";
+              ".",
+              (__cpu_data_precision == 4 ? "single" : "double"),
+              __num_cpu_cores);
+  }
   // the following configuration are totally based my personal experience
   // on two computers.. you should adjust them according to your system.
   // try run driver filename -profile --float to see how speed varies
@@ -2837,9 +2840,10 @@ bool SparseBundleCPU<Float>::InitializeStorageForSFM() {
   //////////////////////////////////////////////////////////////
 
   __memory_usage = total_sz;
-  if (__verbose_level > 1)
-    std::cout << "Memory for Motion/Structure/Jacobian:\t"
-              << (total_sz / 1024 / 1024) << "MB\n";
+  if (__verbose_level > 1) {
+    CONSOLE("Memory for Motion/Structure/Jacobian:\t%dMB",
+            (total_sz / 1024 / 1024));
+  }
 
   return true;
 }
@@ -2896,7 +2900,7 @@ bool SparseBundleCPU<Float>::ProcessIndexCameraQ(vector<int>& qmap,
   }
 
   if (error) {
-    std::cout << "Error: incorrect constraints\n";
+    CONSOLE("Error: incorrect constraints");
     _focal_mask = NULL;
     return false;
   }
@@ -2981,9 +2985,10 @@ bool SparseBundleCPU<Float>::InitializeStorageForCG() {
 
   /////////////////////////////////////////
   __memory_usage += total_sz;
-  if (__verbose_level > 1)
-    std::cout << "Memory for Conjugate Gradient Solver:\t"
-              << (total_sz / 1024 / 1024) << "MB\n";
+  if (__verbose_level > 1) {
+    CONSOLE("Memory for Conjugate Gradient Solver:\t%dMB",
+            (total_sz / 1024 / 1024));
+  }
   return true;
 }
 
@@ -3257,8 +3262,9 @@ void SparseBundleCPU<Float>::NormalizeDataF() {
           _camera_data[i].radial *= radial_factor;
         }
       }
-      if (__verbose_level > 2)
-        std::cout << "Focal length normalized by " << __focal_scaling << '\n';
+      if (__verbose_level > 2) {
+        CONSOLE("Focal length normalized by %f", __focal_scaling);
+      }
       __reset_initial_distortion = false;
     }
   } else {
@@ -3278,7 +3284,7 @@ void SparseBundleCPU<Float>::NormalizeDataF() {
   }
 
   if (incompatible_radial_distortion) {
-    std::cout << "ERROR: incompatible radial distortion input; reset to 0;\n";
+    CONSOLE("ERROR: incompatible radial distortion input; reset to 0;");
   }
 }
 
@@ -3311,11 +3317,11 @@ void SparseBundleCPU<Float>::NormalizeDataD() {
         bool checkx = fabs(mx) > fabs(my);
         if ((checkx && px * oz[i] * mx < 0 && fabs(mx) > 64) ||
             (!checkx && py * oz[i] * my < 0 && fabs(my) > 64)) {
-          if (__verbose_level > 3)
-            std::cout << "Warning: proj of #" << cmidx
-                      << " on the wrong side, oz = " << oz[i] << " ("
-                      << (px / oz[i]) << ',' << (py / oz[i]) << ") (" << mx
-                      << ',' << my << ")\n";
+          if (__verbose_level > 3) {
+            CONSOLE(
+                "Warning: proj of #%d on the wrong side, oz = %f (%f, %f) (%f, %f)",
+                cmidx, oz[i], (px / oz[i]), (py / oz[i]), mx, my);
+          }
           /////////////////////////////////////////////////////////////////////////
           if (oz[i] > 0)
             cpdist2[cmidx] = 0;
@@ -3334,8 +3340,9 @@ void SparseBundleCPU<Float>::NormalizeDataD() {
       camnpj[cmidx]++;
     }
     if (bad_point_count > 0 && __depth_degeneracy_fix) {
-      if (!__focal_normalize || !__depth_normalize)
-        std::cout << "Enable data normalization on degeneracy\n";
+      if (!__focal_normalize || !__depth_normalize) {
+        CONSOLE("Enable data normalization on degeneracy");
+      }
       __focal_normalize = true;
       __depth_normalize = true;
     }
@@ -3345,9 +3352,9 @@ void SparseBundleCPU<Float>::NormalizeDataD() {
       float shift_min = std::min(oz_median * 0.001f, 1.0f);
       float dist_threshold = shift_min * 0.1f;
       __depth_scaling = (1.0 / oz_median) / __data_normalize_median;
-      if (__verbose_level > 2)
-        std::cout << "Depth normalized by " << __depth_scaling << " ("
-                  << oz_median << ")\n";
+      if (__verbose_level > 2) {
+        CONSOLE("Depth normalized by %f (%f)", __depth_scaling, oz_median);
+      }
 
       for (int i = 0; i < _num_camera; ++i) {
         // move the camera a little bit?
@@ -3359,12 +3366,10 @@ void SparseBundleCPU<Float>::NormalizeDataD() {
           bool boths =
               cpdist1[i] < dist_threshold && cpdist2[i] > -dist_threshold;
           _camera_data[i].t[2] += shift;
-          if (__verbose_level > 3)
-            std::cout << "Adjust C" << std::setw(5) << i << " by "
-                      << std::setw(12) << shift << " [B" << std::setw(2)
-                      << cambpj[i] << "/" << std::setw(5) << camnpj[i] << "] ["
-                      << (boths ? 'X' : ' ') << "][" << cpdist1[i] << ", "
-                      << cpdist2[i] << "]\n";
+          if (__verbose_level > 3) {
+            CONSOLE(fmt::format("Adjust C{:>5} by {:>12} [B{:>2}/{:>5}] [{}][{}, {}]",
+                    i,shift,cambpj[i],camnpj[i],(boths ? 'X' : ' '),cpdist1[i],cpdist2[i]).c_str());
+          }
           __num_camera_modified++;
         }
         _camera_data[i].t[0] *= __depth_scaling;
@@ -3379,11 +3384,9 @@ void SparseBundleCPU<Float>::NormalizeDataD() {
       }
     }
     if (__num_point_behind > 0)
-      std::cout << "WARNING: " << __num_point_behind
-                << " points are behind cameras.\n";
+      CONSOLE("WARNING: %d points are behind cameras.", __num_point_behind);
     if (__num_camera_modified > 0)
-      std::cout << "WARNING: " << __num_camera_modified
-                << " camera moved to avoid degeneracy.\n";
+      CONSOLE("WARNING: %d camera moved to avoid degeneracy.", __num_camera_modified);
   }
 }
 
@@ -3481,9 +3484,9 @@ int SparseBundleCPU<Float>::SolveNormalEquationPCGX(float lambda) {
   float_t uv0 = (float_t)ComputeVectorDot(up, vp);
   float_t alpha0 = rtz0 / (qtq0 + lambda * pdp0 - uv0);
 
-  if (__verbose_cg_iteration)
-    std::cout << " --0,\t alpha = " << alpha0
-              << ", t = " << BundleTimerGetNow(TIMER_CG_ITERATION) << "\n";
+  if (__verbose_cg_iteration) {
+    CONSOLE(" --0,\t alpha = %f, t = %f", alpha0, BundleTimerGetNow(TIMER_CG_ITERATION));
+  }
   if (!std::isfinite(alpha0)) {
     return 0;
   }
@@ -3537,10 +3540,10 @@ int SparseBundleCPU<Float>::SolveNormalEquationPCGX(float lambda) {
     float_t alphak = rtzk / (qtqk + lambda * pdpk - uvk);
 
     /////////////////////////////////////////////////////
-    if (__verbose_cg_iteration)
-      std::cout << " --" << iteration << ",\t alpha= " << alphak
-                << ", rtzk/rtz0 = " << rtz_ratio
-                << ", t = " << BundleTimerGetNow(TIMER_CG_ITERATION) << "\n";
+    if (__verbose_cg_iteration) {
+      CONSOLE(fmt::format(" --{},\t alpha= {}, rtzk/rtz0 = {:.6f}, t = {}",
+           iteration, alphak, rtz_ratio, BundleTimerGetNow(TIMER_CG_ITERATION)).c_str());
+    }
 
     ///////////////////////////////////////////////////
     if (!std::isfinite(alphak) || rtz_ratio > __cg_norm_guard) {
@@ -3601,9 +3604,11 @@ int SparseBundleCPU<Float>::SolveNormalEquationPCGB(float lambda) {
       (float_t)ComputeVectorNormW(_cuVectorPK, VectorDP);  // p(0)' * DDD * p(0)
   float_t alpha0 = rtz0 / (qtq0 + lambda * ptdp0);
 
-  if (__verbose_cg_iteration)
-    std::cout << " --0,\t alpha = " << alpha0
-              << ", t = " << BundleTimerGetNow(TIMER_CG_ITERATION) << "\n";
+  if (__verbose_cg_iteration) {
+    CONSOLE(" --0,\t alpha = %f, t = %f", alpha0, BundleTimerGetNow(TIMER_CG_ITERATION));
+
+  }
+    CONSOLE(" --0,\t alpha = %f, t = %f", alpha0, BundleTimerGetNow(TIMER_CG_ITERATION));
   if (!std::isfinite(alpha0)) {
     return 0;
   }
@@ -3661,10 +3666,10 @@ int SparseBundleCPU<Float>::SolveNormalEquationPCGB(float lambda) {
     float_t alphak = rtzk / (qtqk + lambda * ptdpk);
 
     /////////////////////////////////////////////////////
-    if (__verbose_cg_iteration)
-      std::cout << " --" << iteration << ",\t alpha= " << alphak
-                << ", rtzk/rtz0 = " << rtz_ratio
-                << ", t = " << BundleTimerGetNow(TIMER_CG_ITERATION) << "\n";
+    if (__verbose_cg_iteration) {
+      CONSOLE(fmt::format(" --{},\t alpha= {}, rtzk/rtz0 = {f}, t = {}",
+           iteration, alphak, rtz_ratio, BundleTimerGetNow(TIMER_CG_ITERATION)).c_str());
+    }
 
     ///////////////////////////////////////////////////
     if (!std::isfinite(alphak) || rtz_ratio > __cg_norm_guard) {
@@ -3927,10 +3932,12 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
   EvaluateJacobians();
   ComputeJtE(_cuImageProj, _cuVectorJtE);
   ///////////////////////////////////////////////////////////////
-  if (__verbose_level)
-    std::cout << "Initial " << (__verbose_sse ? "sumed" : "mean")
-              << " squared error = " << __initial_mse * error_display_ratio
-              << "\n----------------------------------------------\n";
+  if (__verbose_level) {
+    CONSOLE(fmt::format(
+        "Initial {}, squared error = "
+        "{}\n----------------------------------------------\n",
+        __verbose_sse ? "sumed" : "mean", __initial_mse * error_display_ratio).c_str());
+  }
 
   //////////////////////////////////////////////////
   VectorF& cuImageTempProj = _cuVectorJX;
@@ -3943,7 +3950,7 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
                    g_inf);
 
   ////////////////////////////////////
-  std::cout << std::left;
+  //std::cout << std::left;
   for (int i = 0; i < __lm_max_iteration && !__abort_flag;
        __current_iteration = (++i)) {
     ////solve linear system
@@ -3952,17 +3959,21 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
     // there must be NaN somewhere
     if (num_cg_iteration == 0) {
       if (__verbose_level)
-        std::cout << "#" << std::setw(3) << i << " quit on numeric errors\n";
+        CONSOLE(fmt::format("#{:3d} quit on numeric errors\n", i).c_str());
+
       __pba_return_code = 'E';
       break;
     }
 
     // there must be infinity somewhere
     if (__recent_cg_status == 'I') {
-      std::cout << "#" << std::setw(3) << i << " 0  I e=" << std::setw(edwidth)
-                << "------- "
-                << " u=" << std::setprecision(3) << std::setw(9) << damping
-                << '\n' << std::setprecision(6);
+      CONSOLE(fmt::format("#{:>3} 0  I e={:>{}} u={:.3f}",
+                           i, "------- ", edwidth, damping).c_str());
+      // bullshit ahead --->
+      // std::cout << "#" << std::setw(3) << i << " 0  I e=" << std::setw(edwidth)
+      //           << "------- "
+      //           << " u=" << std::setprecision(3) << std::setw(9) << damping
+      //           << '\n' << std::setprecision(6);
       /////////////increase damping factor
       damping = damping * damping_adjust;
       damping_adjust = 2.0f * damping_adjust;
@@ -3980,11 +3991,11 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
     // difference
     if (dx_norm <= __lm_delta_threshold) {
       // damping factor must be way too big...or it converges
-      if (__verbose_level > 1)
-        std::cout << "#" << std::setw(3) << i << " " << std::setw(3)
-                  << num_cg_iteration << char(__recent_cg_status)
-                  << " quit on too small change (" << dx_norm << "  < "
-                  << __lm_delta_threshold << ")\n";
+      if (__verbose_level > 1) {
+        CONSOLE(fmt::format("#{:>3} {:>3}{} quit on too small change ({} < {})",
+                            i, num_cg_iteration, char(__recent_cg_status),
+                            dx_norm, __lm_delta_threshold).c_str());
+      }
       __pba_return_code = 'S';
       break;
     }
@@ -4013,34 +4024,32 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
                        g_norm, g_inf);
 
       /////////////////////////////////////////////
-      if (__verbose_level > 1)
-        std::cout << "#" << std::setw(3) << i << " " << std::setw(3)
-                  << num_cg_iteration << char(__recent_cg_status)
-                  << " e=" << std::setw(edwidth)
-                  << average_residual * error_display_ratio
-                  << " u=" << std::setprecision(3) << std::setw(9) << damping
-                  << " r=" << std::setw(6)
-                  << floor(gain_ratio * 1000.f) * 0.001f
-                  << " g=" << std::setw(g_norm > 0 ? 9 : 1) << g_norm << " "
-                  << std::setw(9) << relative_reduction << ' ' << std::setw(9)
-                  << dx_norm << " t=" << int(BundleTimerGetNow()) << "\n"
-                  << std::setprecision(6);
+      if (__verbose_level > 1) {
+        CONSOLE(fmt::format("#{:>3} {:>3}{} e={:>{}} u={:>9.3f} r={:>6.3f} "
+                            "g={:>{}s} {:>9} {:>9} t={}",
+                            i, num_cg_iteration, char(__recent_cg_status),
+                            average_residual * error_display_ratio, edwidth,
+                            damping, floor(gain_ratio * 1000.f) * 0.001f,
+                            g_norm > 0 ? std::to_string(g_norm) : "",
+                            relative_reduction, dx_norm,
+                            int(BundleTimerGetNow())).c_str());
+      }
 
       /////////////////////////////
       if (!IsTimeBudgetAvailable()) {
-        if (__verbose_level > 1)
-          std::cout << "#" << std::setw(3) << i << " used up time budget.\n";
+        if (__verbose_level > 1) {
+          CONSOLE(fmt::format("#{:>3} used up time budget.\n", i).c_str());
+        }
         __pba_return_code = 'T';
         break;
       } else if (__lm_check_gradient && g_inf < __lm_gradient_threshold) {
         if (__verbose_level > 1)
-          std::cout << "#" << std::setw(3) << i
-                    << " converged with small gradient\n";
+          CONSOLE(fmt::format("#{:>3} converged with small gradient", i).c_str());
         __pba_return_code = 'G';
         break;
       } else if (average_residual * error_display_ratio <= __lm_mse_threshold) {
         if (__verbose_level > 1)
-          std::cout << "#" << std::setw(3) << i << " satisfies MSE threshold\n";
+          CONSOLE(fmt::format("#{:>3} satisfies MSE threshold", i).c_str());
         __pba_return_code = 'M';
         break;
       } else {
@@ -4062,18 +4071,14 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
         ComputeJtE(_cuImageProj, _cuVectorJtE);
       }
     } else {
-      if (__verbose_level > 1)
-        std::cout << "#" << std::setw(3) << i << " " << std::setw(3)
-                  << num_cg_iteration << char(__recent_cg_status)
-                  << " e=" << std::setw(edwidth) << std::left
-                  << average_residual * error_display_ratio
-                  << " u=" << std::setprecision(3) << std::setw(9) << damping
-                  << " r=----- " << (__lm_check_gradient || __save_gradient_norm
-                                         ? " g=---------"
-                                         : " g=0")
-                  << " --------- " << std::setw(9) << dx_norm
-                  << " t=" << int(BundleTimerGetNow()) << "\n"
-                  << std::setprecision(6);
+      if (__verbose_level > 1) {
+        CONSOLE(fmt::format("#{:>3} {:>3}{} e={:<{}} u={:>9.3f} r=----- g={} {:>9} t={}",
+            i, num_cg_iteration, char(__recent_cg_status),
+            average_residual * error_display_ratio, edwidth, damping,
+            (__lm_check_gradient || __save_gradient_norm) ? "---------" : "0",
+            dx_norm, int(BundleTimerGetNow())).c_str());
+
+      }
 
       if (__lm_damping_auto_switch > 0 && __lm_use_diagonal_damp &&
           damping > __lm_damping_auto_switch) {
@@ -4081,7 +4086,7 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
         damping = __lm_damping_auto_switch;
         damping_adjust = 2.0f;
         if (__verbose_level > 1)
-          std::cout << "NOTE: switch to damping with an identity matix\n";
+          CONSOLE("NOTE: switch to damping with an identity matix");
       } else {
         /////////////increase damping factor
         damping = damping * damping_adjust;
@@ -4089,7 +4094,7 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
       }
     }
 
-    if (__verbose_level == 1) std::cout << '.';
+    if (__verbose_level == 1) CONSOLE(".");
   }
 
   __final_mse = float(_projection_sse * mse_convert_ratio);
@@ -4101,11 +4106,10 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
 }
 
 #define PROFILE_REPORT2(A, T) \
-  std::cout << std::setw(24) << A << ": " << (T) << "\n";
+  CONSOLE(fmt::format("{:>24}: {}", A, (T)).c_str());
 
 #define PROFILE_REPORT(A)                 \
-  std::cout << std::setw(24) << A << ": " \
-            << (BundleTimerGet(TIMER_PROFILE_STEP) / repeat) << "\n";
+  CONSOLE(fmt::format("{:>24}: {}", A , (BundleTimerGet(TIMER_PROFILE_STEP) / repeat)).c_str());
 
 #define PROFILE_(B)                     \
   BundleTimerStart(TIMER_PROFILE_STEP); \
@@ -4193,12 +4197,10 @@ template <class Float>
 void SparseBundleCPU<Float>::RunProfileSteps() {
   const int repeat = std::max(__profile_pba, 1);
   int* nthread = __num_cpu_thread;
-  std::cout << "---------------------------------\n"
-               "|    Run profiling steps ("
-            << repeat << ")  |\n"
-                         "---------------------------------\n"
-            << std::left;
-  ;
+  CONSOLE("---------------------------------\n"
+          "|    Run profiling steps (%d)  |\n"
+          "---------------------------------", repeat);
+          //  << std::left; //what was it for? for next outputs?
 
   ///////////////////////////////////////////////
   EvaluateProjection(_cuCameraData, _cuPointData, _cuImageProj);
@@ -4213,8 +4215,9 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
       break;
     __lm_initial_damp *= 2.0f;
   } while (__lm_initial_damp < 1024.0f);
-  std::cout << "damping set to " << __lm_initial_damp << " for profiling\n"
-            << "---------------------------------\n";
+  CONSOLE("damping set to %f for profiling\n"
+          "---------------------------------",
+          __lm_initial_damp);
   ///////////////////////
   {
     int repeat = 10, cgmin = __cg_min_iteration, cgmax = __cg_max_iteration;
@@ -4222,24 +4225,24 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
     __num_cg_iteration = 0;
     PROFILE(SolveNormalEquationPCGX, (__lm_initial_damp));
     if (__num_cg_iteration != 100)
-      std::cout << __num_cg_iteration << " cg iterations in all\n";
+      CONSOLE("%d cg iterations in all", __num_cg_iteration);
     //////////////////////////////////////////////////////
     __num_cg_iteration = 0;
     PROFILE(SolveNormalEquationPCGB, (__lm_initial_damp));
     if (__num_cg_iteration != 100)
-      std::cout << __num_cg_iteration << " cg iterations in all\n";
-    std::cout << "---------------------------------\n";
+      CONSOLE("%d cg iterations in all", __num_cg_iteration);
+    CONSOLE("---------------------------------");
     //////////////////////////////////////////////////////
     __num_cg_iteration = 0;
     PROXILE("Single iteration LMX", RunTestIterationLM(true));
     if (__num_cg_iteration != 100)
-      std::cout << __num_cg_iteration << " cg iterations in all\n";
+      CONSOLE(" cg iterations in all", __num_cg_iteration);
     //////////////////////////////////////////////////////
     __num_cg_iteration = 0;
     PROXILE("Single iteration LMB", RunTestIterationLM(false));
     if (__num_cg_iteration != 100)
-      std::cout << __num_cg_iteration << " cg iterations in all\n";
-    std::cout << "---------------------------------\n";
+      CONSOLE("%d cg iterations in all", __num_cg_iteration);
+    CONSOLE("---------------------------------");
     __cg_max_iteration = cgmax;
     __cg_min_iteration = cgmin;
   }
@@ -4252,7 +4255,7 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
   PROFILE(ComputeSAXPY, ((Float)0.01f, _cuVectorXK, _cuVectorRK, _cuVectorZK));
   PROFILE(ComputeSXYPZ,
           ((Float)0.01f, _cuVectorXK, _cuVectorPK, _cuVectorRK, _cuVectorZK));
-  std::cout << "---------------------------------\n";
+  CONSOLE("---------------------------------");
   PROTILE(FUNC_VS, ComputeVectorNorm,
           (_cuImageProj, nthread[FUNC_VS]));  // reset the parameter to 0
 
@@ -4264,7 +4267,7 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
             ((Float)0.01f, _cuImageProj, temp1, temp2, nthread[FUNC_VV]));
   }
 
-  std::cout << "---------------------------------\n";
+  CONSOLE("---------------------------------");
   __multiply_jx_usenoj = false;
 
   ////////////////////////////////////////////////////
@@ -4284,18 +4287,18 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
         PROTILE2(FUNC_BCC_JCT, FUNC_BCP, ComputeBlockPC, (0.001f, true));
         PROFILE(ComputeDiagonal, (_cuVectorPK));
 
-        std::cout << "---------------------------------\n"
-                     "|   Not storing original  JC    | \n"
-                     "---------------------------------\n";
+        CONSOLE("---------------------------------\n"
+                "|   Not storing original  JC    | \n"
+                "---------------------------------");
         __jc_store_original = false;
         PROTILE(FUNC_JJ_JCT_JP, EvaluateJacobians, ());
         __jc_store_original = true;
       }
 
       //////////////////////////////////////////////////
-      std::cout << "---------------------------------\n"
-                   "|   Not storing transpose JC    | \n"
-                   "---------------------------------\n";
+      CONSOLE("---------------------------------\n"
+              "|   Not storing transpose JC    | \n"
+              "---------------------------------");
       __jc_store_transpose = false;
       _cuJacobianCameraT.resize(0);
       PROTILE(FUNC_JJ_JCO_JP, EvaluateJacobians, ());
@@ -4309,17 +4312,17 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
       PROTILE2(FUNC_BCC_JCT, FUNC_BCP, ComputeBlockPC, (0.001f, true));
       PROFILE(ComputeDiagonal, (_cuVectorPK));
 
-      std::cout << "---------------------------------\n"
-                   "|   Not storing original  JC    | \n"
-                   "---------------------------------\n";
+      CONSOLE("---------------------------------\n"
+              "|   Not storing original  JC    | \n"
+              "---------------------------------");
       PROTILE(FUNC_JJ_JCT_JP, EvaluateJacobians, ());
     }
   }
 
   if (!__no_jacobian_store) {
-    std::cout << "---------------------------------\n"
-                 "| Not storing Camera Jacobians  | \n"
-                 "---------------------------------\n";
+    CONSOLE("---------------------------------\n"
+            "| Not storing Camera Jacobians  | \n"
+            "---------------------------------");
     __jc_store_transpose = false;
     __jc_store_original = false;
     _cuJacobianCamera.resize(0);
@@ -4330,15 +4333,15 @@ void SparseBundleCPU<Float>::RunProfileSteps() {
   }
 
   ///////////////////////////////////////////////
-  std::cout << "---------------------------------\n"
-               "|   Not storing any jacobians   |\n"
-               "---------------------------------\n";
+  CONSOLE("---------------------------------\n"
+          "|   Not storing any jacobians   |\n"
+          "---------------------------------");
   __no_jacobian_store = true;
   _cuJacobianPoint.resize(0);
   PROTILE(FUNC_JX_, ComputeJX, (_cuVectorJtE, _cuVectorJX));
   PROFILE(ComputeJtE, (_cuImageProj, _cuVectorJtE));
   PROFILE(ComputeBlockPC, (0.001f, true));
-  std::cout << "---------------------------------\n";
+  CONSOLE("---------------------------------");
 }
 
 template <class Float>

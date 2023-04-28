@@ -56,4 +56,5 @@ target_link_libraries(sift_gpu
     ${GLEW_LIBRARIES}
     ${OPENGL_gl_LIBRARY}
     ${OPENGL_glu_LIBRARY}
+    log
 )

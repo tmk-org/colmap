@@ -40,6 +40,8 @@ using namespace std;
 #include "ShaderMan.h"
 #include "SiftGPU.h"
 
+#include <log/trace.h>
+
 ProgramGLSL::ShaderObject::ShaderObject(int shadertype, const char * source, int filesource)
 {
 
@@ -72,7 +74,8 @@ ProgramGLSL::ShaderObject::ShaderObject(int shadertype, const char * source, int
 
 		CheckCompileLog();
 
-		if(!_compiled) 		std::cout << source;
+		if(!_compiled)
+			CONSOLE("%s", source);
 	}
 
 
@@ -329,7 +332,7 @@ FilterGLSL::FilterGLSL(float sigma)
 	//filter size truncation
 	if(GlobalUtil::_MaxFilterWidth >0 && width > GlobalUtil::_MaxFilterWidth)
 	{
-		std::cout<<"Filter size truncated from "<<width<<" to "<<GlobalUtil::_MaxFilterWidth<<endl;
+		CONSOLE("Filter size truncated from %d to %d", width, GlobalUtil::_MaxFilterWidth);
 		sz = GlobalUtil::_MaxFilterWidth>>1;
 		width = 2 * sz + 1;
 	}
@@ -356,7 +359,7 @@ FilterGLSL::FilterGLSL(float sigma)
 	_size = sz;
 
 	delete[] kernel;
-    if(GlobalUtil::_verbose && GlobalUtil::_timingL) std::cout<<"Filter: sigma = "<<sigma<<", size = "<<width<<"x"<<width<<endl;
+    if(GlobalUtil::_verbose && GlobalUtil::_timingL) CONSOLE("Filter: sigma = %f, size = %dx%d", sigma, width, width);
 }
 
 
@@ -715,14 +718,14 @@ void ShaderBagGLSL::LoadFixedShaders()
 		_param_orientation_size = glGetUniformLocation(*program, "size");
 		GlobalUtil::_MaxOrientation = 0;
 		GlobalUtil::_FullSupported = 0;
-		std::cerr<<"Orientation simplified on this hardware"<<endl;
+		CONSOLE("Orientation simplified on this hardware");
 	}
 
 	if(GlobalUtil::_DescriptorPPT) LoadDescriptorShader();
 	if(s_descriptor_fp == NULL)
 	{
 		GlobalUtil::_DescriptorPPT = GlobalUtil::_FullSupported = 0;
-		std::cerr<<"Descriptor ignored on this hardware"<<endl;
+		CONSOLE("Descriptor ignored on this hardware");
 	}
 
 	s_zero_pass = new ProgramGLSL("void main(){gl_FragColor = vec4(0.0);}");
@@ -998,7 +1001,7 @@ void ShaderBagGLSL::LoadKeypointShader(float threshold, float edge_threshold)
 	"}\n" <<'\0';
 		s_keypoint = program = new ProgramGLSL(out.str().c_str());
 		GlobalUtil::_SubpixelLocalization = 0;
-		std::cerr<<"Detection simplified on this hardware"<<endl;
+		CONSOLE("Detection simplified on this hardware");
 	}
 
 	_param_dog_texu = glGetUniformLocation(*program, "texU");
@@ -1724,7 +1727,7 @@ void ShaderBagPKSL::LoadFixedShaders()
 		_param_orientation_size= glGetUniformLocation(*program, "size");
 		GlobalUtil::_MaxOrientation = 0;
 		GlobalUtil::_FullSupported = 0;
-		std::cerr<<"Orientation simplified on this hardware"<<endl;
+		CONSOLE("Orientation simplified on this hardware");
 	}
 
 	if(GlobalUtil::_DescriptorPPT)
@@ -1733,7 +1736,7 @@ void ShaderBagPKSL::LoadFixedShaders()
 		if(s_descriptor_fp == NULL)
 		{
 			GlobalUtil::_DescriptorPPT = GlobalUtil::_FullSupported = 0;
-			std::cerr<<"Descriptor ignored on this hardware"<<endl;
+			CONSOLE("Descriptor ignored on this hardware");
 		}
 	}
 }

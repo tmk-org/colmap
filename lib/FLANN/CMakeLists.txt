@@ -7,3 +7,7 @@ COLMAP_ADD_STATIC_LIBRARY(flann
     ext/lz4.h ext/lz4.c
     ext/lz4hc.h ext/lz4hc.c
 )
+
+target_link_libraries(flann
+    log
+)

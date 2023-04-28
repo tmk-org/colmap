@@ -34,6 +34,8 @@
 #include "util/logging.h"
 #include "util/misc.h"
 
+#include <log/trace.h>
+
 using namespace std::chrono;
 
 namespace colmap {
@@ -86,18 +88,15 @@ double Timer::ElapsedMinutes() const { return ElapsedSeconds() / 60; }
 double Timer::ElapsedHours() const { return ElapsedMinutes() / 60; }
 
 void Timer::PrintSeconds() const {
-  std::cout << StringPrintf("Elapsed time: %.5f [seconds]", ElapsedSeconds())
-            << std::endl;
+  CONSOLE(StringPrintf("Elapsed time: %.5f [seconds]", ElapsedSeconds()).c_str());
 }
 
 void Timer::PrintMinutes() const {
-  std::cout << StringPrintf("Elapsed time: %.3f [minutes]", ElapsedMinutes())
-            << std::endl;
+  CONSOLE(StringPrintf("Elapsed time: %.3f [minutes]", ElapsedMinutes()).c_str());
 }
 
 void Timer::PrintHours() const {
-  std::cout << StringPrintf("Elapsed time: %.3f [hours]", ElapsedHours())
-            << std::endl;
+  CONSOLE(StringPrintf("Elapsed time: %.3f [hours]", ElapsedHours()).c_str());
 }
 
 }  // namespace colmap
