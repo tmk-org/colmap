@@ -16,6 +16,8 @@ namespace colmap {
 
 class SerialReconstructionController : public Thread {
  public:
+    using image_id_range_t=std::pair<image_t,image_t>;
+ public:
   SerialReconstructionController(const OptionManager& options,
                                  ReconstructionManager* reconstruction_manager,
                                  size_t max_buffer_size = 20);
@@ -26,9 +28,11 @@ class SerialReconstructionController : public Thread {
   void RunFeatureExtraction();
   void RunFeatureMatching();
   void RunIncrementalMapper();
-
+  void SetExcludeRange(const image_id_range_t& range);
+  void SetExcludeRangeFromIdToEnd(image_t idfrom);
+  void SetExcludeRangeFromBeginToId(image_t idto);
   void AddImageData(internal::ImageData image_data);
-
+  
   const std::unordered_map<camera_t, camera_t>& getImageCorrespondences() const;
   const std::unordered_map<image_t, image_t>& getCameraCorrespondences() const;
     boost::signals2::signal<bool()> OnFeatureExtractionStart,   OnFeatureExtractionStop;
@@ -37,7 +41,7 @@ class SerialReconstructionController : public Thread {
     boost::signals2::signal<void(size_t,size_t,size_t)> FeatureExtractorStateChanged;
  private:
   void onLoad(image_t id);
-
+  void CheckAgainstExclude();
   OptionManager option_manager_;
   ReconstructionManager* reconstruction_manager_;
 
@@ -51,12 +55,14 @@ class SerialReconstructionController : public Thread {
   std::unique_ptr<Thread> sequential_matcher_;
   std::unique_ptr<Thread> incremental_mapper_;
 
-  std::vector<int> matching_overlap_;
+  std::map<image_t,int> matching_overlap_;
   std::mutex overlap_mutex_;
 
   std::unordered_map<camera_t, camera_t> cameras_ids_correspondence_;
   std::unordered_map<image_t, image_t> images_ids_correspondence_;
   size_t _max_buffer_size;
+  std::vector<image_id_range_t> _rangesToExclude;
+  std::mutex _rangesToExcludeMutex;
 };
 
 }  // namespace colmap

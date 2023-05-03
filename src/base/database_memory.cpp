@@ -321,13 +321,23 @@ void MemoryDatabase::UpdateImage(const Image& image) {
 void MemoryDatabase::DeleteMatches(const image_t image_id1,
                                    const image_t image_id2) {
   image_pair_t pair_id = MemoryDatabase::ImagePairToPairId(image_id1, image_id2);
-  matches_.erase(pair_id);
+  auto it= matches_.find(pair_id);
+  if(it!=matches_.end())
+  {
+    matches_.erase(it);
+  }
+  
 }
 
 void MemoryDatabase::DeleteInlierMatches(const image_t image_id1,
                                          const image_t image_id2) {
   image_pair_t pair_id = MemoryDatabase::ImagePairToPairId(image_id1, image_id2);
-  two_view_geometries_.erase(pair_id);
+  auto it= two_view_geometries_.find(pair_id);
+  if(it!= two_view_geometries_.end())
+  {
+    two_view_geometries_.erase(it);
+  }
+  
 }
 
 void MemoryDatabase::BeginTransaction() const {}

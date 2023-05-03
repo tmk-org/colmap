@@ -25,8 +25,8 @@
 
 #ifndef _GLOBAL_UTILITY_H
 #define _GLOBAL_UTILITY_H
-
-
+#include <string>
+#include <glog/logging.h>
 //wrapper for some shader function
 //class ProgramGPU;
 class LiteWindow;
@@ -101,6 +101,7 @@ public:
 	static int				_WindowInitY;
 	static const char*		_WindowDisplay;
     static int              _DeviceIndex; 
+    static std::string ToString();
 };
 
 

@@ -320,12 +320,13 @@ IncrementalMapperController::IncrementalMapperController(
 
 void IncrementalMapperController::Run() {
   if (!LoadDatabase()) {
+    LOG(WARNING)<< "LoadDatabase() returned false";
     return;
   }
 
   IncrementalMapper::Options init_mapper_options = options_->Mapper();
   Reconstruct(init_mapper_options);
-
+  LOG(INFO) << "Reconstruct() finished, reconstruction size "<<reconstruction_manager_->Size()<<" IsStopped() "<<IsStopped();
   const size_t kNumInitRelaxations = 2;
   for (size_t i = 0; i < kNumInitRelaxations; ++i) {
     if (reconstruction_manager_->Size() > 0 || IsStopped()) {
@@ -416,7 +417,7 @@ void IncrementalMapperController::Reconstruct(
         reconstruction_manager_->Get(reconstruction_idx);
 
     mapper.BeginReconstruction(&reconstruction);
-
+    LOG(INFO)<<"mapper.BeginReconstruction(&reconstruction) finished";
     ////////////////////////////////////////////////////////////////////////////
     // Register initial pair
     ////////////////////////////////////////////////////////////////////////////
@@ -469,6 +470,10 @@ void IncrementalMapperController::Reconstruct(
       // Initial image pair failed to register.
       if (reconstruction.NumRegImages() == 0 ||
           reconstruction.NumPoints3D() == 0) {
+        std::cout<<StringPrintf("either reconstruction.NumRegImages() (%d) == 0 or reconstruction.NumPoints3D() (%d ) is true,breaking reconstruction",
+                                reconstruction.NumRegImages(),
+                                reconstruction.NumPoints3D())
+                  << std::endl;    
         mapper.EndReconstruction(kDiscardReconstruction);
         reconstruction_manager_->Delete(reconstruction_idx);
         // If both initial images are manually specified, there is no need for
@@ -628,5 +633,80 @@ void IncrementalMapperController::Reconstruct(
     }
   }
 }
+
+    int& IncrementalMapperOptions::init_min_num_inliers()
+    {
+        return * (&mapper.init_min_num_inliers);
+    }
+
+    // Maximum error in pixels for two-view geometry estimation for initial
+    // image pair.
+    double& IncrementalMapperOptions::init_max_error()
+    {
+        return * (&mapper.init_max_error);
+    }
+
+    // Maximum forward motion for initial image pair.
+    double& IncrementalMapperOptions::init_max_forward_motion()
+    {
+        return * (&mapper.init_max_forward_motion);
+    }
+
+    // Minimum triangulation angle for initial image pair.
+    double& IncrementalMapperOptions::init_min_tri_angle()
+    {
+        return * (&mapper.init_min_tri_angle);
+    }
+
+    // Maximum number of trials to use an image for initialization.
+    int& IncrementalMapperOptions::init_max_reg_trials()
+    {
+        return * (&mapper.init_max_reg_trials);
+    }
+
+    // Maximum reprojection error in absolute pose estimation.
+    double& IncrementalMapperOptions::abs_pose_max_error()
+    {
+        return * (&mapper.abs_pose_max_error);
+    }
+
+    // Minimum number of inliers in absolute pose estimation.
+    int& IncrementalMapperOptions::abs_pose_min_num_inliers()
+    {
+        return * (&mapper.abs_pose_min_num_inliers);
+    }
+
+    // Minimum inlier ratio in absolute pose estimation.
+    double& IncrementalMapperOptions::abs_pose_min_inlier_ratio()
+    {
+        return * (&mapper.abs_pose_min_inlier_ratio);
+    }
+
+    // Whether to estimate the focal length in absolute pose estimation.
+    
+    // Minimum triangulation for images to be chosen in local bundle adjustment.
+    double& IncrementalMapperOptions::local_ba_min_tri_angle()
+    {
+        return * (&mapper.local_ba_min_tri_angle);
+    }
+
+    // Maximum reprojection error in pixels for observations.
+    double& IncrementalMapperOptions::filter_max_reproj_error()
+    {
+        return * (&mapper.filter_max_reproj_error);
+    }
+
+    // Minimum triangulation angle in degrees for stable 3D points.
+    double& IncrementalMapperOptions::filter_min_tri_angle ()
+    {
+        return * (&mapper.filter_min_tri_angle);
+    }
+
+    // Maximum number of trials to register an image.
+    int& IncrementalMapperOptions::max_reg_trials()
+    {
+        return * (&mapper.max_reg_trials);
+    }
+
 
 }  // namespace colmap
