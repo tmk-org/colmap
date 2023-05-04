@@ -108,11 +108,9 @@ int RunImageDeleter(int argc, char** argv) {
       const image_t image_id = std::stoi(image_id_str);
       if (reconstruction.ExistsImage(image_id)) {
         const auto& image = reconstruction.Image(image_id);
-        std::cout
-            << StringPrintf(
+        CONSOLE("%s",StringPrintf(
                    "Deleting image_id=%d, image_name=%s from reconstruction",
-                   image.ImageId(), image.Name().c_str())
-            << std::endl;
+                   image.ImageId(), image.Name().c_str()));
         reconstruction.DeRegisterImage(image_id);
       } else {
         CONSOLE(StringPrintf(

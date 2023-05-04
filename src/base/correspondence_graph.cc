@@ -143,18 +143,14 @@ void CorrespondenceGraph::AddCorrespondences(const image_t image_id1,
       image2.num_correspondences -= 1;
       image_pair.num_correspondences -= 1;
       if (!valid_idx1) {
-        std::cout
-            << StringPrintf(
+        CONSOLE("%s",StringPrintf(
                    "WARNING: point2D_idx=%d in image_id=%d does not exist",
-                   match.point2D_idx1, image_id1)
-            << std::endl;
+                   match.point2D_idx1, image_id1));
       }
       if (!valid_idx2) {
-        std::cout
-            << StringPrintf(
+        CONSOLE("%s",StringPrintf(
                    "WARNING: point2D_idx=%d in image_id=%d does not exist",
-                   match.point2D_idx2, image_id2)
-            << std::endl;
+                   match.point2D_idx2, image_id2));
       }
     }
   }

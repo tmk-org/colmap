@@ -70,14 +70,14 @@ PyramidCU::PyramidCU(SiftParam& sp) : SiftPyramid(sp)
 
 PyramidCU::~PyramidCU()
 {
-    std::cout << __PRETTY_FUNCTION__ << " initiated"<<std::endl;
+    CONSOLE("%s initiated",__PRETTY_FUNCTION__);
 	DestroyPerLevelData();
 	DestroySharedData();
 	DestroyPyramidData();
 	if(_inputTex) delete _inputTex;
     if(_bufferPBO) glDeleteBuffers(1, &_bufferPBO);
     if(_bufferTEX) delete _bufferTEX;
-    std::cout << __PRETTY_FUNCTION__ << " succeded"<<std::endl;
+    CONSOLE("%s  succeded",__PRETTY_FUNCTION__);
 }
 
 void PyramidCU::InitializeContext()

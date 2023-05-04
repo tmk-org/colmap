@@ -115,6 +115,10 @@ macro(COLMAP_ADD_LIBRARY TARGET_NAME)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
         ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap/)
+    if(REROUTE_CONSOLE_TO_GLOG)
+        message(STATUS "enabling CHANGE_CONSOLE_TO_LOG for target \"${TARGET_NAME}\"")
+        target_compile_definitions(${TARGET_NAME} PRIVATE CHANGE_CONSOLE_TO_LOG)
+    endif()
 endmacro(COLMAP_ADD_LIBRARY)
 macro(COLMAP_ADD_STATIC_LIBRARY TARGET_NAME)
     # ${ARGN} will store the list of source files passed to this function.
@@ -122,6 +126,10 @@ macro(COLMAP_ADD_STATIC_LIBRARY TARGET_NAME)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
         ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap)
+    if(REROUTE_CONSOLE_TO_GLOG)
+        message(STATUS "enabling CHANGE_CONSOLE_TO_LOG for target \"${TARGET_NAME}\"")
+        target_compile_definitions(${TARGET_NAME} PRIVATE CHANGE_CONSOLE_TO_LOG)
+    endif()
 endmacro(COLMAP_ADD_STATIC_LIBRARY)
 
 # Replacement for the normal cuda_add_library() command. The syntax remains the
@@ -133,6 +141,10 @@ macro(COLMAP_ADD_CUDA_LIBRARY TARGET_NAME)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
         ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap/)
+    if(REROUTE_CONSOLE_TO_GLOG)
+        message(STATUS "enabling CHANGE_CONSOLE_TO_LOG for target \"${TARGET_NAME}\"")
+        target_compile_definitions(${TARGET_NAME} PRIVATE CHANGE_CONSOLE_TO_LOG)
+    endif()
 endmacro(COLMAP_ADD_CUDA_LIBRARY)
 macro(COLMAP_ADD_STATIC_CUDA_LIBRARY TARGET_NAME)
     # ${ARGN} will store the list of source files passed to this function.
@@ -141,6 +153,10 @@ macro(COLMAP_ADD_STATIC_CUDA_LIBRARY TARGET_NAME)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER
         ${COLMAP_TARGETS_ROOT_FOLDER}/${FOLDER_NAME})
     install(TARGETS ${TARGET_NAME} DESTINATION lib/colmap/)
+    if(REROUTE_CONSOLE_TO_GLOG)
+        message(STATUS "enabling CHANGE_CONSOLE_TO_LOG for target \"${TARGET_NAME}\"")
+        target_compile_definitions(${TARGET_NAME} PRIVATE CHANGE_CONSOLE_TO_LOG)
+    endif()
 endmacro(COLMAP_ADD_STATIC_CUDA_LIBRARY)
 
 # Replacement for the normal add_executable() command. The syntax remains the

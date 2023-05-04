@@ -160,15 +160,13 @@ SiftFeatureExtractor::SiftFeatureExtractor(
         sift_options_.max_image_size ==
             SiftExtractionOptions().max_image_size &&
         sift_options_.first_octave == SiftExtractionOptions().first_octave) {
-      std::cout
-          << "WARNING: Your current options use the maximum number of "
+      CONSOLE("WARNING: Your current options use the maximum number of "
              "threads on the machine to extract features. Exracting SIFT "
              "features on the CPU can consume a lot of RAM per thread for "
              "large images. Consider reducing the maximum image size and/or "
              "the first octave or manually limit the number of extraction "
              "threads. Ignore this warning, if your machine has sufficient "
-             "memory for the current settings."
-          << std::endl;
+             "memory for the current settings.");
     }
 
     auto custom_sift_options = sift_options_;
@@ -532,7 +530,7 @@ SiftFeatureExtractorThread::SiftFeatureExtractorThread(
 
 void SiftFeatureExtractorThread::Run() {
   std::shared_ptr<SiftGPU> sift_gpu;
-  std::cout << sift_options_;
+  CONSOLE("%s",sift_options_);
   GPU_HOLDER_REFCOUNT_TYPE_NAME(SiftGPU) refCount;
   if (sift_options_.use_gpu) {
 #ifndef CUDA_ENABLED
@@ -662,7 +660,7 @@ void FeatureWriterThread::Run() {
       CONSOLE(StringPrintf("  Camera:          #%d - %s",
                                 image_data.camera.CameraId(),
                                 image_data.camera.ModelName().c_str()).c_str());
-      const auto print_length (StringPrintf("  Focal Length:    %.2fpx %s",
+      const auto print_length (StringPrintf("  Focal Length:    %.2fpx",
                                 image_data.camera.MeanFocalLength()));
       if (image_data.camera.HasPriorFocalLength()) {
         CONSOLE(print_length.c_str(), " (Prior)");

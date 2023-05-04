@@ -68,7 +68,8 @@ option(CGAL_ENABLED "Whether to enable the CGAL library" ON)
 option(BOOST_STATIC "Whether to enable static boost library linker flags" ON)
 set(CUDA_ARCHS "Auto" CACHE STRING "List of CUDA architectures for which to \
 generate code, e.g., Auto, All, Maxwell, Pascal, ...")
-
+set(REROUTE_CONSOLE_TO_GLOG CACHE BOOL "Whether to route all stdout output to glog to decrease traffic between processes")
+#option(REROUTE_CONSOLE_TO_GLOG "Whether to route all stdout output to glog to decrease traffic between processes" ON)
 if (SIMD_ENABLED)
     if( NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
         if( ${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
@@ -482,6 +483,8 @@ add_library(
     ${UI_SRCS}
     ${UTIL_SRCS}
 )
+
+
 
 # Prevent the library from being compiled automatically.
 set_target_properties(

@@ -470,10 +470,9 @@ void IncrementalMapperController::Reconstruct(
       // Initial image pair failed to register.
       if (reconstruction.NumRegImages() == 0 ||
           reconstruction.NumPoints3D() == 0) {
-        std::cout<<StringPrintf("either reconstruction.NumRegImages() (%d) == 0 or reconstruction.NumPoints3D() (%d ) is true,breaking reconstruction",
+        CONSOLE("%s",StringPrintf("either reconstruction.NumRegImages() (%d) == 0 or reconstruction.NumPoints3D() (%d ) is true,breaking reconstruction",
                                 reconstruction.NumRegImages(),
-                                reconstruction.NumPoints3D())
-                  << std::endl;    
+                                reconstruction.NumPoints3D()));    
         mapper.EndReconstruction(kDiscardReconstruction);
         reconstruction_manager_->Delete(reconstruction_idx);
         // If both initial images are manually specified, there is no need for
