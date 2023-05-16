@@ -5,6 +5,8 @@
 #include "util/misc.h"
 #include "util/option_manager.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 TestReconstructionController::TestReconstructionController(

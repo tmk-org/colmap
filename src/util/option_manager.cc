@@ -48,6 +48,8 @@
 #include "util/random.h"
 #include "util/version.h"
 
+#include "util/check.h"
+
 namespace config = boost::program_options;
 
 namespace colmap {

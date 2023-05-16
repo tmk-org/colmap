@@ -37,6 +37,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::string EnsureTrailingSlash(const std::string& str) {

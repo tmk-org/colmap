@@ -36,6 +36,8 @@
 #include "base/projection.h"
 #include "base/triangulation.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 Eigen::Matrix3d CrossProductMatrix(const Eigen::Vector3d& vector) {

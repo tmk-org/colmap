@@ -34,6 +34,8 @@
 #include "base/camera_models.h"
 #include "util/misc.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 bool ImageReaderOptions::Check() const {

@@ -36,6 +36,8 @@
 #include "util/string.h"
 #include "util/version.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 const size_t DatabaseRoot::kMaxNumImages =

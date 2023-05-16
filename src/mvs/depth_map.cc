@@ -34,6 +34,8 @@
 #include "base/warp.h"
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 

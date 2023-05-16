@@ -35,6 +35,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::vector<AffineTransformEstimator::M_t> AffineTransformEstimator::Estimate(

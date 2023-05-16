@@ -55,6 +55,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 #ifdef CGAL_ENABLED
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;

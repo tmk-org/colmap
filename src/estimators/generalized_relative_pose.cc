@@ -65,6 +65,8 @@
 #include "util/logging.h"
 #include "util/random.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

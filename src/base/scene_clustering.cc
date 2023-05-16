@@ -38,6 +38,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 namespace colmap {
 
 bool SceneClustering::Options::Check() const {

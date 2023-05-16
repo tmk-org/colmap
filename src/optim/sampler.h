@@ -37,6 +37,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Abstract base class for sampling methods.

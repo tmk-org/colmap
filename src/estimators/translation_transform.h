@@ -41,6 +41,8 @@
 #include "util/logging.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Estimate a N-D translation transformation between point pairs.

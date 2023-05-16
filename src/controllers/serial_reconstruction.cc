@@ -6,6 +6,9 @@
 #include "util/option_manager.h"
 #include "util/timer.h"
 #include <iterator>
+
+#include "util/check.h"
+
 namespace colmap
 {
 

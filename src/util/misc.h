@@ -43,6 +43,8 @@
 #include "util/logging.h"
 #include "util/string.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 #ifndef STRINGIFY

@@ -43,6 +43,8 @@
 #include "util/alignment.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Implementation of LO-RANSAC (Locally Optimized RANSAC).

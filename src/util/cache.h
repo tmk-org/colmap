@@ -38,6 +38,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Least Recently Used cache implementation. Whenever the cache size is

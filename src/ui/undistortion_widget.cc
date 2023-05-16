@@ -31,6 +31,8 @@
 
 #include "ui/undistortion_widget.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 UndistortionWidget::UndistortionWidget(QWidget* parent,

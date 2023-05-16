@@ -42,6 +42,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 #define PrintOption(option) CONSOLE(fmt::format("{}: {}", #option, option).c_str())
 
 namespace colmap {

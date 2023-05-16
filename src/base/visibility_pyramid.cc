@@ -33,6 +33,8 @@
 #include "util/logging.h"
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 VisibilityPyramid::VisibilityPyramid() : VisibilityPyramid(0, 0, 0) {}

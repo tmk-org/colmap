@@ -41,6 +41,8 @@
 #include "util/alignment.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 struct RANSACOptions;

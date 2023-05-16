@@ -33,6 +33,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 extern "C" {
 #include "LSD/lsd.h"
 }

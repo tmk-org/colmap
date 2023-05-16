@@ -51,6 +51,7 @@ COLMAP_ADD_SOURCES(
     testing.h
     types.h
     version.h version.cc
+    check.h
 )
 
 if(CUDA_ENABLED)

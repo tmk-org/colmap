@@ -39,6 +39,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 extern thread_local std::unique_ptr<std::mt19937> PRNG;

@@ -33,6 +33,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 FeatureKeypoint::FeatureKeypoint() : FeatureKeypoint(0, 0) {}

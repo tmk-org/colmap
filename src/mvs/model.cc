@@ -38,6 +38,8 @@
 #include "base/triangulation.h"
 #include "util/misc.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 

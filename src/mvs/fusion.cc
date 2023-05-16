@@ -35,6 +35,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 namespace internal {

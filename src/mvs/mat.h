@@ -39,6 +39,8 @@
 #include "util/endian.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 
