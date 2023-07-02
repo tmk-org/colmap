@@ -80,6 +80,12 @@ size_t ReconstructionManager::Read(const std::string& path) {
   return idx;
 }
 
+size_t ReconstructionManager::ReadFromDB(const std::string& path,const std::string& imageFolder,size_t min_num_matches,bool ignore_wm) {
+  const size_t idx = Add();
+  reconstructions_[idx]->ReadFromDB(path,imageFolder,min_num_matches,ignore_wm);
+  return idx;
+}
+
 void ReconstructionManager::Write(const std::string& path,
                                   const OptionManager* options) const {
   std::vector<std::pair<size_t, size_t>> recon_sizes(reconstructions_.size());

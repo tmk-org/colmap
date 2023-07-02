@@ -40,7 +40,7 @@ set(COLMAP_VERSION_NUMBER "3800")
 # Include CMake dependencies
 ################################################################################
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "/usr/local/flann_192/lib/cmake/flann/")
 
 include(CheckCXXCompilerFlag)
 

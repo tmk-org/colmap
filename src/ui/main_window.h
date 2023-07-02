@@ -86,6 +86,7 @@ class MainWindow : public QMainWindow {
   void ProjectSaveAs();
   void Import();
   void ImportFrom();
+  void ImportReconstructionFromGui();
   void Export();
   void ExportAll();
   void ExportAs();
@@ -186,6 +187,7 @@ class MainWindow : public QMainWindow {
   QAction* action_project_save_;
   QAction* action_project_save_as_;
   QAction* action_import_;
+  QAction* action_import_reconstruction_;
   QAction* action_import_from_;
   QAction* action_export_;
   QAction* action_export_all_;

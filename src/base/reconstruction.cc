@@ -770,6 +770,15 @@ void Reconstruction::WriteBinary(const std::string& path) const {
   WritePoints3DBinary(JoinPaths(path, "points3D.bin"));
 }
 
+void Reconstruction::ReadFromDB(const std::string& path,const std::string& image_folder,size_t min_num_matches,bool ignore_wm)
+{
+    Database dBase;
+    dBase.Open(path);
+    DatabaseCache cache;
+    cache.Load(dBase,min_num_matches,ignore_wm,{});
+    Load(cache);
+}
+
 std::vector<PlyPoint> Reconstruction::ConvertToPLY() const {
   std::vector<PlyPoint> ply_points;
   ply_points.reserve(points3D_.size());

@@ -35,6 +35,7 @@
 
 #include "util/version.h"
 
+
 namespace colmap {
 
 MainWindow::MainWindow(const OptionManager& options)
@@ -169,6 +170,12 @@ void MainWindow::CreateActions() {
       new QAction(QIcon(":/media/import.png"), tr("Import model"), this);
   connect(action_import_, &QAction::triggered, this, &MainWindow::Import);
   blocking_actions_.push_back(action_import_);
+
+  action_import_reconstruction_ =
+      new QAction(QIcon(":/media/import.png"), tr("Import reconstruction"), this);
+  connect(action_import_reconstruction_, &QAction::triggered, this, &MainWindow::ImportReconstructionFromGui);
+  blocking_actions_.push_back(action_import_reconstruction_);
+
 
   action_import_from_ = new QAction(QIcon(":/media/import-from.png"),
                                     tr("Import model from..."), this);
@@ -400,6 +407,7 @@ void MainWindow::CreateMenus() {
   file_menu->addSeparator();
   file_menu->addAction(action_import_);
   file_menu->addAction(action_import_from_);
+  file_menu->addAction(action_import_reconstruction_);
   file_menu->addSeparator();
   file_menu->addAction(action_export_);
   file_menu->addAction(action_export_all_);
@@ -701,6 +709,102 @@ void MainWindow::Import() {
           action_project_edit_->trigger();
         }
       });
+}
+
+void MainWindow::ImportReconstructionFromGui()
+{
+//  const std::string import_path =
+//    QFileDialog::getOpenFileName(this,"Open DB","",{},nullptr,QFileDialog::Option::).toUtf8().constData();
+    auto importFiles=
+        QFileDialog::getOpenFileNames(this,"Open DB And Project","");
+    std::string ini_project_file;
+    std::string db_file;
+    for(const auto& file : importFiles)
+    {
+        if(!(ini_project_file.empty() || db_file.empty()))
+        {
+            break;
+        }
+        QFileInfo qfile(file);
+        auto extension=qfile.completeSuffix().toStdString();
+        printf("file path \"%s\" suffix \"%s\"\n",file.toUtf8().constData(),qfile.completeSuffix().toStdString().c_str());
+        if(extension=="ini" && ini_project_file.empty())
+        {
+            ini_project_file=file.toStdString();
+        }
+        if(extension=="db" && db_file.empty())
+        {
+            db_file=file.toStdString();
+        }
+    }
+    if(ini_project_file.empty() || db_file.empty())
+    {
+        return;
+    }
+    printf("prject file \"%s\" db file \"%s\"\n",ini_project_file.c_str(),db_file.c_str());
+    try
+    {
+        if (options_.ReRead(ini_project_file)) 
+        {
+            *options_.project_path = ini_project_file;
+            
+            
+            project_widget_->SetImagePath(*options_.image_path);
+            UpdateWindowTitle();
+            reconstruction_manager_.ReadFromDB(db_file,*options_.image_path,options_.mapper->min_num_matches,options_.mapper->ignore_watermarks);
+            reconstruction_manager_widget_->Update();
+            if(reconstruction_manager_.Size()==0)
+            //{
+            //    
+            //}
+            //else
+            {
+                printf("reconstruction_manager_.Size() %zu\n",reconstruction_manager_.Size());
+            }
+            reconstruction_manager_widget_->SelectReconstruction(0);
+            project_widget_->SetDatabasePath(db_file);
+            RenderNow();
+        } 
+        else 
+        {
+            ShowInvalidProjectError();
+        }
+    }
+    catch(const std::exception& )
+    {
+    }
+    catch(...)
+    {
+
+    }
+    
+    //getExistingDirectory(this, tr("Select source..."), "",
+    //                                  0)
+    //    .toUtf8()
+    //    .constData();
+
+  // Selection canceled?
+
+//  if (import_path == "") {
+//    return;
+//  }
+//
+//    thread_control_widget_->StartFunction(
+//      "Importing...", [this, import_path]() {
+//        
+//        //this->ImportReconstruction(import_path);
+//        reconstruction_manager_widget_->Update();
+//        reconstruction_manager_widget_->SelectReconstruction(0);
+//        RenderNow();
+//        //const size_t idx = reconstruction_manager_.Read(import_path);
+//        //reconstruction_manager_widget_->Update();
+//        //reconstruction_manager_widget_->SelectReconstruction(idx);
+//        //action_bundle_adjustment_->setEnabled(true);
+//        //action_render_now_->trigger();
+//        //if (edit_project) {
+//        //  action_project_edit_->trigger();
+//        //}
+//      });
 }
 
 void MainWindow::ImportFrom() {

@@ -282,6 +282,8 @@ class Reconstruction {
   void WriteText(const std::string& path) const;
   void WriteBinary(const std::string& path) const;
 
+  void ReadFromDB(const std::string& path,const std::string& image_folder,size_t min_num_matches,bool ignore_wm);
+
   // Convert 3D points in reconstruction to PLY point cloud.
   std::vector<PlyPoint> ConvertToPLY() const;
 

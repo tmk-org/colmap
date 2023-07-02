@@ -43,13 +43,17 @@
 #                              search for FLANN includes.
 # FLANN_LIBRARY_DIR_HINTS: List of additional directories in which to
 #                              search for FLANN libraries.
-
-set(FLANN_INCLUDE_DIR_HINTS "" CACHE PATH "FLANN include directory")
-set(FLANN_LIBRARY_DIR_HINTS "" CACHE PATH "FLANN library directory")
+if(NOT FLANN_INCLUDE_DIR_HINTS)
+    set(FLANN_INCLUDE_DIR_HINTS "FLANN_INCLUDE_DIR_HINTS_NOT_SET" CACHE PATH "FLANN include directory")
+endif()
+if(NOT FLANN_LIBRARY_DIR_HINTS)
+    set(FLANN_LIBRARY_DIR_HINTS "FLANN_LIBRARY_DIR_HINTS_NOT_SET" CACHE PATH "FLANN library directory")
+endif()
 
 unset(FLANN_FOUND)
 unset(FLANN_INCLUDE_DIRS)
 unset(FLANN_LIBRARIES)
+
 
 list(APPEND FLANN_CHECK_INCLUDE_DIRS
     ${FLANN_INCLUDE_DIR_HINTS}
@@ -66,7 +70,8 @@ list(APPEND FLANN_CHECK_LIBRARY_DIRS
     /opt/lib
     /opt/local/lib
 )
-
+message(STATUS "\${FLANN_CHECK_INCLUDE_DIRS} \"${FLANN_CHECK_INCLUDE_DIRS}\"")
+message(STATUS "\${FLANN_CHECK_LIBRARY_DIRS} \"${FLANN_CHECK_LIBRARY_DIRS}\"")
 find_path(FLANN_INCLUDE_DIRS
     NAMES
     flann/flann.hpp
