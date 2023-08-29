@@ -43,7 +43,7 @@
 #ifndef EIGEN_ALIGNED_ALLOCATOR
 #define EIGEN_ALIGNED_ALLOCATOR Eigen::aligned_allocator
 #endif
-
+#if __cplusplus < 201703L
 // Equivalent to EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION but with support for
 // initializer lists, which is a C++11 feature and not supported by the Eigen.
 // The initializer list extension is inspired by Theia and StackOverflow code.
@@ -96,5 +96,10 @@ EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION_CUSTOM(Eigen::Matrix<double, 3, 4>)
 #define EIGEN_STL_UMAP(KEY, VALUE)                                   \
   std::unordered_map<KEY, VALUE, std::hash<KEY>, std::equal_to<KEY>, \
                      Eigen::aligned_allocator<std::pair<KEY const, VALUE>>>
+#else
+#define EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION_CUSTOM(...) 
 
+#define EIGEN_STL_UMAP(KEY, VALUE)                                   \
+  std::unordered_map<KEY, VALUE, std::hash<KEY>, std::equal_to<KEY> >
+#endif
 #endif  // COLMAP_SRC_UTIL_ALIGNMENT_H_
