@@ -840,8 +840,7 @@ PlyMesh DelaunayMeshing(const DelaunayMeshingOptions& options,
     timer.Start();
 
     CONSOLE(StringPrintf("Integrating image [%d/%d]", i + 1,
-                              input_data.images.size())
-              << std::flush;
+                              input_data.images.size()).c_str());
 
     // Push the next image to the queue.
     if (image_idx < input_data.images.size()) {
