@@ -170,10 +170,13 @@ void SerialReconstructionController::RunIncrementalMapper( )
     incremental_mapper_->Wait( );
     LOG( INFO ) << "incremental mapper finished...";
     incremental_mapper_.reset( );
-
-    const auto sparse_path = JoinPaths( *option_manager_.project_path , "sparse" );
-    CreateDirIfNotExists( sparse_path );
-    reconstruction_manager_->Write( sparse_path , &option_manager_ );
+    
+    if(!(option_manager_.project_path==nullptr || option_manager_.project_path->empty()))
+    {
+        const auto sparse_path = JoinPaths( *option_manager_.project_path , "sparse" );
+        CreateDirIfNotExists( sparse_path );
+        reconstruction_manager_->Write( sparse_path , &option_manager_ );
+    }
 }
 
 void SerialReconstructionController::onLoad( image_t id )
