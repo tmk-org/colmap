@@ -293,8 +293,10 @@ bool RefineAbsolutePose(const AbsolutePoseRefinementOptions& options,
   ceres::Solver::Options solver_options;
   solver_options.gradient_tolerance = options.gradient_tolerance;
   solver_options.max_num_iterations = options.max_num_iterations;
+  solver_options.logging_type = ceres::LoggingType::SILENT;
+  solver_options.minimizer_progress_to_stdout = false;
   solver_options.linear_solver_type = ceres::DENSE_QR;
-
+  solver_options.dense_linear_algebra_library_type= ceres::DenseLinearAlgebraLibraryType::LAPACK;
   // The overhead of creating threads is too large.
   solver_options.num_threads = 1;
 #if CERES_VERSION_MAJOR < 2

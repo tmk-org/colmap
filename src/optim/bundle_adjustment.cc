@@ -271,6 +271,8 @@ bool BundleAdjuster::Solve(Reconstruction* reconstruction) {
   }
 
   ceres::Solver::Options solver_options = options_.solver_options;
+  solver_options.logging_type = ceres::LoggingType::SILENT;
+  solver_options.minimizer_progress_to_stdout = false;
   const bool has_sparse =
       solver_options.sparse_linear_algebra_library_type != ceres::NO_SPARSE;
   solver_options.dense_linear_algebra_library_type= ceres::DenseLinearAlgebraLibraryType::LAPACK;
