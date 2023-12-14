@@ -33,7 +33,7 @@
 #define COLMAP_SRC_BASE_RECONSTRUCTION_MANAGER_H_
 
 #include "base/reconstruction.h"
-
+#include <mutex>
 namespace colmap {
 
 class OptionManager;
@@ -74,6 +74,7 @@ class ReconstructionManager {
   NON_COPYABLE(ReconstructionManager)
 
   std::vector<std::unique_ptr<Reconstruction>> reconstructions_;
+  mutable std::recursive_mutex _mtx;
 };
 
 }  // namespace colmap

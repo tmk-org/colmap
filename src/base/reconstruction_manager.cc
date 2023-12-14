@@ -51,37 +51,58 @@ ReconstructionManager& ReconstructionManager::operator=(
   return *this;
 }
 
-size_t ReconstructionManager::Size() const { return reconstructions_.size(); }
-
-const Reconstruction& ReconstructionManager::Get(const size_t idx) const {
-  return *reconstructions_.at(idx);
+size_t ReconstructionManager::Size( ) const
+{
+    std::scoped_lock lock( _mtx );
+    auto size = reconstructions_.size( );
+    return size;
 }
 
-Reconstruction& ReconstructionManager::Get(const size_t idx) {
-  return *reconstructions_.at(idx);
+const Reconstruction& ReconstructionManager::Get( const size_t idx ) const
+{
+    std::scoped_lock lock( _mtx );
+    return *reconstructions_.at( idx );
 }
 
-size_t ReconstructionManager::Add() {
-  const size_t idx = Size();
-  reconstructions_.emplace_back(new Reconstruction());
-  return idx;
+Reconstruction& ReconstructionManager::Get( const size_t idx )
+{
+    std::scoped_lock lock( _mtx );
+    return *reconstructions_.at( idx );
 }
 
-void ReconstructionManager::Delete(const size_t idx) {
+size_t ReconstructionManager::Add( )
+{
+    std::scoped_lock lock( _mtx );    
+    const size_t idx = Size();
+    reconstructions_.emplace_back(new Reconstruction());
+    return idx;
+}
+
+void ReconstructionManager::Delete( const size_t idx )
+{
+    std::scoped_lock lock( _mtx );
   CHECK_LT(idx, reconstructions_.size());
   reconstructions_.erase(reconstructions_.begin() + idx);
 }
 
-void ReconstructionManager::Clear() { reconstructions_.clear(); }
+void ReconstructionManager::Clear( )
+{
+    std::scoped_lock lock( _mtx );
+    reconstructions_.clear( );
+}
 
-size_t ReconstructionManager::Read(const std::string& path) {
+size_t ReconstructionManager::Read( const std::string& path )
+{
+    std::scoped_lock lock( _mtx );
   const size_t idx = Add();
   reconstructions_[idx]->Read(path);
   return idx;
 }
 
 void ReconstructionManager::Write(const std::string& path,
-                                  const OptionManager* options) const {
+                                  const OptionManager* options ) const
+{
+    std::scoped_lock lock( _mtx );
   std::vector<std::pair<size_t, size_t>> recon_sizes(reconstructions_.size());
   for (size_t i = 0; i < reconstructions_.size(); ++i) {
     recon_sizes[i] = std::make_pair(i, reconstructions_[i]->NumPoints3D());
