@@ -93,7 +93,7 @@ int ShowHelp(
 int main(int argc, char** argv) {
   using namespace colmap;
 
-  InitializeGlog(argv);
+  //InitializeGlog(argv);
 #ifdef GUI_ENABLED
   Q_INIT_RESOURCE(resources);
 #endif

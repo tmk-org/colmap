@@ -55,8 +55,10 @@
 #include "ui/render_options_widget.h"
 #include "ui/undistortion_widget.h"
 #include "util/bitmap.h"
+#include <mutex>
 
-namespace colmap {
+namespace colmap
+{
 
 class MainWindow : public QMainWindow {
  public:
