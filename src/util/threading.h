@@ -285,7 +285,36 @@ class JobQueue {
 
   // Push a new job to the queue. Waits if the number of jobs is exceeded.
   bool Push(const T& data);
-  template<typename DurType,typename Per> bool Push(const T& data,const std::chrono::duration<DurType,Per>& waitPer);
+  template<typename DurType , typename Per> bool Push( const T& data , const std::chrono::duration<DurType , Per>& waitPer )
+  {
+        std::chrono::high_resolution_clock::time_point start =
+            std::chrono::high_resolution_clock::now( );
+        std::unique_lock<std::mutex> lock( mutex_ );
+        while (jobs_.size() >= max_num_jobs_ && !stop_) {
+            std::cv_status wait_res = pop_condition_.wait_for( lock , waitPer );
+            if (wait_res == std::cv_status::timeout)
+            {
+                return false;
+            }
+            else
+            {
+                if (std::chrono::duration_cast< std::decay_t<decltype( waitPer )> >( std::chrono::high_resolution_clock::now( ) - start ) > waitPer)
+                {
+                    return false;
+                }
+            }
+        }
+        if (stop_)
+        {
+            return false;
+        }
+        else
+        {
+            jobs_.push(data);
+            push_condition_.notify_one();
+            return true;
+        }
+  }
   // Pop a job from the queue. Waits if there is no job in the queue.
   Job Pop();
 
@@ -297,8 +326,11 @@ class JobQueue {
 
   // Clear all pushed and not popped jobs from the queue.
   void Clear();
-
- private:
+  bool Running( )const
+  {
+      return !stop_.load( );
+  }
+private:
   size_t max_num_jobs_;
   std::atomic<bool> stop_;
   std::queue<T> jobs_;
@@ -374,20 +406,6 @@ bool JobQueue<T>::Push(const T& data) {
   }
 }
 
-template <typename T>
-bool JobQueue<T>::template<typename D,typename P> Push(const T& data,const std::chrono::duration<D,P>& w) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  while (jobs_.size() >= max_num_jobs_ && !stop_) {
-    pop_condition_.wait(lock);
-  }
-  if (stop_) {
-    return false;
-  } else {
-    jobs_.push(data);
-    push_condition_.notify_one();
-    return true;
-  }
-}
 
 template <typename T>
 typename JobQueue<T>::Job JobQueue<T>::Pop() {

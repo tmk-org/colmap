@@ -206,7 +206,15 @@ void SerialReconstructionController::onLoad( image_t id )
         {
             it->second = 0;
             //matching_overlap_[ i ] = 0;
-            matching_queue_->Push( i + 1 );
+            while (!matching_queue_->Push( i + 1 , std::chrono::milliseconds( 100 ) ))
+            {
+                if (!matching_queue_->Running( ))
+                {
+                    break;
+                }
+                std::this_thread::yield( );
+            }
+            
         }
     }
 }
@@ -264,7 +272,15 @@ void SerialReconstructionController::AddImageData(
             FeatureExtractorStateChanged( _max_buffer_size , 0 , 0 );
         }
     }
-    reader_queue_->Push( image_data );
+    while (!reader_queue_->Push( image_data , std::chrono::milliseconds( 100 ) ))
+    {
+        if (!reader_queue_->Running( ))
+        {
+            break;
+        }
+        std::this_thread::yield( );
+    }
+    
   //  timer.Pause();
   //  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
   //  double prev_dur=0;
