@@ -285,7 +285,7 @@ class JobQueue {
 
   // Push a new job to the queue. Waits if the number of jobs is exceeded.
   bool Push(const T& data);
-
+  template<typename DurType,typename Per> bool Push(const T& data,const std::chrono::duration<DurType,Per>& waitPer);
   // Pop a job from the queue. Waits if there is no job in the queue.
   Job Pop();
 
@@ -361,6 +361,21 @@ size_t JobQueue<T>::Size() {
 
 template <typename T>
 bool JobQueue<T>::Push(const T& data) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  while (jobs_.size() >= max_num_jobs_ && !stop_) {
+    pop_condition_.wait(lock);
+  }
+  if (stop_) {
+    return false;
+  } else {
+    jobs_.push(data);
+    push_condition_.notify_one();
+    return true;
+  }
+}
+
+template <typename T>
+bool JobQueue<T>::template<typename D,typename P> Push(const T& data,const std::chrono::duration<D,P>& w) {
   std::unique_lock<std::mutex> lock(mutex_);
   while (jobs_.size() >= max_num_jobs_ && !stop_) {
     pop_condition_.wait(lock);
