@@ -320,10 +320,10 @@ void SerialSiftFeatureExtractor::Run() {
             std::this_thread::yield( );
             if ((( tryouts++ ) % 1000)==0)
             {
-                LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is NOT pushed  after " << tryouts;
+                LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is NOT pushed to extractor processing after " << tryouts;
             }
         }
-        LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed  after " << tryouts;
+        LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed to extractor processing after " << tryouts;
         //CHECK(extractor_queue_->Push(image_data));
       }
       currJobIndex++;

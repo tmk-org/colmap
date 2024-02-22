@@ -285,17 +285,17 @@ void SerialReconstructionController::AddImageData(
             break;
         }
         std::this_thread::yield( );
-        if((tryouts ++ ) % 100)
+        if((tryouts ++ ) % 1000)
         {
             LOG(INFO) 
                 << " frame internal id " 
-                << image_data.image.ImageId() " after " 
-                << tryouts << " is not pushed to extractor queue";  
+                << image_data.image.ImageId() << " after " 
+                << tryouts << " is not pushed to extractor input queue";  
         }
     }
     LOG(INFO)   << " frame internal id " 
-                << image_data.image.ImageId() " after " 
-                << tryouts << " is pushed to extractor queue";  
+                << image_data.image.ImageId() << " after " 
+                << tryouts << " is pushed to extractor input queue";  
   //  timer.Pause();
   //  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
   //  double prev_dur=0;
