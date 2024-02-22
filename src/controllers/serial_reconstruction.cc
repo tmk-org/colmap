@@ -272,6 +272,12 @@ void SerialReconstructionController::AddImageData(
             FeatureExtractorStateChanged( _max_buffer_size , 0 , 0 );
         }
     }
+    LOG(INFO)   << "frame origImageId " 
+                << orig_image_id
+                << " internal image_id " 
+                << image_data.image.ImageId() 
+                <<" marked for database operations, pushing it to extractor queue";
+    size_t tryouts = 0;
     while (!reader_queue_->Push( image_data , std::chrono::milliseconds( 100 ) ))
     {
         if (!reader_queue_->Running( ))
@@ -279,8 +285,17 @@ void SerialReconstructionController::AddImageData(
             break;
         }
         std::this_thread::yield( );
+        if((tryouts ++ ) % 100)
+        {
+            LOG(INFO) 
+                << " frame internal id " 
+                << image_data.image.ImageId() " after " 
+                << tryouts << " is not pushed to extractor queue";  
+        }
     }
-    
+    LOG(INFO)   << " frame internal id " 
+                << image_data.image.ImageId() " after " 
+                << tryouts << " is pushed to extractor queue";  
   //  timer.Pause();
   //  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
   //  double prev_dur=0;

@@ -307,7 +307,15 @@ void SerialSiftFeatureExtractor::Run() {
       if (sift_options_.max_image_size > 0) {
         CHECK(resizer_queue_->Push(image_data));
       } else {
-        CHECK(extractor_queue_->Push(image_data));
+        while(!extractor_queue_->Push(image_data,std::chrono::milliseconds(500)))
+        {
+            if(!extractor_queue_->IsRunning())
+            {
+                break;
+            }
+            std::this_thread::yield();
+        }
+        //CHECK(extractor_queue_->Push(image_data));
       }
       currJobIndex++;
       if(!_runStateHandler.empty())
