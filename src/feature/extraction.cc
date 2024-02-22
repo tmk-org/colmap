@@ -304,17 +304,26 @@ void SerialSiftFeatureExtractor::Run() {
         image_data.bitmap.Deallocate();
       }
 
-      if (sift_options_.max_image_size > 0) {
-        CHECK(resizer_queue_->Push(image_data));
-      } else {
+      if (sift_options_.max_image_size > 0)
+      {
+          CHECK( resizer_queue_->Push( image_data ) );
+      }
+      else
+      {
+        size_t tryouts = 0;
         while(!extractor_queue_->Push(image_data,std::chrono::milliseconds(500)))
         {
-            if(!extractor_queue_->IsRunning())
+            if(!extractor_queue_->Running())
             {
                 break;
             }
-            std::this_thread::yield();
+            std::this_thread::yield( );
+            if ((( tryouts++ ) % 1000)==0)
+            {
+                LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is NOT pushed  after " << tryouts;
+            }
         }
+        LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed  after " << tryouts;
         //CHECK(extractor_queue_->Push(image_data));
       }
       currJobIndex++;
