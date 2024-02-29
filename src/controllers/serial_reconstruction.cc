@@ -100,7 +100,7 @@ void SerialReconstructionController::Stop( bool isReconstruct )
     feature_extractor_->Wait( );
     feature_extractor_.reset( );
     reader_queue_->Clear( );
-
+    TRACE( INFO , "feature extractor stopped" );
     matching_queue_->Wait( );
     //std::list<decltype(matching_overlap_)::key_type> keys;
     for(auto& [k, v]: matching_overlap_)
@@ -123,7 +123,7 @@ void SerialReconstructionController::Stop( bool isReconstruct )
     sequential_matcher_->Wait( );
     sequential_matcher_.reset( );
     matching_queue_->Clear( );
-
+    TRACE( INFO , "sequential_matcher stopped" );
     if (isReconstruct)
     {
         RunIncrementalMapper( );
@@ -181,7 +181,7 @@ void SerialReconstructionController::RunIncrementalMapper( )
 
 void SerialReconstructionController::onLoad( image_t id )
 {
-    std::unique_lock<std::mutex> lock( overlap_mutex_ );
+    std::unique_lock lock( overlap_mutex_ );
   //  int overlap = option_manager_.sequential_matching->overlap - 1;
     int overlap = 30;
     decltype(std::declval<decltype(matching_overlap_)>().find({})) prev_it;
@@ -222,7 +222,11 @@ void SerialReconstructionController::onLoad( image_t id )
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data )
 {
-//  Timer timer;
+    LOGSCOPE( "image internal cam id %d internal image id %d" , image_data.image.CameraId( ) , image_data.image.ImageId( ) );
+    if (!reader_queue_->Running( ))
+    {
+        TRACE( WARNING , "reader queue stopped,returning" );
+    }
     std::list<std::tuple<std::string , int , double> > times;
     {
         std::scoped_lock lock( this->_rangesToExcludeMutex );
@@ -236,11 +240,32 @@ void SerialReconstructionController::AddImageData(
         }
     }
     DatabaseTransaction database_transaction( database_.get( ) );
+
 //    timer.Pause();
 //    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
 //    timer.Resume();
-    std::unique_lock<std::mutex> lock( overlap_mutex_ );
-//    timer.Pause();
+    bool locked = false;
+    bool reader_stopped = false;
+    FINALLY(
+        if (locked)
+        {
+            overlap_mutex_.unlock( );
+        }
+    );
+    //std::unique_lock<std::mutex>::try_lock_for()
+//        std::unique_lock<std::mutex> lock( overlap_mutex_ );
+    do
+    {
+        locked = overlap_mutex_.try_lock_for( std::chrono::milliseconds( 100 ) );
+        reader_stopped = !reader_queue_->Running( );
+    }
+    while (!(locked || reader_stopped) );
+    if (reader_stopped)
+    {
+        TRACE( WARNING , "reader queue stopped,returning" );
+        return;
+    }
+    //    timer.Pause();
 //    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
 //    timer.Resume();
     if (cameras_ids_correspondence_.find( image_data.camera.CameraId( ) ) != cameras_ids_correspondence_.end( ))
@@ -282,6 +307,7 @@ void SerialReconstructionController::AddImageData(
     {
         if (!reader_queue_->Running( ))
         {
+            TRACE( INFO , "reader not running,push canceled" );
             break;
         }
         std::this_thread::yield( );

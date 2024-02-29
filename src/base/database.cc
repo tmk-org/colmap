@@ -151,12 +151,18 @@ void IDatabase::Merge(const IDatabase& database1, const IDatabase& database2,
 }
 
 DatabaseTransaction::DatabaseTransaction(IDatabase* database)
-    : database_(database), database_lock_(database->transaction_mutex_) {
+    : database_( database ) , database_lock_( database->transaction_mutex_ )
+{
   CHECK_NOTNULL(database_);
-  database_->BeginTransaction();
+  database_->BeginTransaction( );
+  TRACE( INFO , "transation mutex held,transaction started" );
 }
 
-DatabaseTransaction::~DatabaseTransaction() { database_->EndTransaction(); }
+DatabaseTransaction::~DatabaseTransaction( )
+{
+    database_->EndTransaction( );
+    TRACE( INFO , "transation mutex released,transaction commited" );
+}
 
 
 }  // namespace colmap

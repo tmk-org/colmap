@@ -394,7 +394,7 @@ void SiftFeatureExtractor::Run() {
     if (image_data.status != ImageReader::Status::SUCCESS) {
       image_data.bitmap.Deallocate();
     }
-
+    LOGSCOPE( "pushing to extractor queue" );
     if (sift_options_.max_image_size > 0) {
       CHECK(resizer_queue_->Push(image_data));
     } else {

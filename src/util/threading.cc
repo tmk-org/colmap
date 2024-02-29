@@ -83,7 +83,9 @@ void Thread::Resume() {
   }
 }
 
-void Thread::Wait() {
+void Thread::Wait( )
+{
+  LOGSCOPE( "waiting for thread %s,thread joinable \"%s\"" , thread_.get_id( ),thread_.joinable() );
   if (thread_.joinable()) {
     thread_.join();
   }

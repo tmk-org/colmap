@@ -56,7 +56,7 @@ class SerialReconstructionController : public Thread {
   std::unique_ptr<Thread> incremental_mapper_;
 
   std::map<image_t,int> matching_overlap_;
-  std::mutex overlap_mutex_;
+  std::timed_mutex overlap_mutex_;
 
   std::unordered_map<camera_t, camera_t> cameras_ids_correspondence_;
   std::unordered_map<image_t, image_t> images_ids_correspondence_;
