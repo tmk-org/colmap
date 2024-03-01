@@ -68,6 +68,7 @@ option(CGAL_ENABLED "Whether to enable the CGAL library" ON)
 option(BOOST_STATIC "Whether to enable static boost library linker flags" ON)
 set(CUDA_ARCHS "Auto" CACHE STRING "List of CUDA architectures for which to \
 generate code, e.g., Auto, All, Maxwell, Pascal, ...")
+set(ENABLE_VERBOSE_COLMAP_LOGGING OFF CACHE BOOL "enable some extra logging")
 set(REROUTE_CONSOLE_TO_GLOG CACHE BOOL "Whether to route all stdout output to glog to decrease traffic between processes")
 #option(REROUTE_CONSOLE_TO_GLOG "Whether to route all stdout output to glog to decrease traffic between processes" ON)
 if (SIMD_ENABLED)
@@ -357,6 +358,10 @@ if(Qt5_FOUND)
 
     # Enable automatic compilation of Qt resource files.
     set(CMAKE_AUTORCC ON)
+endif()
+message(STATUS,"ENABLE_VERBOSE_COLMAP_LOGGING \"${ENABLE_VERBOSE_COLMAP_LOGGING}\"")
+if(ENABLE_VERBOSE_COLMAP_LOGGING)
+    add_definitions("-DVERBOSE_COLMAP_LOGGING")
 endif()
 
 ################################################################################

@@ -304,10 +304,33 @@ void SerialSiftFeatureExtractor::Run() {
         image_data.bitmap.Deallocate();
       }
 
-      if (sift_options_.max_image_size > 0) {
-        CHECK(resizer_queue_->Push(image_data));
-      } else {
-        CHECK(extractor_queue_->Push(image_data));
+      if (sift_options_.max_image_size > 0)
+      {
+          CHECK( resizer_queue_->Push( image_data ) );
+      }
+      else
+      {
+        size_t tryouts = 0;
+        while(!extractor_queue_->Push(image_data,std::chrono::milliseconds(500)))
+        {
+            if(!extractor_queue_->Running())
+            {
+                break;
+            }
+            std::this_thread::yield( );
+#ifdef VERBOSE_COLMAP_LOGGING
+            if (( ( tryouts++ ) % 1000 ) == 0)
+            {
+                LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is NOT pushed to extractor processing after " << tryouts;
+            }
+#else
+            tryouts++;
+#endif
+        }
+#ifdef VERBOSE_COLMAP_LOGGING
+        LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed to extractor processing after " << tryouts;
+#endif
+        //CHECK(extractor_queue_->Push(image_data));
       }
       currJobIndex++;
       if(!_runStateHandler.empty())
@@ -377,8 +400,11 @@ void SiftFeatureExtractor::Run() {
     if (image_data.status != ImageReader::Status::SUCCESS) {
       image_data.bitmap.Deallocate();
     }
-
-    if (sift_options_.max_image_size > 0) {
+#ifdef VERBOSE_COLMAP_LOGGING
+    LOGSCOPE( "pushing to extractor queue" );
+#endif
+    if (sift_options_.max_image_size > 0)
+    {
       CHECK(resizer_queue_->Push(image_data));
     } else {
       CHECK(extractor_queue_->Push(image_data));

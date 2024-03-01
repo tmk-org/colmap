@@ -372,7 +372,7 @@ bool SiftExtractionOptions::Check() const {
   if (use_gpu) {
     CHECK_OPTION_GT(CSVToVector<int>(gpu_index).size(), 0);
   }
-  CHECK_OPTION_GT(max_image_size, 0);
+  //CHECK_OPTION_GT(max_image_size, 0);
   CHECK_OPTION_GT(max_num_features, 0);
   CHECK_OPTION_GT(octave_resolution, 0);
   CHECK_OPTION_GT(peak_threshold, 0.0);
@@ -853,7 +853,7 @@ bool ExtractSiftFeaturesGPU(const SiftExtractionOptions& options,
   CHECK(bitmap.IsGrey());
   CHECK_NOTNULL(keypoints);
   CHECK_NOTNULL(descriptors);
-  CHECK_EQ(options.max_image_size, sift_gpu->GetMaxDimension());
+  //CHECK_EQ(options.max_image_size, sift_gpu->GetMaxDimension());
 
   CHECK(!options.estimate_affine_shape);
   CHECK(!options.domain_size_pooling);

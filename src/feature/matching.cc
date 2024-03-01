@@ -145,7 +145,7 @@ void MatchNearestNeighborsInVisualIndex(
     Timer timer;
     timer.Start();
 
-    CONSOLE(StringPrintf("Matching image [%d/%d]", i + 1, image_ids.size()).c_str());
+    TRACE(INFO,StringPrintf("Matching image [%d/%d]", i + 1, image_ids.size()).c_str());
 
     // Push the next image to the retrieval queue.
     if (image_idx < image_ids.size()) {
@@ -159,7 +159,7 @@ void MatchNearestNeighborsInVisualIndex(
 
     const auto& image_id = retrieval.Data().image_id;
     const auto& image_scores = retrieval.Data().image_scores;
-
+    TRACE(INFO, "matching retrieved data image_id %u" , image_id );
     // Compose the image pairs from the scores.
     image_pairs.clear();
     image_pairs.reserve(image_scores.size());
@@ -169,7 +169,8 @@ void MatchNearestNeighborsInVisualIndex(
 
     matcher->Match(image_pairs);
 
-    PrintElapsedTime(timer);
+    //PrintElapsedTime( timer );
+    TRACE(INFO, "Matching image [%d/%zu] took %.3fms" , i + 1 , image_ids.size( ) , 1000.0 * timer.ElapsedMicroSeconds( ) );
   }
 }
 
