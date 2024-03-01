@@ -222,10 +222,13 @@ void SerialReconstructionController::onLoad( image_t id )
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data )
 {
+#ifdef VERBOSE_COLMAP_LOGGING    
     LOGSCOPE( "image internal cam id %d internal image id %d" , image_data.image.CameraId( ) , image_data.image.ImageId( ) );
+#endif
     if (!reader_queue_->Running( ))
     {
         TRACE( WARNING , "reader queue stopped,returning" );
+        return;
     }
     std::list<std::tuple<std::string , int , double> > times;
     {
@@ -297,32 +300,34 @@ void SerialReconstructionController::AddImageData(
             FeatureExtractorStateChanged( _max_buffer_size , 0 , 0 );
         }
     }
-    LOG(INFO)   << "frame origImageId " 
-                << orig_image_id
-                << " internal image_id " 
-                << image_data.image.ImageId() 
-                <<" marked for database operations, pushing it to extractor queue";
+    TRACE( INFO , "frame origImageId %u internal image_id %u marked for database operations, pushing it to extractor queue" , orig_image_id , image_data.image.ImageId( ) );
     size_t tryouts = 0;
     while (!reader_queue_->Push( image_data , std::chrono::milliseconds( 100 ) ))
     {
         if (!reader_queue_->Running( ))
         {
-            TRACE( INFO , "reader not running,push canceled" );
+            TRACE( WARNING , "reader not running,push canceled" );
             break;
         }
         std::this_thread::yield( );
-        if(((tryouts ++ ) % 1000)==0)
+#ifdef VERBOSE_COLMAP_LOGGING
+        if (( ( tryouts++ ) % 1000 ) == 0)
         {
             LOG(INFO) 
                 << " frame internal id " 
                 << image_data.image.ImageId() << " after " 
                 << tryouts << " tryouts is NOT pushed to extractor input queue";  
         }
+#else
+        tryouts++;
+#endif
     }
-    LOG(INFO)   << " frame internal id " 
+#ifdef VERBOSE_COLMAP_LOGGING
+    LOG( INFO ) << " frame internal id "
                 << image_data.image.ImageId() << " after " 
-                << tryouts << " tryouts is pushed to extractor input queue";  
-  //  timer.Pause();
+        << tryouts << " tryouts is pushed to extractor input queue";
+#endif
+//  timer.Pause();
   //  times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
   //  double prev_dur=0;
   //  for(auto& tt : times)

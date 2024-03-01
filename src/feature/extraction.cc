@@ -318,12 +318,18 @@ void SerialSiftFeatureExtractor::Run() {
                 break;
             }
             std::this_thread::yield( );
-            if ((( tryouts++ ) % 1000)==0)
+#ifdef VERBOSE_COLMAP_LOGGING
+            if (( ( tryouts++ ) % 1000 ) == 0)
             {
                 LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is NOT pushed to extractor processing after " << tryouts;
             }
+#else
+            tryouts++;
+#endif
         }
+#ifdef VERBOSE_COLMAP_LOGGING
         LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed to extractor processing after " << tryouts;
+#endif
         //CHECK(extractor_queue_->Push(image_data));
       }
       currJobIndex++;
@@ -394,8 +400,11 @@ void SiftFeatureExtractor::Run() {
     if (image_data.status != ImageReader::Status::SUCCESS) {
       image_data.bitmap.Deallocate();
     }
+#ifdef VERBOSE_COLMAP_LOGGING
     LOGSCOPE( "pushing to extractor queue" );
-    if (sift_options_.max_image_size > 0) {
+#endif
+    if (sift_options_.max_image_size > 0)
+    {
       CHECK(resizer_queue_->Push(image_data));
     } else {
       CHECK(extractor_queue_->Push(image_data));

@@ -155,13 +155,17 @@ DatabaseTransaction::DatabaseTransaction(IDatabase* database)
 {
   CHECK_NOTNULL(database_);
   database_->BeginTransaction( );
+#ifdef VERBOSE_COLMAP_LOGGING
   TRACE( INFO , "transation mutex held,transaction started" );
+#endif
 }
 
 DatabaseTransaction::~DatabaseTransaction( )
 {
     database_->EndTransaction( );
+#ifdef VERBOSE_COLMAP_LOGGING
     TRACE( INFO , "transation mutex released,transaction commited" );
+#endif
 }
 
 

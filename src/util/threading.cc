@@ -85,8 +85,11 @@ void Thread::Resume() {
 
 void Thread::Wait( )
 {
-  LOGSCOPE( "waiting for thread %#8X,thread joinable \"%s\"" , thread_.native_handle(),thread_.joinable() );
-  if (thread_.joinable()) {
+#ifdef VERBOSE_COLMAP_LOGGING
+  LOGSCOPE( "waiting for thread %#8X,thread joinable \"%s\"" , thread_.native_handle( ) , thread_.joinable( ) );
+#endif
+  if (thread_.joinable( ))
+  {
     thread_.join();
   }
 }
