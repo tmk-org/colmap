@@ -121,7 +121,7 @@ inline void print_params(const IndexParams& params)
     IndexParams::const_iterator it;
 
     for(it=params.begin(); it!=params.end(); ++it) {
-        CONSOLE("%s : %s", it->first,  fmt::v7::format("{}", it->second));
+        CONSOLE("%s : %s", it->first,  fmt::format("{}", it->second));
     }
 }
 

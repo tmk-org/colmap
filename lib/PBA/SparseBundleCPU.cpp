@@ -3667,7 +3667,7 @@ int SparseBundleCPU<Float>::SolveNormalEquationPCGB(float lambda) {
 
     /////////////////////////////////////////////////////
     if (__verbose_cg_iteration) {
-      CONSOLE(fmt::format(" --{},\t alpha= {}, rtzk/rtz0 = {f}, t = {}",
+      CONSOLE("%s",fmt::format(" --{},\t alpha= {}, rtzk/rtz0 = {}, t = {}",
            iteration, alphak, rtz_ratio, BundleTimerGetNow(TIMER_CG_ITERATION)).c_str());
     }
 
@@ -4025,14 +4025,16 @@ void SparseBundleCPU<Float>::NonlinearOptimizeLM() {
 
       /////////////////////////////////////////////
       if (__verbose_level > 1) {
-        CONSOLE(fmt::format("#{:>3} {:>3}{} e={:>{}} u={:>9.3f} r={:>6.3f} "
-                            "g={:>{}s} {:>9} {:>9} t={}",
-                            i, num_cg_iteration, char(__recent_cg_status),
-                            average_residual * error_display_ratio, edwidth,
-                            damping, floor(gain_ratio * 1000.f) * 0.001f,
+        CONSOLE("%s",fmt::format(   "#{0:03d} {1:03d}{2}"
+                                    " e={3:9.1f} u={4:9.3f}"
+                                    " r={5:6.3f}" 
+                                    " g={6:s} {7:9.3f} {8:9.3f} t={9}",
+                            i, num_cg_iteration, char(__recent_cg_status),//"#{0:>3} {1:>3}{2}"
+                            average_residual * error_display_ratio, /*edwidth,*/damping, //" e={3:>{4}} u={5:>9.3f}"
+                            floor(gain_ratio * 1000.f) * 0.001f,//" r={6:>6.3f}" 
                             g_norm > 0 ? std::to_string(g_norm) : "",
                             relative_reduction, dx_norm,
-                            int(BundleTimerGetNow())).c_str());
+                            int(BundleTimerGetNow())));
       }
 
       /////////////////////////////

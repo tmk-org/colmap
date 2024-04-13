@@ -246,9 +246,9 @@ bool RefineAbsolutePose(const AbsolutePoseRefinementOptions& options,
   if (problem.NumResiduals() > 0) {
     // Quaternion parameterization.
     *qvec = NormalizeQuaternion(*qvec);
-    ceres::LocalParameterization* quaternion_parameterization =
-        new ceres::QuaternionParameterization;
-    problem.SetParameterization(qvec_data, quaternion_parameterization);
+    ceres::QuaternionManifold* quaternion_parameterization =
+        new ceres::QuaternionManifold;
+    problem.SetManifold(qvec_data, quaternion_parameterization);
 
     // Camera parameterization.
     if (!options.refine_focal_length && !options.refine_extra_params) {
@@ -281,10 +281,10 @@ bool RefineAbsolutePose(const AbsolutePoseRefinementOptions& options,
       if (camera_params_const.size() == camera->NumParams()) {
         problem.SetParameterBlockConstant(camera->ParamsData());
       } else {
-        ceres::SubsetParameterization* camera_params_parameterization =
-            new ceres::SubsetParameterization(
+        ceres::SubsetManifold* camera_params_parameterization =
+            new ceres::SubsetManifold(
                 static_cast<int>(camera->NumParams()), camera_params_const);
-        problem.SetParameterization(camera->ParamsData(),
+        problem.SetManifold(camera->ParamsData(),
                                     camera_params_parameterization);
       }
     }
@@ -339,13 +339,13 @@ bool RefineRelativePose(const ceres::Solver::Options& options,
                              tvec->data());
   }
 
-  ceres::LocalParameterization* quaternion_parameterization =
-      new ceres::QuaternionParameterization;
-  problem.SetParameterization(qvec->data(), quaternion_parameterization);
+  ceres::QuaternionManifold* quaternion_parameterization =
+      new ceres::QuaternionManifold;
+  problem.SetManifold(qvec->data(), quaternion_parameterization);
 
-  ceres::HomogeneousVectorParameterization* homogeneous_parameterization =
-      new ceres::HomogeneousVectorParameterization(3);
-  problem.SetParameterization(tvec->data(), homogeneous_parameterization);
+  //ceres:: * homogeneous_parameterization =
+  //    new ceres::HomogeneousVectorParameterization(3);
+  //problem.SetParameterization(tvec->data(), homogeneous_parameterization);
 
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
