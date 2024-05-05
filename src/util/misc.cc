@@ -191,7 +191,7 @@ size_t GetFileSize(const std::string& path) {
 }
 
 void PrintHeading1(const std::string& heading) {
-  CONSOLE("\n%s\n%s%n%s\n", std::string(78, '='), heading, std::string(78, '='));
+  CONSOLE("\n%s\n%s\n%s\n", std::string(78, '='), heading, std::string(78, '='));
 }
 
 void PrintHeading2(const std::string& heading) {
