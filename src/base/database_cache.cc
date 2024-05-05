@@ -37,6 +37,8 @@
 #include "util/string.h"
 #include "util/timer.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 DatabaseCache::DatabaseCache() {}
@@ -64,7 +66,7 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
   Timer timer;
 
   timer.Start();
-  std::cout << "Loading cameras..." << std::flush;
+  CONSOLE("Loading cameras...");
 
   {
     std::vector<class Camera> cameras = database.ReadAllCameras();
@@ -75,24 +77,22 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
     }
   }
 
-  std::cout << StringPrintf(" %d in %.3fs", cameras_.size(),
-                            timer.ElapsedSeconds())
-            << std::endl;
+  CONSOLE(StringPrintf(" %d in %.3fs", cameras_.size(),
+                            timer.ElapsedSeconds()).c_str());
 
   //////////////////////////////////////////////////////////////////////////////
   // Load matches
   //////////////////////////////////////////////////////////////////////////////
 
   timer.Restart();
-  std::cout << "Loading matches..." << std::flush;
+  CONSOLE("Loading matches...");
 
   std::vector<image_pair_t> image_pair_ids;
   std::vector<TwoViewGeometry> two_view_geometries;
   database.ReadTwoViewGeometries(&image_pair_ids, &two_view_geometries);
 
-  std::cout << StringPrintf(" %d in %.3fs", image_pair_ids.size(),
-                            timer.ElapsedSeconds())
-            << std::endl;
+  CONSOLE(StringPrintf(" %d in %.3fs", image_pair_ids.size(),
+                            timer.ElapsedSeconds()).c_str());
 
   auto UseInlierMatchesCheck = [min_num_matches, ignore_watermarks](
                                    const TwoViewGeometry& two_view_geometry) {
@@ -107,7 +107,7 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
   //////////////////////////////////////////////////////////////////////////////
 
   timer.Restart();
-  std::cout << "Loading images..." << std::flush;
+  CONSOLE("Loading images...");
 
   std::unordered_set<image_t> image_ids;
 
@@ -158,10 +158,9 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
       }
     }
 
-    std::cout << StringPrintf(" %d in %.3fs (connected %d)", num_images,
+    CONSOLE(StringPrintf(" %d in %.3fs (connected %d)", num_images,
                               timer.ElapsedSeconds(),
-                              connected_image_ids.size())
-              << std::endl;
+                              connected_image_ids.size()).c_str());
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -169,7 +168,7 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
   //////////////////////////////////////////////////////////////////////////////
 
   timer.Restart();
-  std::cout << "Building correspondence graph..." << std::flush;
+  CONSOLE("Building correspondence graph...");
 
   for (const auto& image : images_) {
     correspondence_graph_.AddImage(image.first, image.second.NumPoints2D());
@@ -202,9 +201,8 @@ void DatabaseCache::Load(const IDatabase& database, const size_t min_num_matches
         correspondence_graph_.NumCorrespondencesForImage(image.first));
   }
 
-  std::cout << StringPrintf(" in %.3fs (ignored %d)", timer.ElapsedSeconds(),
-                            num_ignored_image_pairs)
-            << std::endl;
+  CONSOLE(StringPrintf(" in %.3fs (ignored %d)", timer.ElapsedSeconds(),
+                            num_ignored_image_pairs).c_str());
 }
 
 const class Image* DatabaseCache::FindImageWithName(

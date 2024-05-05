@@ -44,11 +44,13 @@
 
 DECLARE_GPU_HOLDER_STATIC_MEMBERS(SiftMatchGPU);
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace {
 
 void PrintElapsedTime(const Timer& timer) {
-  std::cout << StringPrintf(" in %.3fs", timer.ElapsedSeconds()) << std::endl;
+  CONSOLE(StringPrintf(" in %.3fs", timer.ElapsedSeconds()).c_str());
 }
 
 void IndexImagesInVisualIndex(const int num_threads, const int num_checks,
@@ -68,8 +70,7 @@ void IndexImagesInVisualIndex(const int num_threads, const int num_checks,
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Indexing image [%d/%d]", i + 1, image_ids.size())
-              << std::flush;
+    CONSOLE(StringPrintf("Indexing image [%d/%d]", i + 1, image_ids.size()).c_str());
 
     auto keypoints = *cache->GetKeypoints(image_ids[i]);
     auto descriptors = *cache->GetDescriptors(image_ids[i]);
@@ -144,8 +145,7 @@ void MatchNearestNeighborsInVisualIndex(
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Matching image [%d/%d]", i + 1, image_ids.size())
-              << std::flush;
+    CONSOLE(StringPrintf("Matching image [%d/%d]", i + 1, image_ids.size()).c_str());
 
     // Push the next image to the retrieval queue.
     if (image_idx < image_ids.size()) {
@@ -476,7 +476,7 @@ void SiftGPUFeatureMatcher::Run() {
     {
         std::shared_ptr<SiftMatchGPU>  psift_match_gpu(new SiftMatchGPU());
         if (!CreateSiftGPUMatcher(options_, psift_match_gpu.get())) {
-          std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
+          CONSOLE("ERROR: SiftGPU not fully supported");
           SignalInvalidSetup();
           return std::shared_ptr<SiftMatchGPU>();
         }
@@ -603,7 +603,7 @@ void GuidedSiftGPUFeatureMatcher::Run() {
     {
         std::shared_ptr<SiftMatchGPU>  psift_match_gpu(new SiftMatchGPU());
         if (!CreateSiftGPUMatcher(options_, psift_match_gpu.get())) {
-          std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
+          CONSOLE("ERROR: SiftGPU not fully supported");
           SignalInvalidSetup();
           return std::shared_ptr<SiftMatchGPU>();
         }
@@ -1030,10 +1030,9 @@ void ExhaustiveFeatureMatcher::Run() {
       Timer timer;
       timer.Start();
 
-      std::cout << StringPrintf("Matching block [%d/%d, %d/%d]",
+      CONSOLE(StringPrintf("Matching block [%d/%d, %d/%d]",
                                 start_idx1 / block_size + 1, num_blocks,
-                                start_idx2 / block_size + 1, num_blocks)
-                << std::flush;
+                                start_idx2 / block_size + 1, num_blocks).c_str());
 
       image_pairs.clear();
       for (size_t idx1 = start_idx1; idx1 <= end_idx1; ++idx1) {
@@ -1114,9 +1113,8 @@ void SerialSequentialFeatureMatcher::RunSequentialMatching(
   Timer timer;
   timer.Start();
 
-  std::cout << StringPrintf("Matching image [%d/%d]", image_id1,
-                            image_id1)
-            << std::flush;
+  CONSOLE(StringPrintf("Matching image [%d/%d]", image_id1,
+                            image_id1).c_str());
 
   image_pairs.clear();
   for (int i = 0; i < options_.overlap; ++i) {
@@ -1227,9 +1225,8 @@ void SequentialFeatureMatcher::RunSequentialMatching(
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Matching image [%d/%d]", image_idx1 + 1,
-                              image_ids.size())
-              << std::flush;
+    CONSOLE(StringPrintf("Matching image [%d/%d]", image_idx1 + 1,
+                              image_ids.size()).c_str());
 
     image_pairs.clear();
     for (int i = 0; i < options_.overlap; ++i) {
@@ -1361,7 +1358,7 @@ void VocabTreeFeatureMatcher::Run() {
       }
 
       if (image_name_to_image_id.count(line) == 0) {
-        std::cerr << "ERROR: Image " << line << " does not exist." << std::endl;
+        CONSOLE("ERROR: Image %s does not exist.", line);
       } else {
         image_ids.push_back(image_name_to_image_id.at(line));
       }
@@ -1419,7 +1416,7 @@ void SpatialFeatureMatcher::Run() {
   Timer timer;
   timer.Start();
 
-  std::cout << "Indexing images..." << std::flush;
+  CONSOLE("Indexing images...");
 
   GPSTransform gps_transform;
 
@@ -1470,7 +1467,7 @@ void SpatialFeatureMatcher::Run() {
   PrintElapsedTime(timer);
 
   if (num_locations == 0) {
-    std::cout << " => No images with location data." << std::endl;
+    CONSOLE(" => No images with location data.");
     GetTimer().PrintMinutes();
     return;
   }
@@ -1481,7 +1478,7 @@ void SpatialFeatureMatcher::Run() {
 
   timer.Restart();
 
-  std::cout << "Building search index..." << std::flush;
+  CONSOLE("Building search index...");
 
   flann::Matrix<float> locations(location_matrix.data(), num_locations,
                                  location_matrix.cols());
@@ -1498,7 +1495,7 @@ void SpatialFeatureMatcher::Run() {
 
   timer.Restart();
 
-  std::cout << "Searching for nearest neighbors..." << std::flush;
+  CONSOLE("Searching for nearest neighbors...");
 
   const int knn = std::min<int>(options_.max_num_neighbors, num_locations);
 
@@ -1542,8 +1539,7 @@ void SpatialFeatureMatcher::Run() {
 
     timer.Restart();
 
-    std::cout << StringPrintf("Matching image [%d/%d]", i + 1, num_locations)
-              << std::flush;
+    CONSOLE(StringPrintf("Matching image [%d/%d]", i + 1, num_locations).c_str());
 
     image_pairs.clear();
 
@@ -1610,9 +1606,8 @@ void TransitiveFeatureMatcher::Run() {
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Iteration [%d/%d]", iteration + 1,
-                              options_.num_iterations)
-              << std::endl;
+    CONSOLE(StringPrintf("Iteration [%d/%d]", iteration + 1,
+                              options_.num_iterations).c_str());
 
     std::vector<std::pair<image_t, image_t>> existing_image_pairs;
     std::vector<int> existing_num_inliers;
@@ -1644,8 +1639,7 @@ void TransitiveFeatureMatcher::Run() {
               image_pair_ids.insert(image_pair_id);
               if (image_pairs.size() >= batch_size) {
                 num_batches += 1;
-                std::cout << StringPrintf("  Batch %d", num_batches)
-                          << std::flush;
+                CONSOLE(StringPrintf("  Batch %d", num_batches).c_str());
                 DatabaseTransaction database_transaction(database_.get());
                 matcher_.Match(image_pairs);
                 image_pairs.clear();
@@ -1664,7 +1658,7 @@ void TransitiveFeatureMatcher::Run() {
     }
 
     num_batches += 1;
-    std::cout << StringPrintf("  Batch %d", num_batches) << std::flush;
+    CONSOLE(StringPrintf("  Batch %d", num_batches).c_str());
     DatabaseTransaction database_transaction(database_.get());
     matcher_.Match(image_pairs);
     PrintElapsedTime(timer);
@@ -1730,13 +1724,11 @@ void ImagePairsFeatureMatcher::Run() {
     StringTrim(&image_name2);
 
     if (image_name_to_image_id.count(image_name1) == 0) {
-      std::cerr << "ERROR: Image " << image_name1 << " does not exist."
-                << std::endl;
+      CONSOLE("ERROR: Image %s does not exist.", image_name1);
       continue;
     }
     if (image_name_to_image_id.count(image_name2) == 0) {
-      std::cerr << "ERROR: Image " << image_name2 << " does not exist."
-                << std::endl;
+      CONSOLE("ERROR: Image %s does not exist.", image_name2);
       continue;
     }
 
@@ -1767,9 +1759,8 @@ void ImagePairsFeatureMatcher::Run() {
     Timer timer;
     timer.Start();
 
-    std::cout << StringPrintf("Matching block [%d/%d]",
-                              i / options_.block_size + 1, num_match_blocks)
-              << std::flush;
+    CONSOLE(StringPrintf("Matching block [%d/%d]",
+                              i / options_.block_size + 1, num_match_blocks).c_str());
 
     const size_t block_end = i + options_.block_size <= image_pairs.size()
                                  ? i + options_.block_size
@@ -1836,24 +1827,21 @@ void FeaturePairsFeatureMatcher::Run() {
     try {
       line_stream >> image_name1 >> image_name2;
     } catch (...) {
-      std::cerr << "ERROR: Could not read image pair." << std::endl;
+      CONSOLE("ERROR: Could not read image pair.");
       break;
     }
 
-    std::cout << StringPrintf("%s - %s", image_name1.c_str(),
-                              image_name2.c_str())
-              << std::endl;
+    CONSOLE(StringPrintf("%s - %s", image_name1.c_str(),
+                              image_name2.c_str()).c_str());
 
     if (image_name_to_image.count(image_name1) == 0) {
-      std::cout << StringPrintf("SKIP: Image %s not found in database.",
-                                image_name1.c_str())
-                << std::endl;
+      CONSOLE(StringPrintf("SKIP: Image %s not found in database.",
+                                image_name1.c_str()).c_str());
       break;
     }
     if (image_name_to_image.count(image_name2) == 0) {
-      std::cout << StringPrintf("SKIP: Image %s not found in database.",
-                                image_name2.c_str())
-                << std::endl;
+      CONSOLE(StringPrintf("SKIP: Image %s not found in database.",
+                                image_name2.c_str()).c_str());
       break;
     }
 
@@ -1862,8 +1850,7 @@ void FeaturePairsFeatureMatcher::Run() {
 
     bool skip_pair = false;
     if (database_->ExistsInlierMatches(image1.ImageId(), image2.ImageId())) {
-      std::cout << "SKIP: Matches for image pair already exist in database."
-                << std::endl;
+      CONSOLE("SKIP: Matches for image pair already exist in database.");
       skip_pair = true;
     }
 
@@ -1881,7 +1868,7 @@ void FeaturePairsFeatureMatcher::Run() {
       try {
         line_stream >> match.point2D_idx1 >> match.point2D_idx2;
       } catch (...) {
-        std::cerr << "ERROR: Cannot read feature matches." << std::endl;
+        CONSOLE("ERROR: Cannot read feature matches.");
         break;
       }
 

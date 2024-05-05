@@ -29,6 +29,8 @@
 using namespace std;
 #include "DataInterface.h"
 
+#include <log/trace.h>
+
 namespace pba {
 
 // File loader supports .nvm format and bundler format
@@ -126,8 +128,7 @@ bool LoadNVM(ifstream& in, vector<CameraT>& camera_data,
     ptc.insert(ptc.end(), cc, cc + 3);
   }
   ///////////////////////////////////////////////////////////////////////////////
-  std::cout << ncam << " cameras; " << npoint << " 3D points; " << nproj
-            << " projections\n";
+  CONSOLE("%d cameras; %d 3D points; %d projections", ncam, npoint, nproj);
 
   return true;
 }
@@ -136,7 +137,7 @@ void SaveNVM(const char* filename, vector<CameraT>& camera_data,
              vector<Point3D>& point_data, vector<Point2D>& measurements,
              vector<int>& ptidx, vector<int>& camidx, vector<string>& names,
              vector<int>& ptc) {
-  std::cout << "Saving model to " << filename << "...\n";
+  CONSOLE("Saving model to %s...", filename);
   ofstream out(filename);
 
   out << "NVM_V3_R9T\n" << camera_data.size() << '\n' << std::setprecision(12);
@@ -199,13 +200,13 @@ bool LoadBundlerOut(const char* name, ifstream& in,
     strcpy(slash, "image_list.txt");
     listin.open(listpath);
   }
-  if (listin) std::cout << "Using image list: " << listpath << '\n';
+  if (listin) CONSOLE("Using image list: %s", listpath);
 
   // read # of cameras
   int ncam = 0, npoint = 0, nproj = 0;
   in >> ncam >> npoint;
   if (ncam <= 1 || npoint <= 1) return false;
-  std::cout << ncam << " cameras; " << npoint << " 3D points;\n";
+  CONSOLE("%d cameras; %d 3D points;", ncam, npoint);
 
   // read the camera parameters
   camera_data.resize(ncam);  // allocate the camera data
@@ -230,7 +231,7 @@ bool LoadBundlerOut(const char* name, ifstream& in,
 
       if (!det_checked) {
         float det = camera_data[i].GetRotationMatrixDeterminant();
-        std::cout << "Check rotation matrix: " << det << '\n';
+        CONSOLE("Check rotation matrix: %f", det);
         det_checked = true;
       }
     } else {
@@ -260,8 +261,7 @@ bool LoadBundlerOut(const char* name, ifstream& in,
     ptc.insert(ptc.end(), cc, cc + 3);
   }
   ///////////////////////////////////////////////////////////////////////////////
-  std::cout << ncam << " cameras; " << npoint << " 3D points; " << nproj
-            << " projections\n";
+  CONSOLE("%d cameras; %d 3D points; %d projections", ncam, npoint, nproj);
   return true;
 }
 
@@ -318,8 +318,7 @@ bool LoadBundlerModel(ifstream& in, vector<CameraT>& camera_data,
   size_t ncam = 0, npt = 0, nproj = 0;
   if (!(in >> ncam >> npt >> nproj)) return false;
   ///////////////////////////////////////////////////////////////////////////////
-  std::cout << ncam << " cameras; " << npt << " 3D points; " << nproj
-            << " projections\n";
+  CONSOLE("%zu cameras; %zu 3D points; %zu projections", ncam, npt, nproj);
 
   camera_data.resize(ncam);
   point_data.resize(npt);
@@ -335,7 +334,7 @@ bool LoadBundlerModel(ifstream& in, vector<CameraT>& camera_data,
       camidx.resize(i);
       ptidx.resize(i);
       measurements.resize(i);
-      std::cout << "Truncate measurements to " << i << '\n';
+      CONSOLE("Truncate measurements to %zu", i);
     } else if (((size_t)pidx) >= npt) {
       continue;
     } else {
@@ -366,7 +365,7 @@ void SaveBundlerModel(const char* filename, vector<CameraT>& camera_data,
                       vector<Point3D>& point_data,
                       vector<Point2D>& measurements, vector<int>& ptidx,
                       vector<int>& camidx) {
-  std::cout << "Saving model to " << filename << "...\n";
+  CONSOLE("Saving model to %s", filename);
   ofstream out(filename);
   out << std::setprecision(12);  // need enough precision
   out << camera_data.size() << ' ' << point_data.size() << ' '
@@ -398,7 +397,7 @@ bool LoadModelFile(const char* name, vector<CameraT>& camera_data,
   if (name == NULL) return false;
   ifstream in(name);
 
-  std::cout << "Loading cameras/points: " << name << "\n";
+  CONSOLE("Loading cameras/points: %s", name);
   if (!in.is_open()) return false;
 
   if (strstr(name, ".nvm"))
@@ -491,8 +490,8 @@ void AddStableNoise(vector<CameraT>& camera_data, vector<Point3D>& point_data,
 
   do {
     if (invalid_count)
-      std::cout << "NOTE" << std::setw(2) << modify_iteration << ": modify "
-                << invalid_count << " camera to fix visibility\n";
+      CONSOLE(fmt::format("NOTE {:>2}: modify {} camera to fix visibility",
+                modify_iteration, invalid_count).c_str());
 
     //////////////////////////////////////////////////////
     for (size_t i = 0; i < camera_data.size(); ++i) {
@@ -553,7 +552,7 @@ void ExamineVisiblity(const char* input_filename) {
   ////////////////
   int count = 0;
   double d1 = 100, d2 = 100;
-  std::cout << "checking visibility...\n";
+  CONSOLE("checking visibility...");
   vector<double> zz(ptidx.size());
   for (size_t i = 0; i < ptidx.size(); ++i) {
     CameraD& cam = camera_data[camidx[i]];
@@ -582,10 +581,8 @@ void ExamineVisiblity(const char* input_filename) {
     // if(dz == 0 && fz == 0) continue;
 
     if (dz * fz <= 0 || fz == 0) {
-      std::cout << "cam "
-                << camidx[i]  //<<// "; dx = " << dx << "; dy = " << dy
-                << "; double: " << dz << "; float " << fz << "; float2 " << fz2
-                << "\n";
+      CONSOLE("cam %d; double: %f; float %f; float2 %f", camidx[i], dz, fz, fz2);
+
       // std::cout << cam.m[2][0] << " "<<cam.m[2][1]<< " " <<  cam.m[2][2] << "
       // "<<cam.t[2] << "\n";
       // std::cout << camt.m[2][0] << " "<<camt.m[2][1]<< " " <<  camt.m[2][2]
@@ -601,8 +598,7 @@ void ExamineVisiblity(const char* input_filename) {
     d2 = std::min(fabs(fz), d2);
   }
 
-  std::cout << count << " points moved to wrong side " << d1 << ", " << d2
-            << "\n";
+  CONSOLE("%d points moved to wrong side %f, %f", count, d1, d2);
 }
 
 bool RemoveInvisiblePoints(vector<CameraT>& camera_data,
@@ -718,10 +714,10 @@ bool RemoveInvisiblePoints(vector<CameraT>& camera_data,
     new_observation_count++;
   }
 
-  std::cout << "NOTE: removing " << (camera_data.size() - new_camera_count)
-            << " cameras; " << (point_data.size() - new_point_count)
-            << " 3D Points; " << (measurements.size() - new_observation_count)
-            << " Observations;\n";
+  CONSOLE("NOTE: removing %zu cameras; %zu 3D Points; %zu Observations;", 
+             (camera_data.size() - new_camera_count),
+             (point_data.size() - new_point_count),
+             (measurements.size() - new_observation_count));
 
   camera_data2.swap(camera_data);
   names2.swap(names);

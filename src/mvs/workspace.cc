@@ -35,6 +35,8 @@
 
 #include "util/threading.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 namespace mvs {
 
@@ -96,19 +98,15 @@ void Workspace::Load(const std::vector<std::string>& image_names) {
   Timer timer;
   timer.Start();
 
-  std::cout << StringPrintf("Loading workspace data with %d threads...",
-                            num_threads)
-            << std::endl;
+  CONSOLE(StringPrintf("Loading workspace data with %d threads...", num_threads).c_str());
   for (size_t i = 0; i < image_names.size(); ++i) {
     const int image_idx = model_.GetImageIdx(image_names[i]);
     if (HasBitmap(image_idx) && HasDepthMap(image_idx)) {
       thread_pool.AddTask(LoadWorkspaceData, image_idx);
     } else {
-      std::cout
-          << StringPrintf(
+      CONSOLE(StringPrintf(
                  "WARNING: Ignoring image %s, because input does not exist.",
-                 image_names[i].c_str())
-          << std::endl;
+                 image_names[i].c_str()).c_str());
     }
   }
   thread_pool.Wait();

@@ -40,6 +40,7 @@ using namespace std;
 #include "FrameBufferObject.h"
 #include "ShaderMan.h"
 
+#include <log/trace.h>
 
 //#define SIFTGPU_NO_DEVIL
 
@@ -939,7 +940,7 @@ int GLTexInput::SetImageData( int width,  int height, const void * data,
 	{
 		if(simple_format)
 		{
-			if(GlobalUtil::_verbose) std::cout<<"Automatic down-sampling is used\n";
+			if(GlobalUtil::_verbose) CONSOLE("Automatic down-sampling is used");
 			do
 			{
 				_down_sampled ++;
@@ -948,7 +949,7 @@ int GLTexInput::SetImageData( int width,  int height, const void * data,
 			}while(ws > _texMaxDim || hs > _texMaxDim);
 		}else
 		{
-			std::cerr<<"Input images is too big to fit into a texture\n";
+			CONSOLE("Input images is too big to fit into a texture");
 			return 0;
 		}
 	}
@@ -958,8 +959,8 @@ int GLTexInput::SetImageData( int width,  int height, const void * data,
 
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"Image size :\t"<<width<<"x"<<height<<"\n";
-		if(_down_sampled >0) 	std::cout<<"Down sample to \t"<<ws<<"x"<<hs<<"\n";
+		CONSOLE("Image size :\t%dx%d", width, height);
+		if(_down_sampled >0) 	CONSOLE("Down sample to \t%dx%d", ws, hs);
 	}
 
 
@@ -971,7 +972,7 @@ int GLTexInput::SetImageData( int width,  int height, const void * data,
         //skip = 0;
         if(!simple_format)
         {
-            std::cerr << "Input format not supported under current settings.\n";
+            CONSOLE( "Input format not supported under current settings.");
             return 0;
         }else if(_down_sampled > 0 || gl_format != GL_LUMINANCE || gl_type != GL_FLOAT)
         {
@@ -1108,12 +1109,12 @@ int GLTexInput::LoadImageFile(char *imagepath, int &w, int &h )
 			done =0;
 		}else 	if(GlobalUtil::_verbose)
 		{
-			std::cout<<"Image loaded :\t"<<imagepath<<"\n";
+			CONSOLE("Image loaded :\t%s", imagepath);
 		}
 
 	}else
 	{
-		std::cerr<<"Unable to open image [code = "<<ilGetError()<<"]\n";
+		CONSOLE("Unable to open image [code = %d]", ilGetError());
 		done = 0;
 	}
 
@@ -1128,7 +1129,7 @@ int GLTexInput::LoadImageFile(char *imagepath, int &w, int &h )
 	if(fscanf(file, "%s %d %d %d", buf, &width, &height, &cn )<4 ||  cn > 255 || width < 0 || height < 0)
 	{
 		fclose(file);
-        std::cerr << "ERROR: fileformat not supported\n";
+        CONSOLE("ERROR: fileformat not supported");
 		return 0;
 	}else
     {
@@ -1173,13 +1174,13 @@ int GLTexInput::LoadImageFile(char *imagepath, int &w, int &h )
 
 	}else
 	{
-        std::cerr << "ERROR: fileformat not supported\n";
+        CONSOLE("ERROR: fileformat not supported");
 		done = 0;
 	}
     if(done)    SetImageData(width, height, data, GL_LUMINANCE, GL_UNSIGNED_BYTE);
 	fclose(file);
     delete data;
-    if(GlobalUtil::_verbose && done) std::cout<< "Image loaded :\t" << imagepath << "\n";
+    if(GlobalUtil::_verbose && done) CONSOLE( "Image loaded :\t%s", imagepath);
 	return 1;
 #endif
 }

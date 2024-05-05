@@ -39,6 +39,8 @@ using namespace std;
 #include "PyramidGL.h"
 #include "FrameBufferObject.h"
 
+#include <log/trace.h>
+
 
 #if defined(__SSE__) || _MSC_VER > 1200
 #define USE_SSE_FOR_SIFTGPU
@@ -352,8 +354,8 @@ void PyramidNaive::InitPyramid(int w, int h, int ds)
 
 	if(toobig && GlobalUtil::_verbose)
 	{
-		std::cout<<(toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
-					"[**SKIP OCTAVES**]:\tReaching the dimension limit (-maxd)!\n");
+		CONSOLE((toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
+					"[**SKIP OCTAVES**]:\tReaching the dimension limit (-maxd)!\n"));
 	}
 
 	if( wp == _pyramid_width && hp == _pyramid_height && _allocated )
@@ -391,7 +393,7 @@ void PyramidNaive::ResizePyramid( int w,  int h)
 
 	if(w > GlobalUtil::_texMaxDim || h > GlobalUtil::_texMaxDim) return ;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<w<<"x"<<h<<endl;
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dx%d", w, h);
 	//first octave does not change
 	_pyramid_octave_first = 0;
 
@@ -460,7 +462,7 @@ void PyramidNaive::ResizePyramid( int w,  int h)
 	//
 	_allocated = 1;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<(totalkb/1024)<<"MB\n";
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dMB", (totalkb/1024));
 
 }
 
@@ -715,7 +717,7 @@ void PyramidNaive::ComputeGradient()
 	{
 		glFinish();
 		t1 = CLOCK();	
-		std::cout<<"<Compute Gradient>\t"<<(t1-ts)<<"\n";
+		CONSOLE("<Compute Gradient>\t%f", (t1-ts));
 	}
 
 	UnloadProgram();
@@ -761,10 +763,11 @@ void PyramidNaive::DetectKeypointsEX()
 	glDrawBuffers(2, buffers);
 	for ( i = _octave_min; i < _octave_min + _octave_num; i++)
 	{
+		std::string str_out;
 		if(GlobalUtil::_timingO)
 		{
 			t0 = CLOCK();
-			std::cout<<"#"<<(i + _down_sample_factor)<<"\t";
+			str_out = fmt::format("#{}\t", i + _down_sample_factor);
 		}
 		tex = GetBaseLevel(i) + 2;
 		aux = GetBaseLevel(i, DATA_KEYPOINT) +2;
@@ -787,14 +790,14 @@ void PyramidNaive::DetectKeypointsEX()
 			if(GlobalUtil::_timingL)
 			{
 				glFinish();
-				std::cout<<(CLOCK()-t)<<"\t";
+				str_out += fmt::format("{}\t", CLOCK()-t);
 			}
 			tex->DetachFBO(0);
 			aux->DetachFBO(1);
 		}
 		if(GlobalUtil::_timingO)
 		{
-			std::cout<<"|\t"<<(CLOCK()-t0)<<"\n";
+			CONSOLE("%s|\t", str_out, CLOCK()-t0);
 		}
 	}
 
@@ -803,8 +806,8 @@ void PyramidNaive::DetectKeypointsEX()
 		glFinish();
 		t2 = CLOCK();
 		if(GlobalUtil::_verbose) 
-			std::cout	<<"<Get Keypoints ..  >\t"<<(t2-t1)<<"\n"
-						<<"<Extra Gradient..  >\t"<<(t1-ts)<<"\n";
+			CONSOLE(fmt::format("<Get Keypoints ..  >\t{}\n"
+						       "<Extra Gradient..  >\t{}", (t2-t1), (t1-ts)).c_str());
 	}
 	UnloadProgram();
 	GLTexImage::UnbindMultiTex(3);
@@ -979,12 +982,13 @@ void PyramidNaive::GenerateFeatureList()
 	//for(int i = 0, idx = 0; i < _octave_num; i++)
     FOR_EACH_OCTAVE(i, reverse)
 	{
+		std::string str_out;
 		//output
 		if(GlobalUtil::_timingO)
 		{
             t1= CLOCK();
 			ocount = 0;
-			std::cout<<"#"<<i+_octave_min + _down_sample_factor<<":\t";
+			str_out = fmt::format("#{}:\t", i+_octave_min + _down_sample_factor);
 		}
 		//for(int j = 0; j < param._dog_level_num; j++, idx++)
         FOR_EACH_LEVEL(j, reverse)
@@ -1001,7 +1005,7 @@ void PyramidNaive::GenerateFeatureList()
 				if(GlobalUtil::_timingO)	
 				{
 					int idx = i * param._dog_level_num + j;
-					std::cout<< _levelFeatureNum[idx] <<"\t";
+					str_out += fmt::format("%d\t", _levelFeatureNum[idx]);
 					ocount += _levelFeatureNum[idx];
 				}
 			}
@@ -1009,13 +1013,13 @@ void PyramidNaive::GenerateFeatureList()
 		if(GlobalUtil::_timingO)
 		{	
 			t2 = CLOCK(); 
-			std::cout << "| \t" << int(ocount) << " :\t(" << (t2 - t1) << ")\n";
+			CONSOLE("%s| \t%d :\t(%f)", str_out, int(ocount), (t2 - t1));
 		}
 	}
 	if(GlobalUtil::_timingS)glFinish();
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 }
 
@@ -1255,7 +1259,7 @@ void PyramidNaive::GenerateFeatureListCPU()
 	delete[] mem;
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 }
 
@@ -1426,7 +1430,7 @@ void PyramidGL::ReshapeFeatureListCPU()
 	delete[] buffer;
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features MO:\t"<<_featureNum<<endl;
+		CONSOLE("#Features MO:\t%d", _featureNum);
 	}
     ///////////////////////////////////
 #ifdef FEATURELIST_USE_PBO
@@ -1927,7 +1931,7 @@ void PyramidGL::GenerateFeatureListTex()
 	GLTexImage::UnbindTex();
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t %d", _featureNum);
 	}
 }
 
@@ -2039,7 +2043,7 @@ void PyramidPacked::ComputeGradient()
 		if(GlobalUtil::_verbose)
 		{
 			t1 = CLOCK();
-			std::cout	<<"<Gradient, DOG  >\t"<<(t1-ts)<<"\n";
+			CONSOLE("<Gradient, DOG  >\t%f", (t1-ts));
 		}
 	}
 	GLTexImage::DetachFBO(1);
@@ -2104,10 +2108,11 @@ void PyramidPacked::DetectKeypointsEX()
 
 	for ( i = _octave_min; i < _octave_min + _octave_num; i++)
 	{
+		std::string str_out;
 		if(GlobalUtil::_timingO)
 		{
 			t0 = CLOCK();
-			std::cout<<"#"<<(i + _down_sample_factor)<<"\t";
+			str_out = fmt::format("#{}\t", (i + _down_sample_factor));
 		}
 		GLTexImage * dog = GetBaseLevel(i, DATA_DOG) + 2;
 		GLTexImage * key = GetBaseLevel(i, DATA_KEYPOINT) +2;
@@ -2134,13 +2139,13 @@ void PyramidPacked::DetectKeypointsEX()
 			if(GlobalUtil::_timingL)
 			{
 				glFinish();
-				std::cout<<(CLOCK()-t)<<"\t";
+				str_out += fmt::format("{}\t", (CLOCK()-t));
 			}
 		}
 		if(GlobalUtil::_timingO)
 		{
 			glFinish();
-			std::cout<<"|\t"<<(CLOCK()-t0)<<"\n";
+			CONSOLE("{}|\t{}", str_out, (CLOCK()-t0));
 		}
 	}
 
@@ -2150,8 +2155,8 @@ void PyramidPacked::DetectKeypointsEX()
 		if(GlobalUtil::_verbose) 
 		{	
 			t2 = CLOCK();
-			std::cout	<<"<Gradient, DOG  >\t"<<(t1-ts)<<"\n"
-						<<"<Get Keypoints  >\t"<<(t2-t1)<<"\n";
+			CONSOLE(fmt::format("<Gradient, DOG  >\t{}\n"
+					"<Get Keypoints  >\t{}", (t1-ts), (t2-t1)).c_str());
 		}
 						
 	}
@@ -2329,11 +2334,12 @@ void PyramidPacked::GenerateFeatureList()
 	//for(int i = 0, idx = 0; i < _octave_num; i++)
     FOR_EACH_OCTAVE(i, reverse)
 	{
+		std::string str_out;
 		if(GlobalUtil::_timingO)
 		{
             t1= CLOCK();
 			ocount = 0;
-			std::cout<<"#"<<i+_octave_min + _down_sample_factor<<":\t";
+			str_out = fmt::format("#{}:\t", i+_octave_min + _down_sample_factor);
 		}
 		//for(int j = 0; j < param._dog_level_num; j++, idx++)
         FOR_EACH_LEVEL(j, reverse)
@@ -2351,19 +2357,19 @@ void PyramidPacked::GenerateFeatureList()
 			{
                 int idx = i * param._dog_level_num + j;
                 ocount += _levelFeatureNum[idx];
-				std::cout<< _levelFeatureNum[idx] <<"\t";
+				str_out += fmt::format("{}\t", _levelFeatureNum[idx]);
 			}
 		}
 		if(GlobalUtil::_timingO)
 		{	
             t2 = CLOCK();
-			std::cout << "| \t" << int(ocount) << " :\t(" << (t2 - t1) << ")\n";
+			CONSOLE("%s| \t%d :\t(%f)", str_out, int(ocount), (t2 - t1));
 		}
 	}
 	if(GlobalUtil::_timingS)glFinish();
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 
 }
@@ -2414,7 +2420,7 @@ void PyramidPacked::GenerateFeatureListCPU()
 			}
 			if(fcount==0)continue;
 
-			if(GlobalUtil::_timingL) std::cout<<fcount<<".";
+			if(GlobalUtil::_timingL) {}//std::cout<<fcount<<"."; //it doesn't make any sense to store it in a variable and would be look strange with our CONSOLE using \n
 			
 			GLTexImage * ftex = _featureTex+idx;
 			_levelFeatureNum[idx] = (fcount);
@@ -2439,7 +2445,7 @@ void PyramidPacked::GenerateFeatureListCPU()
 	delete[] mem;
 	if(GlobalUtil::_verbose)
 	{
-		std::cout<<"#Features:\t"<<_featureNum<<"\n";
+		CONSOLE("#Features:\t%d", _featureNum);
 	}
 }
 
@@ -2583,8 +2589,8 @@ void PyramidPacked::InitPyramid(int w, int h, int ds)
 
 	if(toobig && GlobalUtil::_verbose)
 	{
-		std::cout<<(toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
-					"[**SKIP OCTAVES**]:\tReaching the dimension limit (-maxd)!\n");
+		CONSOLE((toobig == 2 ? "[**SKIP OCTAVES**]:\tExceeding Memory Cap (-nomc)\n" :
+					"[**SKIP OCTAVES**]:\tReaching the dimension limit (-maxd)!"));
 	}
 
 	if( wp == _pyramid_width && hp == _pyramid_height && _allocated )
@@ -2670,7 +2676,7 @@ void PyramidPacked::ResizePyramid( int w,  int h)
 
 	if(w > GlobalUtil::_texMaxDim || h > GlobalUtil::_texMaxDim) return ;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<w<<"x"<<h<<endl;
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dx%d", w, h);
 	//first octave does not change
 	_pyramid_octave_first = 0;
 
@@ -2739,7 +2745,7 @@ void PyramidPacked::ResizePyramid( int w,  int h)
 
 	_allocated = 1;
 
-	if(GlobalUtil::_verbose && GlobalUtil::_timingS) std::cout<<"[Allocate Pyramid]:\t" <<(totalkb/1024)<<"MB\n";
+	if(GlobalUtil::_verbose && GlobalUtil::_timingS) CONSOLE("[Allocate Pyramid]:\t%dMB", (totalkb/1024));
 
 }
 

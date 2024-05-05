@@ -42,7 +42,7 @@ using namespace std;
 #include "ShaderMan.h"
 #include "FrameBufferObject.h"
 
-
+#include <log/trace.h>
 
 #if  defined(_WIN32) 
 	#pragma comment (lib, "../../lib/cg.lib")
@@ -83,23 +83,23 @@ ProgramCG::ProgramCG(const char *code, const char** cg_compile_args, CGprofile p
 		glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &epos);
 		if(epos >=0)
 		{
-			std::cout<<cgGetProgramString(_programID, CG_COMPILED_PROGRAM)<<endl;
-			std::cerr<<glGetString(GL_PROGRAM_ERROR_STRING_ARB)<<endl;
+			CONSOLE(cgGetProgramString(_programID, CG_COMPILED_PROGRAM).c_str());
+			CONSOLE(glGetString(GL_PROGRAM_ERROR_STRING_ARB).c_str());
 		}else
 		{
 			_valid = 1;
 		}
 	}else
 	{
-		std::cerr<<code<<endl;
+		CONSOLE(code);
 		glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &epos);
 		if(epos >=0)
 		{
-			std::cout<<cgGetProgramString(_programID, CG_COMPILED_PROGRAM)<<endl;
-			std::cerr<<glGetString(GL_PROGRAM_ERROR_STRING_ARB)<<endl;
+			CONSOLE(cgGetProgramString(_programID, CG_COMPILED_PROGRAM).c_str());
+			CONSOLE(glGetString(GL_PROGRAM_ERROR_STRING_ARB).c_str());
 		}else
 		{
-			std::cout<<glGetString(GL_PROGRAM_ERROR_STRING_ARB)<<endl;
+			CONSOLE(glGetString(GL_PROGRAM_ERROR_STRING_ARB).c_str());
 		}
 	}
 
@@ -110,7 +110,7 @@ void ProgramCG::ErrorCallback()
 	CGerror err = cgGetError();
 	if(err)
 	{
-		std::cerr<< cgGetErrorString(err)<<endl;
+		CONSOLE(cgGetErrorString(err));
 	}
 }
 
@@ -125,7 +125,7 @@ void ProgramCG::InitContext()
 		_FProfile = cgGLGetLatestProfile(CG_GL_FRAGMENT);
 		cgGLSetOptimalOptions(_FProfile);
 
-		if(GlobalUtil::_verbose) std::cout<<"Shader Profile: "<<cgGetProfileString(_FProfile)<<endl;
+		if(GlobalUtil::_verbose) CONSOLE("Shader Profile: %s", cgGetProfileString(_FProfile));
 
 		cgSetErrorCallback(ErrorCallback);
 	}
@@ -239,8 +239,8 @@ void ShaderBagCG::LoadFixedShaders()
 		GlobalUtil::_FullSupported = 0;
 		GlobalUtil::_MaxOrientation = 0;  //0 for simplified version
 		GlobalUtil::_DescriptorPPT = 0;
-		std::cerr<<"Orientation simplified on this hardware"<<endl;
-		std::cerr<<"Descriptor ignored on this hardware"<<endl;
+		CONSOLE("Orientation simplified on this hardware");
+		CONSOLE("Descriptor ignored on this hardware");
 	}
 
 
@@ -746,7 +746,7 @@ void ShaderBagCG:: LoadKeypointShader(float threshold, float edge_threshold)
 	"}\n" <<'\0';
 		s_keypoint = program = new ProgramCG(buffer);
 		GlobalUtil::_SubpixelLocalization = 0;
-		std::cerr<<"Detection simplified on this hardware"<<endl;
+		CONSOLE("Detection simplified on this hardware");
 	}
 	//parameter
 	_param_dog_texu = cgGetNamedParameter(*program, "texU");
@@ -1772,8 +1772,8 @@ void ShaderBagPKCG::LoadFixedShaders()
 		GlobalUtil::_FullSupported = 0;
 		GlobalUtil::_MaxOrientation = 0;
 		GlobalUtil::_DescriptorPPT = 0;
-		std::cerr<<"Orientation simplified on this hardware"<<endl;
-		std::cerr<<"Descriptor ignored on this hardware"<<endl;
+		CONSOLE("Orientation simplified on this hardware");
+		CONSOLE("Descriptor ignored on this hardware");
 	}
 }
 

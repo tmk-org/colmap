@@ -33,6 +33,8 @@
 
 #include "util/misc.h"
 
+#include <log/trace.h>
+
 namespace colmap {
 
 CameraRig::CameraRig() {}
@@ -209,11 +211,11 @@ bool CameraRig::ComputeRelativePoses(const Reconstruction& reconstruction) {
   for (auto& rig_camera : rig_cameras_) {
     if (rig_camera.first != ref_camera_id_) {
       if (rel_qvecs.count(rig_camera.first) == 0) {
-        std::cout << "Need at least one snapshot with an image of camera "
-                  << rig_camera.first << " and the reference camera "
-                  << ref_camera_id_
-                  << " to compute its relative pose in the camera rig"
-                  << std::endl;
+        CONSOLE(
+            "Need at least one snapshot with an image of camera "
+            "%d and the reference camera "
+            "%d to compute its relative pose in the camera rig",
+            rig_camera.first, ref_camera_id_);
         return false;
       }
       const std::vector<Eigen::Vector4d>& camera_rel_qvecs =

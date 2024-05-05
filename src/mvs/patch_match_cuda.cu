@@ -43,6 +43,8 @@
 #include "util/cudacc.h"
 #include "util/logging.h"
 
+#include <log/trace.h>
+
 // The number of threads per Cuda thread. Warning: Do not change this value,
 // since the templated window sizes rely on this value.
 #define THREADS_PER_BLOCK 32
@@ -1205,7 +1207,7 @@ void PatchMatchCuda::Run() {
       CASE_WINDOW_RADIUS(19, window_step)                             \
       CASE_WINDOW_RADIUS(20, window_step)                             \
       default: {                                                      \
-        std::cerr << "Error: Window size not supported" << std::endl; \
+        CONSOLE("Error: Window size not supported");                   \
         break;                                                        \
       }                                                               \
     }                                                                 \
@@ -1215,7 +1217,7 @@ void PatchMatchCuda::Run() {
     CASE_WINDOW_STEP(1)
     CASE_WINDOW_STEP(2)
     default: {
-      std::cerr << "Error: Window step not supported" << std::endl;
+      CONSOLE("Error: Window step not supported");
       break;
     }
   }

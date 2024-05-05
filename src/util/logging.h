@@ -38,6 +38,8 @@
 
 #include "util/string.h"
 
+#include <log/trace.h>
+
 // Option checker macros. In contrast to glog, this function does not abort the
 // program, but simply returns false on failure.
 #define CHECK_OPTION_IMPL(expr) \
@@ -79,11 +81,10 @@ bool __CheckOptionOpImpl(const char* file, const int line, const bool result,
   if (result) {
     return true;
   } else {
-    std::cerr << StringPrintf("[%s:%d] Check failed: %s %s %s (%s vs. %s)",
-                              __GetConstFileBaseName(file), line, val1_str,
-                              op_str, val2_str, std::to_string(val1).c_str(),
-                              std::to_string(val2).c_str())
-              << std::endl;
+    // CONSOLE(StringPrintf("[%s:%d] Check failed: %s %s %s (%s vs. %s)",
+    //                           __GetConstFileBaseName(file), line, val1_str,
+    //                           op_str, val2_str, std::to_string(val1).c_str(),
+    //                           std::to_string(val2).c_str()).c_str());
     return false;
   }
 }

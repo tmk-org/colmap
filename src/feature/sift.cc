@@ -48,6 +48,7 @@
 #include "util/math.h"
 #include "util/misc.h"
 #include "util/opengl_utils.h"
+#include <log/trace.h>
 
 namespace colmap {
 namespace {
@@ -354,17 +355,15 @@ void FindBestMatchesFLANN(
 void WarnIfMaxNumMatchesReachedGPU(const SiftMatchGPU& sift_match_gpu,
                                    const FeatureDescriptors& descriptors) {
   if (sift_match_gpu.GetMaxSift() < descriptors.rows()) {
-    std::cout << StringPrintf(
+    CONSOLE(StringPrintf(
                      "WARNING: Clamping features from %d to %d - consider "
                      "increasing the maximum number of matches.",
-                     descriptors.rows(), sift_match_gpu.GetMaxSift())
-              << std::endl;
+                     descriptors.rows(), sift_match_gpu.GetMaxSift()).c_str());
   }
 }
 
 void WarnDarknessAdaptivityNotAvailable() {
-  std::cout << "WARNING: Darkness adaptivity only available for GLSL SiftGPU."
-            << std::endl;
+  CONSOLE("WARNING: Darkness adaptivity only available for GLSL SiftGPU.");
 }
 
 }  // namespace
@@ -1129,22 +1128,20 @@ bool CreateSiftGPUMatcher(const SiftMatchingOptions& match_options,
 
   if (!sift_match_gpu->Allocate(match_options.max_num_matches,
                                 match_options.cross_check)) {
-    std::cout << StringPrintf(
+    CONSOLE(StringPrintf(
                      "ERROR: Not enough GPU memory to match %d features. "
                      "Reduce the maximum number of matches.",
-                     match_options.max_num_matches)
-              << std::endl;
+                     match_options.max_num_matches).c_str());
     return false;
   }
 
 #ifndef CUDA_ENABLED
   if (sift_match_gpu->GetMaxSift() < match_options.max_num_matches) {
-    std::cout << StringPrintf(
+    CONSOLE(StringPrintf(
                      "WARNING: OpenGL version of SiftGPU only supports a "
                      "maximum of %d matches - consider changing to CUDA-based "
                      "feature matching to avoid this limitation.",
-                     sift_match_gpu->GetMaxSift())
-              << std::endl;
+                     sift_match_gpu->GetMaxSift()).c_str());
   }
 #endif  // CUDA_ENABLED
 
@@ -1192,10 +1189,9 @@ void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
       static_cast<float>(match_options.max_ratio), match_options.cross_check);
 
   if (num_matches < 0) {
-    std::cerr << "ERROR: Feature matching failed. This is probably caused by "
+    CONSOLE("ERROR: Feature matching failed. This is probably caused by "
                  "insufficient GPU memory. Consider reducing the maximum "
-                 "number of features and/or matches."
-              << std::endl;
+                 "number of features and/or matches.");
     matches->clear();
   } else {
     CHECK_LE(num_matches, matches->size());
@@ -1286,10 +1282,9 @@ void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,
       match_options.cross_check);
 
   if (num_matches < 0) {
-    std::cerr << "ERROR: Feature matching failed. This is probably caused by "
+    CONSOLE("ERROR: Feature matching failed. This is probably caused by "
                  "insufficient GPU memory. Consider reducing the maximum "
-                 "number of features."
-              << std::endl;
+                 "number of features.");
     two_view_geometry->inlier_matches.clear();
   } else {
     CHECK_LE(num_matches, two_view_geometry->inlier_matches.size());

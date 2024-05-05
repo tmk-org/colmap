@@ -35,6 +35,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <log/trace.h>
+
 namespace colmap {
 
 std::string EnsureTrailingSlash(const std::string& str) {
@@ -189,14 +191,11 @@ size_t GetFileSize(const std::string& path) {
 }
 
 void PrintHeading1(const std::string& heading) {
-  std::cout << std::endl << std::string(78, '=') << std::endl;
-  std::cout << heading << std::endl;
-  std::cout << std::string(78, '=') << std::endl << std::endl;
+  CONSOLE("\n%s\n%s%n%s\n", std::string(78, '='), heading, std::string(78, '='));
 }
 
 void PrintHeading2(const std::string& heading) {
-  std::cout << std::endl << heading << std::endl;
-  std::cout << std::string(std::min<int>(heading.size(), 78), '-') << std::endl;
+  CONSOLE("\n%s\n%s", heading, std::string(std::min<int>(heading.size(), 78), '-'));
 }
 
 template <>

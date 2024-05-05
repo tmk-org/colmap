@@ -47,6 +47,8 @@ DECLARE_GPU_HOLDER_STATIC_MEMBERS(SiftGPU);
 
 
 
+#include <log/trace.h>
+
 namespace colmap {
 
 namespace {
@@ -108,9 +110,8 @@ SiftFeatureExtractor::SiftFeatureExtractor(
     camera_mask = std::make_shared<Bitmap>();
     if (!camera_mask->Read(reader_options_.camera_mask_path,
                            /*as_rgb*/ false)) {
-      std::cerr << "  ERROR: Cannot read camera mask file: "
-                << reader_options_.camera_mask_path
-                << ". No mask is going to be used." << std::endl;
+      CONSOLE("  ERROR: Cannot read camera mask file: %s"
+              ". No mask is going to be used.", reader_options_.camera_mask_path);
       camera_mask.reset();
     }
   }
@@ -416,7 +417,7 @@ void FeatureImporter::Run() {
   PrintHeading1("Feature import");
 
   if (!ExistsDir(import_path_)) {
-    std::cerr << "  ERROR: Import directory does not exist." << std::endl;
+    CONSOLE("  ERROR: Import directory does not exist.");
     return;
   }
 
@@ -428,10 +429,9 @@ void FeatureImporter::Run() {
       break;
     }
 
-    std::cout << StringPrintf("Processing file [%d/%d]",
+    CONSOLE(StringPrintf("Processing file [%d/%d]",
                               image_reader.NextIndex() + 1,
-                              image_reader.NumImages())
-              << std::endl;
+                              image_reader.NumImages()).c_str());
 
     // Load image data and possibly save camera to database.
     Camera camera;
@@ -449,7 +449,7 @@ void FeatureImporter::Run() {
       FeatureDescriptors descriptors;
       LoadSiftFeaturesFromTextFile(path, &keypoints, &descriptors);
 
-      std::cout << "  Features:       " << keypoints.size() << std::endl;
+      CONSOLE("  Features:       %zu", keypoints.size());
 
       DatabaseTransaction database_transaction(&database);
 
@@ -465,7 +465,7 @@ void FeatureImporter::Run() {
         database.WriteDescriptors(image.ImageId(), descriptors);
       }
     } else {
-      std::cout << "  SKIP: No features found at " << path << std::endl;
+      CONSOLE("  SKIP: No features found at %s", path);
     }
   }
 
@@ -547,7 +547,7 @@ void SiftFeatureExtractorThread::Run() {
         {
             decltype(sift_gpu) localEntity(new SiftGPU);
             if (!CreateSiftGPUExtractor(sift_options_, localEntity.get())) {
-              std::cerr << "ERROR: SiftGPU not fully supported." << std::endl;
+              CONSOLE("ERROR: SiftGPU not fully supported.");
               SignalInvalidSetup();
               return decltype(sift_gpu){};
             }
@@ -555,7 +555,7 @@ void SiftFeatureExtractorThread::Run() {
         }
     ); //CreateSiftGpu(sift_options_);
     if (!sift_gpu) {
-      std::cerr << "ERROR: SiftGPU not fully supported." << std::endl;
+      CONSOLE("ERROR: SiftGPU not fully supported.");
       SignalInvalidSetup();
       return;
     }
@@ -631,65 +631,56 @@ void FeatureWriterThread::Run() {
 
       image_index += 1;
 
-      std::cout << StringPrintf("Processed file [%d/%d]", image_index,
-                                num_images_)
-                << std::endl;
+      CONSOLE(StringPrintf("Processed file [%d/%d]", image_index,
+                                num_images_).c_str());
 
-      std::cout << StringPrintf("  Name:           %d",
-                                image_data.image.ImageId())
-                << std::endl;
+      CONSOLE(StringPrintf("  Name:           %d",
+                                image_data.image.ImageId()).c_str());
 
       if (image_data.status == ImageReader::Status::IMAGE_EXISTS) {
-        std::cout << "  SKIP: Features for image already extracted."
-                  << std::endl;
+        CONSOLE("  SKIP: Features for image already extracted.");
       } else if (image_data.status == ImageReader::Status::BITMAP_ERROR) {
-        std::cout << "  ERROR: Failed to read image file format." << std::endl;
+        CONSOLE("  ERROR: Failed to read image file format.");
       } else if (image_data.status ==
                  ImageReader::Status::CAMERA_SINGLE_DIM_ERROR) {
-        std::cout << "  ERROR: Single camera specified, "
-                     "but images have different dimensions."
-                  << std::endl;
+        CONSOLE("  ERROR: Single camera specified, "
+                "but images have different dimensions.");
       } else if (image_data.status ==
                  ImageReader::Status::CAMERA_EXIST_DIM_ERROR) {
-        std::cout << "  ERROR: Image previously processed, but current image "
-                     "has different dimensions."
-                  << std::endl;
+        CONSOLE("  ERROR: Image previously processed, but current image "
+                "has different dimensions.");
       } else if (image_data.status == ImageReader::Status::CAMERA_PARAM_ERROR) {
-        std::cout << "  ERROR: Camera has invalid parameters." << std::endl;
+        CONSOLE("  ERROR: Camera has invalid parameters.");
       } else if (image_data.status == ImageReader::Status::FAILURE) {
-        std::cout << "  ERROR: Failed to extract features." << std::endl;
+        CONSOLE("  ERROR: Failed to extract features.");
       }
 
       if (image_data.status != ImageReader::Status::SUCCESS) {
         continue;
       }
 
-      std::cout << StringPrintf("  Dimensions:      %d x %d",
+      CONSOLE(StringPrintf("  Dimensions:      %d x %d",
                                 image_data.camera.Width(),
-                                image_data.camera.Height())
-                << std::endl;
-      std::cout << StringPrintf("  Camera:          #%d - %s",
+                                image_data.camera.Height()).c_str());
+      CONSOLE(StringPrintf("  Camera:          #%d - %s",
                                 image_data.camera.CameraId(),
-                                image_data.camera.ModelName().c_str())
-                << std::endl;
-      std::cout << StringPrintf("  Focal Length:    %.2fpx",
-                                image_data.camera.MeanFocalLength());
+                                image_data.camera.ModelName().c_str()).c_str());
+      const auto print_length (StringPrintf("  Focal Length:    %.2fpx %s",
+                                image_data.camera.MeanFocalLength()));
       if (image_data.camera.HasPriorFocalLength()) {
-        std::cout << " (Prior)" << std::endl;
+        CONSOLE(print_length.c_str(), " (Prior)");
       } else {
-        std::cout << std::endl;
+        CONSOLE(print_length.c_str());
       }
       if (image_data.image.HasTvecPrior()) {
-        std::cout << StringPrintf(
+        CONSOLE(StringPrintf(
                          "  GPS:             LAT=%.3f, LON=%.3f, ALT=%.3f",
                          image_data.image.TvecPrior(0),
                          image_data.image.TvecPrior(1),
-                         image_data.image.TvecPrior(2))
-                  << std::endl;
+                         image_data.image.TvecPrior(2)).c_str());
       }
-      std::cout << StringPrintf("  Features:        %d",
-                                image_data.keypoints.size())
-                << std::endl;
+      CONSOLE(StringPrintf("  Features:        %d",
+                                image_data.keypoints.size()).c_str());
 
       DatabaseTransaction database_transaction(database_);
 
