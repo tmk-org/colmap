@@ -62,7 +62,7 @@ if (GUI_ENABLED)
     add_subdirectory(ui)
 endif()
 
-COLMAP_ADD_LIBRARY(colmap ${COLMAP_SOURCES})
+COLMAP_ADD_STATIC_LIBRARY(colmap ${COLMAP_SOURCES})
 
 target_include_directories(colmap 
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
