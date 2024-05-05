@@ -125,8 +125,7 @@ SiftGPU::~SiftGPU()
 	delete _list;
     delete[] _imgpath;
     delete[] _outpath;
-    std::cout << __PRETTY_FUNCTION__ << " succeded" << std::endl;
-    LOG(INFO)<< __PRETTY_FUNCTION__ << " succeded" ;
+    CONSOLE("%s succeded",__PRETTY_FUNCTION__);
 }
 
 
@@ -1149,7 +1148,8 @@ void SiftGPU::ParseParam(const int argc, const char **argv)
 
 	////////////////////////
 	GlobalUtil::SelectDisplay();
-    std::cout<< GlobalUtil::ToString()<<std::endl;
+    CONSOLE("%s",GlobalUtil::ToString());
+    
 
 	//do not write result if there are more than one input images
 	if(_outpath[0] && _list->size()>1)		_outpath[0] = 0;
