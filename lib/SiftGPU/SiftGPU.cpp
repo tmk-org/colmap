@@ -123,6 +123,8 @@ SiftGPU::~SiftGPU()
 	delete _list;
     delete[] _imgpath;
     delete[] _outpath;
+    std::cout << __PRETTY_FUNCTION__ << " succeded" << std::endl;
+    LOG(INFO)<< __PRETTY_FUNCTION__ << " succeded" ;
 }
 
 

@@ -37,6 +37,7 @@ COLMAP_ADD_SOURCES(
     sift.h sift.cc
     types.h types.cc
     utils.h utils.cc
+    GpuHolder.h
 )
 
 COLMAP_ADD_TEST(feature_utils_test utils_test.cc)

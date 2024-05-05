@@ -40,6 +40,9 @@
 #include "retrieval/visual_index.h"
 #include "util/cuda.h"
 #include "util/misc.h"
+#include "feature/GpuHolder.h"
+
+DECLARE_GPU_HOLDER_STATIC_MEMBERS(SiftMatchGPU);
 
 namespace colmap {
 namespace {
@@ -466,13 +469,20 @@ void SiftGPUFeatureMatcher::Run() {
   CHECK(opengl_context_);
   CHECK(opengl_context_->MakeCurrent());
 #endif
-
-  SiftMatchGPU sift_match_gpu;
-  if (!CreateSiftGPUMatcher(options_, &sift_match_gpu)) {
-    std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
-    SignalInvalidSetup();
-    return;
-  }
+  std::shared_ptr<SiftMatchGPU> sift_match_gpu;
+  GPU_HOLDER_REFCOUNT_TYPE_NAME(SiftMatchGPU) refcount;
+  std::tie(sift_match_gpu,refcount)=colmap::detail::GPUHolder<SiftMatchGPU>::Instance()->CreateGpuEntity(
+    [&]()->auto
+    {
+        std::shared_ptr<SiftMatchGPU>  psift_match_gpu(new SiftMatchGPU());
+        if (!CreateSiftGPUMatcher(options_, psift_match_gpu.get())) {
+          std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
+          SignalInvalidSetup();
+          return std::shared_ptr<SiftMatchGPU>();
+        }
+        return psift_match_gpu;
+    }
+  );
 
   SignalValidSetup();
 
@@ -496,7 +506,7 @@ void SiftGPUFeatureMatcher::Run() {
       const FeatureDescriptors* descriptors2_ptr;
       GetDescriptorData(1, data.image_id2, &descriptors2_ptr);
       MatchSiftFeaturesGPU(options_, descriptors1_ptr, descriptors2_ptr,
-                           &sift_match_gpu, &data.matches);
+                           sift_match_gpu.get(), &data.matches);
 
       CHECK(output_queue_->Push(std::move(data)));
     }
@@ -586,14 +596,20 @@ void GuidedSiftGPUFeatureMatcher::Run() {
   CHECK(opengl_context_);
   CHECK(opengl_context_->MakeCurrent());
 #endif
-
-  SiftMatchGPU sift_match_gpu;
-  if (!CreateSiftGPUMatcher(options_, &sift_match_gpu)) {
-    std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
-    SignalInvalidSetup();
-    return;
-  }
-
+  std::shared_ptr<SiftMatchGPU> sift_match_gpu;
+  GPU_HOLDER_REFCOUNT_TYPE_NAME(SiftMatchGPU) refcount;
+  std::tie(sift_match_gpu,refcount)=colmap::detail::GPUHolder<SiftMatchGPU>::Instance()->CreateGpuEntity(
+    [&]()->auto
+    {
+        std::shared_ptr<SiftMatchGPU>  psift_match_gpu(new SiftMatchGPU());
+        if (!CreateSiftGPUMatcher(options_, psift_match_gpu.get())) {
+          std::cout << "ERROR: SiftGPU not fully supported" << std::endl;
+          SignalInvalidSetup();
+          return std::shared_ptr<SiftMatchGPU>();
+        }
+        return psift_match_gpu;
+    }
+  );
   SignalValidSetup();
 
   while (true) {
@@ -628,7 +644,7 @@ void GuidedSiftGPUFeatureMatcher::Run() {
 
       MatchGuidedSiftFeaturesGPU(options_, keypoints1_ptr, keypoints2_ptr,
                                  descriptors1_ptr, descriptors2_ptr,
-                                 &sift_match_gpu, &data.two_view_geometry);
+                                 sift_match_gpu.get(), &data.two_view_geometry);
 
       CHECK(output_queue_->Push(std::move(data)));
     }

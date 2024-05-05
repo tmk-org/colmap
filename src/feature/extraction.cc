@@ -40,8 +40,15 @@
 #include "feature/sift.h"
 #include "util/cuda.h"
 #include "util/misc.h"
+#include "feature/GpuHolder.h"
+
+DECLARE_GPU_HOLDER_STATIC_MEMBERS(SiftGPU);
+
+
+
 
 namespace colmap {
+
 namespace {
 
 
@@ -527,16 +534,27 @@ SiftFeatureExtractorThread::SiftFeatureExtractorThread(
 }
 
 void SiftFeatureExtractorThread::Run() {
-  std::unique_ptr<SiftGPU> sift_gpu;
+  std::shared_ptr<SiftGPU> sift_gpu;
   std::cout << sift_options_;
+  GPU_HOLDER_REFCOUNT_TYPE_NAME(SiftGPU) refCount;
   if (sift_options_.use_gpu) {
 #ifndef CUDA_ENABLED
     CHECK(opengl_context_);
     CHECK(opengl_context_->MakeCurrent());
 #endif
-
-    sift_gpu = std::make_unique<SiftGPU>();
-    if (!CreateSiftGPUExtractor(sift_options_, sift_gpu.get())) {
+    std::tie(sift_gpu,refCount)=detail::GPUHolder<SiftGPU>::Instance()->CreateGpuEntity(
+        [&]()->auto
+        {
+            decltype(sift_gpu) localEntity(new SiftGPU);
+            if (!CreateSiftGPUExtractor(sift_options_, localEntity.get())) {
+              std::cerr << "ERROR: SiftGPU not fully supported." << std::endl;
+              SignalInvalidSetup();
+              return decltype(sift_gpu){};
+            }
+            return localEntity;
+        }
+    ); //CreateSiftGpu(sift_options_);
+    if (!sift_gpu) {
       std::cerr << "ERROR: SiftGPU not fully supported." << std::endl;
       SignalInvalidSetup();
       return;
