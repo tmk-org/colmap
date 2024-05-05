@@ -8,6 +8,20 @@
 
 namespace colmap {
 
+bool operator==(const SerialReconstructionController::image_id_range_t& l,const SerialReconstructionController::image_id_range_t& r)
+{
+    if(&l == &r)
+    {
+        return true;
+    }
+    return l.first==r.first && l.second==r.second;
+}
+
+bool operator^(const SerialReconstructionController::image_id_range_t& l,const image_t& id)
+{
+    return id >= l.first && id<=l.second;
+}
+
 SerialReconstructionController::SerialReconstructionController(
     const OptionManager& options, ReconstructionManager* reconstruction_manager,
     size_t max_buffer_size)
@@ -130,6 +144,7 @@ void SerialReconstructionController::RunFeatureMatching() {
 
 void SerialReconstructionController::RunIncrementalMapper() {
   CHECK(incremental_mapper_);
+  CheckAgainstExclude();
   incremental_mapper_->Start();
   LOG(INFO)<< "incremental mapper started...";
   incremental_mapper_->Wait();
@@ -165,9 +180,18 @@ void SerialReconstructionController::onLoad(image_t id) {
 void SerialReconstructionController::AddImageData(
     internal::ImageData image_data) {
 //  Timer timer;
-  std::list<std::tuple<std::string,int,double> > times;
-//  timer.Start();
-  //{
+    std::list<std::tuple<std::string,int,double> > times;
+    {
+        std::scoped_lock lock(this->_rangesToExcludeMutex);
+        if(!    _rangesToExclude.empty()
+            &&  std::find_if(   _rangesToExclude.begin(),
+                                _rangesToExclude.end(),
+                                [&](const auto& p_range)->bool{return p_range^image_data.image.ImageId();})!=_rangesToExclude.end())
+        {
+            LOG(INFO)<< "frame [" << image_data.image.ImageId() << " , " <<image_data.image.CameraId()<< " skipped"<<std::endl;
+            return;
+        }
+    }
     DatabaseTransaction database_transaction(database_.get());
 //    timer.Pause();
 //    times.emplace_back(std::make_tuple(__FUNCTION__,__LINE__,timer.ElapsedMicroSeconds()));
@@ -224,4 +248,65 @@ SerialReconstructionController::getCameraCorrespondences() const {
   return cameras_ids_correspondence_;
 }
 
+void SerialReconstructionController::SetExcludeRange(const SerialReconstructionController::image_id_range_t& range)
+{
+    std::scoped_lock lock(_rangesToExcludeMutex);
+    if( _rangesToExclude.empty() || 
+        std::find(_rangesToExclude.begin(),_rangesToExclude.end(),
+                    range)==_rangesToExclude.end())
+    {
+        _rangesToExclude.push_back(range);
+    }
+}
+
+void SerialReconstructionController::SetExcludeRangeFromIdToEnd(image_t idfrom)
+{
+    SetExcludeRange(std::make_pair(idfrom,std::numeric_limits<image_t>::max()));
+}
+
+void SerialReconstructionController::SetExcludeRangeFromBeginToId(image_t idto)
+{
+    SetExcludeRange(std::make_pair(std::numeric_limits<image_t>::min(),idto));
+}
+
+void SerialReconstructionController::CheckAgainstExclude()
+{
+    decltype(_rangesToExclude) ranges;
+    {
+        std::scoped_lock lock(_rangesToExcludeMutex);
+        if(_rangesToExclude.empty())
+        {
+            return;
+        }
+        ranges = _rangesToExclude;
+    }
+    DatabaseTransaction database_transaction(database_.get());
+    int imageNum= (int)(database_->NumImages() & std::numeric_limits<int>::max());
+    std::list<image_t> imagesToRemove;
+    for(int i=0;i<imageNum;i++)
+    {
+        auto initial_frame_id = images_ids_correspondence_[i];
+        if(std::find_if(ranges.begin(),ranges.end(),[&](const auto& r)->bool{return r^initial_frame_id;})!=ranges.end())
+        {
+            imagesToRemove.push_back(initial_frame_id);
+        }
+    }
+    std::list<std::pair<image_t,image_t>> pairs;
+    for(const auto& id:imagesToRemove)
+    {
+        for(auto i=0;i<imageNum;i++)
+        {
+            if ( database_->ExistsInlierMatches(id,i))
+            {
+                pairs.push_back(std::make_pair(id,i));
+            }
+        }
+    }
+    for(auto [id1,id2] : pairs)
+    {
+        database_->DeleteMatches(id1,id2);
+        database_->DeleteInlierMatches(id1,id2);
+        database_->WriteKeypoints(id1,colmap::FeatureKeypoints{});
+    }
+}
 }  // namespace colmap
