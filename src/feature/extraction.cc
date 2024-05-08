@@ -269,7 +269,7 @@ const boost::signals2::connection& SerialSiftFeatureExtractor::connectStateHandl
 
 void SerialSiftFeatureExtractor::Run() {
   size_t currJobIndex= 0;
-  PrintHeading1("Feature extraction");
+  TRACE_N_CONSOLE( INFO , "Feature extraction thread started" );
 
   for (auto& resizer : resizers_) {
     resizer->Start();
@@ -289,6 +289,7 @@ void SerialSiftFeatureExtractor::Run() {
 
   while (true) {
     if (IsStopped()) {
+      TRACE_N_CONSOLE( INFO , "Feature extraction %s : IsStopped() true" ,__PRETTY_FUNCTION__);
       resizer_queue_->Stop();
       extractor_queue_->Stop();
       resizer_queue_->Clear();
@@ -310,11 +311,13 @@ void SerialSiftFeatureExtractor::Run() {
       }
       else
       {
-        size_t tryouts = 0;
+        long int tryouts = 0;
         while(!extractor_queue_->Push(image_data,std::chrono::milliseconds(500)))
         {
             if(!extractor_queue_->Running())
             {
+                TRACE( INFO , "while trying to push image with internal id %u extractor_queue_->Running() false " , image_data.image.ImageId( ) );
+                tryouts = -1;
                 break;
             }
             std::this_thread::yield( );
@@ -328,7 +331,9 @@ void SerialSiftFeatureExtractor::Run() {
 #endif
         }
 #ifdef VERBOSE_COLMAP_LOGGING
-        LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed to extractor processing after " << tryouts;
+        //LOG( INFO ) << "image internal id " << image_data.image.ImageId( ) << " is pushed to extractor processing after " << tryouts << "tryouts";
+        TRACE( INFO , "image internal id %u is %s" , image_data.image.ImageId( ) , tryouts <0 ? "not pushed to extractor input since it stopped"
+                                                                                    : fmt::format( "pushed to input queue after {0} tryouts,input has size {1}" , tryouts , extractor_queue_->Size( ) ) );
 #endif
         //CHECK(extractor_queue_->Push(image_data));
       }
@@ -364,7 +369,7 @@ void SerialSiftFeatureExtractor::Run() {
 }
 
 void SiftFeatureExtractor::Run() {
-  PrintHeading1("Feature extraction");
+  TRACE_N_CONSOLE(INFO,"Feature extraction");
 
   for (auto& resizer : resizers_) {
     resizer->Start();
@@ -652,55 +657,55 @@ void FeatureWriterThread::Run() {
 
       image_index += 1;
 
-      CONSOLE(StringPrintf("Processed file [%d/%d]", image_index,
+      TRACE_N_CONSOLE(INFO,StringPrintf("Processed file [%d/%d]", image_index,
                                 num_images_).c_str());
 
-      CONSOLE(StringPrintf("  Name:           %d",
+      TRACE_N_CONSOLE(INFO,StringPrintf("  Name:           %d",
                                 image_data.image.ImageId()).c_str());
 
       if (image_data.status == ImageReader::Status::IMAGE_EXISTS) {
-        CONSOLE("  SKIP: Features for image already extracted.");
+        TRACE_N_CONSOLE(INFO,"  SKIP: Features for image already extracted.");
       } else if (image_data.status == ImageReader::Status::BITMAP_ERROR) {
-        CONSOLE("  ERROR: Failed to read image file format.");
+        TRACE_N_CONSOLE(INFO,"  ERROR: Failed to read image file format.");
       } else if (image_data.status ==
                  ImageReader::Status::CAMERA_SINGLE_DIM_ERROR) {
-        CONSOLE("  ERROR: Single camera specified, "
+        TRACE_N_CONSOLE(INFO,"  ERROR: Single camera specified, "
                 "but images have different dimensions.");
       } else if (image_data.status ==
                  ImageReader::Status::CAMERA_EXIST_DIM_ERROR) {
-        CONSOLE("  ERROR: Image previously processed, but current image "
+        TRACE_N_CONSOLE(INFO,"  ERROR: Image previously processed, but current image "
                 "has different dimensions.");
       } else if (image_data.status == ImageReader::Status::CAMERA_PARAM_ERROR) {
-        CONSOLE("  ERROR: Camera has invalid parameters.");
+        TRACE_N_CONSOLE(INFO,"  ERROR: Camera has invalid parameters.");
       } else if (image_data.status == ImageReader::Status::FAILURE) {
-        CONSOLE("  ERROR: Failed to extract features.");
+        TRACE_N_CONSOLE(INFO,"  ERROR: Failed to extract features.");
       }
 
       if (image_data.status != ImageReader::Status::SUCCESS) {
         continue;
       }
 
-      CONSOLE(StringPrintf("  Dimensions:      %d x %d",
+      TRACE_N_CONSOLE(INFO,StringPrintf("  Dimensions:      %d x %d",
                                 image_data.camera.Width(),
                                 image_data.camera.Height()).c_str());
-      CONSOLE(StringPrintf("  Camera:          #%d - %s",
+      TRACE_N_CONSOLE(INFO,StringPrintf("  Camera:          #%d - %s",
                                 image_data.camera.CameraId(),
                                 image_data.camera.ModelName().c_str()).c_str());
       const auto print_length (StringPrintf("  Focal Length:    %.2fpx",
                                 image_data.camera.MeanFocalLength()));
       if (image_data.camera.HasPriorFocalLength()) {
-        CONSOLE(print_length.c_str(), " (Prior)");
+        TRACE_N_CONSOLE(INFO,print_length.c_str(), " (Prior)");
       } else {
-        CONSOLE(print_length.c_str());
+        TRACE_N_CONSOLE(INFO,print_length.c_str());
       }
       if (image_data.image.HasTvecPrior()) {
-        CONSOLE(StringPrintf(
+        TRACE_N_CONSOLE(INFO,StringPrintf(
                          "  GPS:             LAT=%.3f, LON=%.3f, ALT=%.3f",
                          image_data.image.TvecPrior(0),
                          image_data.image.TvecPrior(1),
                          image_data.image.TvecPrior(2)).c_str());
       }
-      CONSOLE(StringPrintf("  Features:        %d",
+      TRACE_N_CONSOLE(INFO,StringPrintf("  Features:        %d",
                                 image_data.keypoints.size()).c_str());
 
       DatabaseTransaction database_transaction(database_);

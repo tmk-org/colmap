@@ -1051,7 +1051,7 @@ SerialSequentialFeatureMatcher::SerialSequentialFeatureMatcher(
 }
 
 void SerialSequentialFeatureMatcher::Run() {
-  PrintHeading1("Sequential feature matching");
+  TRACE_N_CONSOLE(INFO,"Sequential feature matching");
 
   if (!matcher_.Setup()) {
     return;
@@ -1090,7 +1090,7 @@ void SerialSequentialFeatureMatcher::RunSequentialMatching(
   Timer timer;
   timer.Start();
 
-  CONSOLE(StringPrintf("Matching image [%d/%d]", image_id1,
+  TRACE(INFO,StringPrintf("Matching image [%d/%d]", image_id1,
                             image_id1).c_str());
 
   image_pairs.clear();
