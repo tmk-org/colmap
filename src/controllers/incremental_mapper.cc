@@ -707,5 +707,63 @@ void IncrementalMapperController::Reconstruct(
         return * (&mapper.max_reg_trials);
     }
 
+        // Maximum angular error to continue existing triangulations.
+    double& IncrementalMapperOptions::create_max_angle_error( )
+    {
+        return *( &triangulation.create_max_angle_error );
+    }
 
+    // Maximum angular error to continue existing triangulations.
+    double& IncrementalMapperOptions::continue_max_angle_error( )
+    {
+        return *( &triangulation.continue_max_angle_error );
+    }
+
+    // Maximum reprojection error in pixels to merge triangulations.
+    double& IncrementalMapperOptions::merge_max_reproj_error( )
+    {
+        return *( &triangulation.merge_max_reproj_error );
+    }
+
+    // Maximum reprojection error to complete an existing triangulation.
+    double& IncrementalMapperOptions::complete_max_reproj_error( )
+    {
+        return *( &triangulation.complete_max_reproj_error );
+    }
+
+    // Maximum transitivity for track completion.
+    int& IncrementalMapperOptions::complete_max_transitivity( )
+    {
+        return *( &triangulation.complete_max_transitivity );
+    }
+
+    // Maximum angular error to re-triangulate under-reconstructed image pairs.
+    double& IncrementalMapperOptions::re_max_angle_error( )
+    {
+        return *( &triangulation.re_max_angle_error );
+    }
+
+    // Minimum ratio of common triangulations between an image pair over the
+    // number of correspondences between that image pair to be considered
+    // as under-reconstructed.
+    double& IncrementalMapperOptions::re_min_ratio ( )
+    {
+        return *( &triangulation.re_min_ratio );
+    }
+
+    // Maximum number of trials to re-triangulate an image pair.
+    int& IncrementalMapperOptions::re_max_trials ( )
+    {
+        return *( &triangulation.re_max_trials );
+    }
+
+    // Minimum pairwise triangulation angle for a stable triangulation.
+    double& IncrementalMapperOptions::min_angle ( )
+    {
+        return *( &triangulation.min_angle );
+    }
+    bool& IncrementalMapperOptions::ignore_two_view_tracks   ( )
+    {
+        return *( &triangulation.ignore_two_view_tracks );
+    }
 }  // namespace colmap
