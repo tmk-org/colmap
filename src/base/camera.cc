@@ -37,6 +37,8 @@
 #include "util/logging.h"
 #include "util/misc.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 Camera::Camera()

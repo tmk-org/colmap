@@ -43,6 +43,8 @@
 #include "estimators/utils.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::vector<FundamentalMatrixSevenPointEstimator::M_t>

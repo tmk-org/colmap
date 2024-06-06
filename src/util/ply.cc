@@ -40,6 +40,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::vector<PlyPoint> ReadPly(const std::string& path) {

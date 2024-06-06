@@ -38,6 +38,8 @@
 #include "util/alignment.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Two-view geometry estimator.

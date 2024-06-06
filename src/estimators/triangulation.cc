@@ -41,6 +41,8 @@
 #include "util/logging.h"
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 void TriangulationEstimator::SetMinTriAngle(const double min_tri_angle) {

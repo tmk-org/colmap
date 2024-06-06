@@ -35,6 +35,8 @@
 #include "estimators/triangulation.h"
 #include "util/misc.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 bool IncrementalTriangulator::Options::Check() const {

@@ -47,6 +47,8 @@
 #include "optim/ransac.h"
 #include "util/random.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

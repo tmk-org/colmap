@@ -43,6 +43,8 @@
 #include "util/math.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Triangulation estimator to estimate 3D point from multiple observations.

@@ -34,6 +34,8 @@
 #include "base/pose.h"
 #include "base/projection.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

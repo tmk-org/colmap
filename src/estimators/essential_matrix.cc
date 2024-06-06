@@ -42,6 +42,8 @@
 #include "util/logging.h"
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::vector<EssentialMatrixFivePointEstimator::M_t>

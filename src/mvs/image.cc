@@ -36,6 +36,8 @@
 #include "base/projection.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 

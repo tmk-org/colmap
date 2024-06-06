@@ -33,6 +33,8 @@
 
 #include <Eigen/SparseCholesky>
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

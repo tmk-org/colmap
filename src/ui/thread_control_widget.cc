@@ -31,6 +31,8 @@
 
 #include "ui/bundle_adjustment_widget.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 ThreadControlWidget::ThreadControlWidget(QWidget* parent)

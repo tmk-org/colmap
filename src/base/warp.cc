@@ -34,6 +34,8 @@
 #include "VLFeat/imopv.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

@@ -36,6 +36,8 @@
 #include "base/pose.h"
 #include "estimators/pose.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 void DecomposeEssentialMatrix(const Eigen::Matrix3d& E, Eigen::Matrix3d* R1,

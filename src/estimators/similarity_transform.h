@@ -42,6 +42,8 @@
 #include "util/logging.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // N-D similarity transform estimator from corresponding point pairs in the

@@ -48,6 +48,8 @@
 #include "util/cudacc.h"
 #include "util/endian.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace mvs {
 

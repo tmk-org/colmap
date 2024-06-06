@@ -39,6 +39,8 @@
 
 #include <fstream>
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

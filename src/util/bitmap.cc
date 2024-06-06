@@ -40,6 +40,8 @@
 #include "util/math.h"
 #include "util/misc.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 Bitmap::Bitmap()

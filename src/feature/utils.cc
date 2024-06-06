@@ -33,6 +33,8 @@
 
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 std::vector<Eigen::Vector2d> FeatureKeypointsToPointsVector(

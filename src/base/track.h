@@ -37,6 +37,8 @@
 #include "util/logging.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Track class stores all observations of a 3D point.

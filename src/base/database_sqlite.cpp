@@ -2,6 +2,8 @@
 #include "database_sqlite.h"
 #include "util/version.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

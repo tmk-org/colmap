@@ -34,6 +34,8 @@
 #include "base/essential_matrix.h"
 #include "base/pose.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 Eigen::Vector3d TriangulatePoint(const Eigen::Matrix3x4d& proj_matrix1,

@@ -37,6 +37,8 @@
 #include "mvs/patch_match.h"
 #include "ui/main_window.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

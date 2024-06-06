@@ -31,6 +31,8 @@
 
 #include "ui/log_widget.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 LogWidget::LogWidget(QWidget* parent, const int max_num_blocks) {

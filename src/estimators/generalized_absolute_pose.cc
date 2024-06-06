@@ -38,6 +38,8 @@
 #include "estimators/generalized_absolute_pose_coeffs.h"
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace {
 

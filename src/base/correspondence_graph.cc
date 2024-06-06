@@ -38,6 +38,8 @@
 
 #include <log/trace.h>
 
+#include "util/check.h"
+
 namespace colmap {
 
 CorrespondenceGraph::CorrespondenceGraph() {}

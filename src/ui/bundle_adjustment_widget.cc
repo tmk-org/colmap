@@ -34,6 +34,8 @@
 #include "controllers/bundle_adjustment.h"
 #include "ui/main_window.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 BundleAdjustmentWidget::BundleAdjustmentWidget(MainWindow* main_window,

@@ -42,6 +42,8 @@
 #include "util/misc.h"
 #include "feature/GpuHolder.h"
 
+#include "util/check.h"
+
 DECLARE_GPU_HOLDER_STATIC_MEMBERS(SiftMatchGPU);
 
 #include <log/trace.h>

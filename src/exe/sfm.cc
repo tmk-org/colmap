@@ -43,6 +43,8 @@
 #include "util/opengl_utils.h"
 #include "util/option_manager.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 int RunAutomaticReconstructor(int argc, char** argv) {

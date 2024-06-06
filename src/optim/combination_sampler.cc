@@ -36,6 +36,8 @@
 #include "util/math.h"
 #include "util/random.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 CombinationSampler::CombinationSampler(const size_t num_samples)

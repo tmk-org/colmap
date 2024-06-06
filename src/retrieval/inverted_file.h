@@ -49,6 +49,8 @@
 #include "util/logging.h"
 #include "util/math.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace retrieval {
 

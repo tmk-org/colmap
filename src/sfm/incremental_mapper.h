@@ -39,6 +39,8 @@
 #include "sfm/incremental_triangulator.h"
 #include "util/alignment.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Class that provides all functionality for the incremental reconstruction

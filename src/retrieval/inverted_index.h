@@ -47,6 +47,8 @@
 #include "util/alignment.h"
 #include "util/random.h"
 
+#include "util/check.h"
+
 namespace colmap {
 namespace retrieval {
 

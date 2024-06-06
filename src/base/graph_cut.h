@@ -42,6 +42,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Compute the min-cut of a undirected graph using the Stoer Wagner algorithm.

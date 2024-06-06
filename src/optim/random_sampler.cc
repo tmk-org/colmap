@@ -35,6 +35,8 @@
 
 #include "util/random.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 RandomSampler::RandomSampler(const size_t num_samples)

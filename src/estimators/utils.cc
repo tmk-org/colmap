@@ -33,6 +33,8 @@
 
 #include "util/logging.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 void CenterAndNormalizeImagePoints(const std::vector<Eigen::Vector2d>& points,

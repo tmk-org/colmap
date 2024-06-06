@@ -45,6 +45,8 @@
 #include "util/math.h"
 #include "util/types.h"
 
+#include "util/check.h"
+
 namespace colmap {
 
 // Class that holds information about an image. An image is the product of one
