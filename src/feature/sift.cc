@@ -860,7 +860,9 @@ bool ExtractSiftFeaturesGPU(const SiftExtractionOptions& options,
 
   // Note the max dimension of SiftGPU is the maximum dimension of the
   // first octave in the pyramid (which is the 'first_octave').
-  const int compensation_factor = 1 << -std::min(0, options.first_octave);
+  const int compensation_factor = 1 << -std::min( 0 , options.first_octave );
+  ( void ) compensation_factor;
+  //following removed due to fact that options.max_image_size in server can be equal to zero
   //CHECK_EQ(options.max_image_size * compensation_factor,
   //         sift_gpu->GetMaxDimension());
 
