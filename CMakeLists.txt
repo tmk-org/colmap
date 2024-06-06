@@ -141,7 +141,7 @@ find_package(FreeImage REQUIRED)
 
 find_package(Metis REQUIRED)
 
-find_package(Glog REQUIRED)
+# find_package(Glog REQUIRED)
 
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
