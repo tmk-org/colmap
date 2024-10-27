@@ -94,6 +94,7 @@ SerialReconstructionController::SerialReconstructionController(
 
 void SerialReconstructionController::Stop( bool isReconstruct )
 {
+    TRACE( INFO , "SerialReconstructionController::Stop isReconstruct %s, reader_queue_ size %zu" , isReconstruct , reader_queue_->Size());
     reader_queue_->Wait( );
     reader_queue_->Stop( );
     LOG( INFO ) << "after stopping reader_queue_.size() " << reader_queue_->Size( );
@@ -134,8 +135,10 @@ void SerialReconstructionController::Stop( bool isReconstruct )
 
 void SerialReconstructionController::Run( )
 {
+    TRACE( INFO , "SerialReconstructionController::Run enter..." );
     if (IsStopped( ))
     {
+        TRACE( INFO , "SerialReconstructionController::Run exits: IsStopped( ) true..." );
         return;
     }
 
@@ -143,6 +146,7 @@ void SerialReconstructionController::Run( )
 
     if (IsStopped( ))
     {
+        TRACE( INFO , "SerialReconstructionController::Run exits: IsStopped( ) true..." );
         return;
     }
 
@@ -153,12 +157,14 @@ void SerialReconstructionController::RunFeatureExtraction( )
 {
     CHECK( feature_extractor_ );
     feature_extractor_->Start( );
+    TRACE( INFO , "feature extraction launched" );
 }
 
 void SerialReconstructionController::RunFeatureMatching( )
 {
     CHECK( sequential_matcher_ );
     sequential_matcher_->Start( );
+    TRACE( INFO , "feature matching launched" );
 }
 
 void SerialReconstructionController::RunIncrementalMapper( )
@@ -182,18 +188,34 @@ void SerialReconstructionController::RunIncrementalMapper( )
 void SerialReconstructionController::onLoad( image_t id )
 {
     std::unique_lock lock( overlap_mutex_ );
+#ifdef VERBOSE_COLMAP_LOGGING    
+    TRACE( INFO , "%s for image %u" , __PRETTY_FUNCTION__ , id );
+#endif
   //  int overlap = option_manager_.sequential_matching->overlap - 1;
     int overlap = 30;
     decltype(std::declval<decltype(matching_overlap_)>().find({})) prev_it;
     decltype(std::declval<decltype(matching_overlap_)>().find({})) it;
     decltype(std::declval<decltype(matching_overlap_)>().find({})) next_it;
-    prev_it = matching_overlap_.find(id -1);
+    prev_it = matching_overlap_.find( id - 1 );
+#ifdef VERBOSE_COLMAP_LOGGING    
+    std::optional<bool> inserted;
+    std::optional<bool> updated;
+    FINALLY(
+        TRACE( INFO , "%s for image %u exited inserted %s updated %s matching_queue_.size %zu" , __PRETTY_FUNCTION__ ,
+            id ,
+            inserted.has_value() ? fmt::format("{0}",*inserted) : "not set" ,
+            updated.has_value( ) ? fmt::format( "{0}" , *updated ) : "not set" ,
+            matching_queue_->Size());
+    );
+#endif
     // Сheck if there are enough processed images
     if (prev_it != matching_overlap_.end() && prev_it->second == overlap)
     {
         prev_it->second = 0;
         //matching_overlap_[ id - 1 ] = 0;
-        matching_queue_->Push( id );
+#ifdef VERBOSE_COLMAP_LOGGING    
+        inserted = matching_queue_->Push( id );
+#endif        
     }
 
     // Update number of processed images
@@ -210,11 +232,16 @@ void SerialReconstructionController::onLoad( image_t id )
             {
                 if (!matching_queue_->Running( ))
                 {
+#ifdef VERBOSE_COLMAP_LOGGING                        
+                    updated = false;
+#endif
                     break;
                 }
                 std::this_thread::yield( );
             }
-            
+#ifdef VERBOSE_COLMAP_LOGGING
+            updated = true;
+#endif
         }
     }
 }
