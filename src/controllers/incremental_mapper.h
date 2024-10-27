@@ -183,9 +183,42 @@ struct IncrementalMapperOptions {
     // Maximum number of trials to register an image.
     int& max_reg_trials();
 
-    
-    
+    /*..................................................*/
+    /* ********passing triangulation options*********** */
+    /*..................................................*/
+    // Maximum angular error to continue existing triangulations.
+    double& create_max_angle_error( );
 
+    // Maximum angular error to continue existing triangulations.
+    double& continue_max_angle_error();
+
+    // Maximum reprojection error in pixels to merge triangulations.
+    double& merge_max_reproj_error();
+
+    // Maximum reprojection error to complete an existing triangulation.
+    double& complete_max_reproj_error();
+
+    // Maximum transitivity for track completion.
+    int& complete_max_transitivity();
+
+    // Maximum angular error to re-triangulate under-reconstructed image pairs.
+    double& re_max_angle_error();
+
+    // Minimum ratio of common triangulations between an image pair over the
+    // number of correspondences between that image pair to be considered
+    // as under-reconstructed.
+    double& re_min_ratio ();
+
+    // Maximum number of trials to re-triangulate an image pair.
+    int& re_max_trials ();
+
+    // Minimum pairwise triangulation angle for a stable triangulation.
+    double& min_angle ( );
+
+    bool&   ignore_two_view_tracks   ( );
+    /*..................................................*/
+    /*                                                  */
+    /*..................................................*/
 
  private:
   friend class OptionManager;
