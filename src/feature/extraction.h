@@ -57,7 +57,7 @@ class ISiftFeatureExtractor : public Thread {
   virtual ~ISiftFeatureExtractor() = default;
 
  protected:
-  virtual void Run() = 0;
+  //virtual void Run() = 0;
 
   const SiftExtractionOptions sift_options_;
   std::shared_ptr<IDatabase> database_;
